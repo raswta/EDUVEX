@@ -12,9 +12,9 @@
             theme: {
                 extend: {
                     colors: {
-                        stopwatch: '#3b82f6', // blue
-                        classcolor: '#10b981', // green
-                        manual: '#f97316' // orange
+                        stopwatch: '#3b82f6',
+                        classcolor: '#10b981',
+                        manual: '#f97316'
                     }
                 }
             }
@@ -22,7 +22,7 @@
     </script>
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Chart.js for charts -->
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -32,15 +32,19 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between">
 
-    <!-- Top Navigation / Header -->
+    <!-- Top Navigation -->
     <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 px-4 py-3 flex justify-between items-center">
         <div class="flex items-center space-x-3">
             <span class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">EDUVEX</span>
+            <a href="https://linktr.ee/Raswta" target="_blank" class="text-xs text-blue-400 font-medium hover:underline">by raswta</a>
             <div id="streakBadge" class="hidden items-center bg-amber-500/10 text-amber-400 text-xs px-2.5 py-1 rounded-full font-medium border border-amber-500/20">
                 <i class="fa-solid fa-fire mr-1"></i> <span id="streakCount">0</span> Day Streak
             </div>
         </div>
-        <div class="flex items-center space-x-3">
+        <div class="flex items-center space-x-2">
+            <button onclick="openModal('installModal')" class="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 px-3 py-1.5 rounded-lg text-xs font-medium transition">
+                <i class="fa-solid fa-mobile-screen-button mr-1"></i> Add App
+            </button>
             <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition">
                 <i class="fa-solid fa-moon" id="darkModeIcon"></i>
             </button>
@@ -60,7 +64,9 @@
         <!-- AUTH SECTION -->
         <section id="authSection" class="max-w-md mx-auto mt-12 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
             <h2 class="text-2xl font-bold text-center mb-2">Welcome to EDUVEX</h2>
-            <p class="text-xs text-center text-slate-400 mb-6">Enter your username and password to sync your study data securely.</p>
+            <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-4 text-[11px] text-amber-300 leading-relaxed">
+                ⚠️ <strong>Important Security Notice:</strong> Please save or write down your username and password in a safe place. There is NO password recovery option available!
+            </div>
             
             <div class="space-y-4">
                 <div>
@@ -75,17 +81,20 @@
                     <button onclick="handleLogin()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-lg text-sm transition">Sign In</button>
                     <button onclick="handleSignup()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2 rounded-lg text-sm transition">Sign Up</button>
                 </div>
-                <p class="text-[10px] text-center text-slate-500 mt-4">Note: Admin can view stored data.</p>
             </div>
         </section>
 
-        <!-- APP DASHBOARD (Hidden until logged in) -->
+        <!-- APP DASHBOARD -->
         <div id="appDashboard" class="hidden space-y-6">
 
-            <!-- Weekly Goal Progress Bar -->
+            <!-- Weekly Goal Progress Bar (Editable) -->
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
                 <div class="flex justify-between items-center mb-2 text-xs">
-                    <span class="font-medium text-slate-300">Weekly Study Goal (<span id="weeklyGoalHours">14</span> hrs)</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-medium text-slate-300">Weekly Study Goal:</span>
+                        <input type="number" id="goalInput" value="14" onchange="updateWeeklyGoal()" class="w-16 bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-xs text-blue-400 font-bold text-center">
+                        <span class="text-slate-400">hrs</span>
+                    </div>
                     <span id="weeklyGoalText" class="text-blue-400 font-semibold">0 / 14 hrs</span>
                 </div>
                 <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
@@ -93,7 +102,7 @@
                 </div>
             </div>
 
-            <!-- TABS NAVIGATION -->
+            <!-- TABS -->
             <div class="flex overflow-x-auto space-x-2 border-b border-slate-800 pb-2">
                 <button onclick="switchTab('timerTab')" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white transition">Timer & Study</button>
                 <button onclick="switchTab('plannerTab')" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition">Exams & Classes</button>
@@ -104,14 +113,37 @@
             <!-- TAB 1: TIMER & STUDY -->
             <div id="timerTab" class="tab-content space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Stopwatch Box -->
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col items-center justify-center">
-                        <h3 class="text-sm font-semibold text-slate-400 mb-4"><i class="fa-solid fa-stopwatch text-stopwatch mr-1"></i> Live Stopwatch Session</h3>
-                        <div class="w-full mb-4">
-                            <label class="block text-xs text-slate-400 mb-1">Select Subject</label>
-                            <input type="text" id="stopwatchSubject" placeholder="e.g. Mathematics" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                    <!-- Stopwatch & Pomodoro Box -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden">
+                        <div>
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-sm font-semibold text-slate-400"><i class="fa-solid fa-stopwatch text-stopwatch mr-1"></i> Study Timer</h3>
+                                <label class="flex items-center space-x-1.5 text-xs text-slate-300 cursor-pointer">
+                                    <input type="checkbox" id="pomodoroToggle" onchange="togglePomodoro()" class="rounded bg-slate-950 border-slate-800 text-blue-600 focus:ring-0">
+                                    <span>Pomodoro Mode</span>
+                                </label>
+                            </div>
+
+                            <!-- Pomodoro Settings (Hidden by default) -->
+                            <div id="pomodoroSettings" class="hidden grid grid-cols-2 gap-2 mb-4 bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs">
+                                <div>
+                                    <label class="block text-slate-400 mb-1">Study (min)</label>
+                                    <input type="number" id="pomoStudyTime" value="25" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-slate-200">
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 mb-1">Rest (min)</label>
+                                    <input type="number" id="pomoRestTime" value="5" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-slate-200">
+                                </div>
+                            </div>
+
+                            <div class="w-full mb-4">
+                                <label class="block text-xs text-slate-400 mb-1">Select Subject</label>
+                                <input type="text" id="stopwatchSubject" placeholder="e.g. Mathematics" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div id="stopwatchDisplay" class="text-4xl font-bold font-mono tracking-wider text-center my-4 text-slate-100">00:00:00</div>
+                            <div id="timerStatusLabel" class="text-center text-xs text-blue-400 font-medium mb-4 h-4">Ready to focus</div>
                         </div>
-                        <div id="stopwatchDisplay" class="text-4xl font-bold font-mono tracking-wider mb-6 text-slate-100">00:00:00</div>
+
                         <div class="flex space-x-3 w-full">
                             <button id="startStopwatchBtn" onclick="startStopwatch()" class="flex-1 bg-stopwatch hover:bg-blue-600 text-white py-2.5 rounded-lg font-medium text-sm transition">Start</button>
                             <button id="stopStopwatchBtn" onclick="stopStopwatch()" disabled class="flex-1 bg-slate-800 text-slate-500 py-2.5 rounded-lg font-medium text-sm transition cursor-not-allowed">Finish & Save</button>
@@ -135,32 +167,28 @@
                     </div>
                 </div>
 
-                <!-- Recent Sessions List -->
+                <!-- Recent Sessions -->
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
                     <h3 class="text-sm font-semibold text-slate-400 mb-4">Recent Sessions</h3>
-                    <div id="sessionsList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
-                        <!-- Loaded dynamically -->
-                    </div>
+                    <div id="sessionsList" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
                 </div>
             </div>
 
             <!-- TAB 2: EXAMS & CLASSES -->
             <div id="plannerTab" class="tab-content hidden space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Exam Planner -->
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
                         <h3 class="text-sm font-semibold text-slate-400">Exam Countdown & Planner</h3>
                         <div class="space-y-3">
-                            <input type="text" id="examTitle" placeholder="Exam Title (e.g. Midterm)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                            <input type="text" id="examTitle" placeholder="Exam Title" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
                             <input type="text" id="examSubject" placeholder="Subject" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
                             <input type="date" id="examDate" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-                            <textarea id="examTopics" placeholder="Topics to cover" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></textarea>
+                            <textarea id="examTopics" placeholder="Topics" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></textarea>
                             <button onclick="saveExam()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-medium">Add Exam</button>
                         </div>
                         <div id="examsList" class="space-y-2 mt-4 max-h-48 overflow-y-auto"></div>
                     </div>
 
-                    <!-- Classes Schedule -->
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
                         <h3 class="text-sm font-semibold text-slate-400">Weekly Classes Schedule</h3>
                         <div class="space-y-3">
@@ -175,7 +203,7 @@
                                 <option value="4">Thursday</option>
                                 <option value="5">Friday</option>
                             </select>
-                            <input type="number" id="classDuration" placeholder="Duration in minutes (e.g. 90)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                            <input type="number" id="classDuration" placeholder="Duration in minutes" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
                             <button onclick="saveClass()" class="w-full bg-classcolor hover:bg-emerald-600 text-white py-2 rounded-lg text-sm font-medium">Add Class</button>
                         </div>
                         <div id="classesList" class="space-y-2 mt-4 max-h-48 overflow-y-auto"></div>
@@ -187,24 +215,22 @@
             <div id="roomTab" class="tab-content hidden space-y-6">
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center space-y-4">
                     <h3 class="text-lg font-bold">Shared Study Room</h3>
-                    <p class="text-xs text-slate-400">Join the room to share your live stopwatch study hours with others. (Only real stopwatch time counts here!)</p>
+                    <p class="text-xs text-slate-400">Join the room to share your live stopwatch study hours with others (Classes & Manual hours are excluded).</p>
                     <div class="flex justify-center space-x-3">
                         <button id="joinRoomBtn" onclick="joinRoom()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition">Join Room</button>
                         <button id="leaveRoomBtn" onclick="leaveRoom()" class="hidden bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition">Leave Room</button>
                     </div>
                 </div>
-
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
                     <h4 class="text-sm font-semibold text-slate-400 mb-4">Active Room Members Leaderboard</h4>
                     <div id="roomMembersList" class="space-y-3">
-                        <p class="text-xs text-slate-500 text-center py-4">You are not in the room or no active members found.</p>
+                        <p class="text-xs text-slate-500 text-center py-4">You are not in the room.</p>
                     </div>
                 </div>
             </div>
 
             <!-- TAB 4: CHARTS & GRADES -->
             <div id="chartsTab" class="tab-content hidden space-y-6">
-                <!-- Charts Navigation -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
                         <div class="flex justify-between items-center mb-4">
@@ -222,7 +248,6 @@
                     </div>
                 </div>
 
-                <!-- Grades Section -->
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
                     <h3 class="text-sm font-semibold text-slate-400">End-of-Week Grades Entry</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -239,17 +264,39 @@
 
     </main>
 
-    <!-- GUIDE MODAL -->
-    <div id="guideModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 max-w-lg w-full rounded-2xl p-6 space-y-4 relative max-h-[85vh] overflow-y-auto">
-            <button onclick="closeModal('guideModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <h3 class="text-lg font-bold text-blue-400">EDUVEX User Guide 💡</h3>
+    <!-- FULLSCREEN POMODORO ALERT OVERLAY -->
+    <div id="pomoAlertOverlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden z-[100] flex flex-col items-center justify-center p-6 text-center space-y-4">
+        <div id="pomoAlertIcon" class="text-6xl text-amber-400 animate-bounce"><i class="fa-solid fa-bell"></i></div>
+        <h2 id="pomoAlertTitle" class="text-3xl font-bold text-white">Study Session Complete!</h2>
+        <p id="pomoAlertDesc" class="text-sm text-slate-300 max-w-sm">Great job! Time for a well-deserved rest break.</p>
+        <button onclick="dismissPomoAlert()" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-medium transition shadow-lg">Continue</button>
+    </div>
+
+    <!-- INSTALL PWA MODAL -->
+    <div id="installModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 max-w-md w-full rounded-2xl p-6 space-y-4 relative">
+            <button onclick="closeModal('installModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="text-lg font-bold text-emerald-400"><i class="fa-solid fa-mobile-screen mr-2"></i> Add to Home Screen</h3>
             <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
-                <p><strong>1. Accounts:</strong> Sign up with any username and password. Your data securely syncs across all your devices.</p>
-                <p><strong>2. Stopwatch & Rest Timer:</strong> Track live sessions accurately. Notifications will stay active even if you switch tabs. Auto-rest timer tracks breaks when you return.</p>
-                <p><strong>3. Exams & Classes:</strong> Add upcoming exams with countdowns and input your weekly class schedule which automatically integrates into study hours.</p>
-                <p><strong>4. Study Room:</strong> Join the shared room to compare stopwatch study hours with friends in real-time. Only live stopwatch sessions count here!</p>
-                <p><strong>5. Charts & Colors:</strong> Stopwatch sessions appear in Blue, Classes in Green, and Manual entries in Orange with an "Edited / Manual" label.</p>
+                <p><strong>For iOS (iPhone/iPad):</strong> Tap the <strong>Share</strong> button in Safari browser, then scroll down and select <strong>"Add to Home Screen"</strong>.</p>
+                <p><strong>For Android (Chrome):</strong> Tap the <strong>three dots menu</strong> in the top right corner, then select <strong>"Add to Home screen"</strong> or <strong>"Install App"</strong>.</p>
+            </div>
+            <button onclick="closeModal('installModal')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2 rounded-lg text-xs font-medium">Got it!</button>
+        </div>
+    </div>
+
+    <!-- GUIDE MODAL (Detailed) -->
+    <div id="guideModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 max-w-xl w-full rounded-2xl p-6 space-y-4 relative max-h-[85vh] overflow-y-auto">
+            <button onclick="closeModal('guideModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="text-lg font-bold text-blue-400">EDUVEX Complete User Guide 💡</h3>
+            <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
+                <p><strong>1. Accounts & Security:</strong> Sign up with any username and password. Make sure to keep your credentials safe because password recovery is not supported.</p>
+                <p><strong>2. Live Stopwatch & Pomodoro:</strong> Go to <em>Timer & Study</em>, enter your subject name, and hit <strong>Start</strong>. If you enable <strong>Pomodoro Mode</strong>, you can configure your custom study and rest minutes. When time expires, a fullscreen alert will notify you instantly.</p>
+                <p><strong>3. Manual Time Entry (How-to):</strong> If you studied without the live timer, use the <strong>Manual Time Entry</strong> box right next to the stopwatch. Just type the subject name, enter the total minutes you studied (e.g., 60), and click <em>Save Manual Entry</em>. These entries will show up with an orange badge and an "Edited / Manual" label in your logs and charts.</p>
+                <p><strong>4. Exams & Classes:</strong> Add upcoming exams to view live countdowns. Add your weekly class schedule; class durations automatically integrate into your total study hours and charts.</p>
+                <p><strong>5. Study Room:</strong> Join the shared room to compare stopwatch study hours with others. (Note: Manual entries and classes are excluded from the room leaderboard).</p>
+                <p><strong>6. Charts & Colors:</strong> Stopwatch sessions are <span class="text-blue-400 font-bold">Blue</span>, Classes are <span class="text-emerald-400 font-bold">Green</span>, and Manual entries are <span class="text-orange-400 font-bold">Orange</span>.</p>
             </div>
             <button onclick="closeModal('guideModal')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-xs font-medium">Got it!</button>
         </div>
@@ -262,7 +309,6 @@
 
     <!-- App Logic Script -->
     <script>
-        // Supabase Configuration
         const SUPABASE_URL = "https://kuescglkkpvsqqxnubww.supabase.co";
         const SUPABASE_KEY = "sb_publishable_su-MHh5kE2EuainNOAGuJA_EP0p7Mrb";
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -271,14 +317,15 @@
         let stopwatchInterval = null;
         let stopwatchStartTime = null;
         let roomInterval = null;
+        let weeklyGoalHours = 14;
+        let isPomodoro = false;
+        let pomoState = 'study'; // 'study' or 'rest'
+        let remainingSeconds = 0;
 
-        // Initialize app
         document.addEventListener('DOMContentLoaded', async () => {
-            // Register Service Worker for Notifications
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
             }
-
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
                 currentUser = session.user;
@@ -286,14 +333,13 @@
             }
         });
 
-        // Auth Functions
         async function handleSignup() {
             const username = document.getElementById('authUsername').value.trim();
             const password = document.getElementById('authPassword').value;
             if (!username || !password) return alert('Please enter username and password');
             
             const fakeEmail = `${username.toLowerCase()}@studyapp.local`;
-            const { data, error } = await supabaseClient.auth.signUp({ email: fakeEmail, password });
+            const { error } = await supabaseClient.auth.signUp({ email: fakeEmail, password });
             if (error) return alert(error.message);
             alert('Signup successful! Please sign in.');
         }
@@ -324,9 +370,7 @@
             document.getElementById('appDashboard').classList.remove('hidden');
             document.getElementById('userProfileArea').classList.remove('hidden');
             const fakeEmail = currentUser.email || '';
-            const uname = fakeEmail.split('@')[0] || 'User';
-            document.getElementById('navUsername').textContent = uname;
-            
+            document.getElementById('navUsername').textContent = fakeEmail.split('@')[0] || 'User';
             loadDashboardData();
         }
 
@@ -341,7 +385,13 @@
             event.currentTarget.classList.remove('text-slate-400');
         }
 
-        // Stopwatch Functions
+        function togglePomodoro() {
+            isPomodoro = document.getElementById('pomodoroToggle').checked;
+            const settings = document.getElementById('pomodoroSettings');
+            if (isPomodoro) settings.classList.remove('hidden');
+            else settings.classList.add('hidden');
+        }
+
         function startStopwatch() {
             const subject = document.getElementById('stopwatchSubject').value.trim();
             if (!subject) return alert('Please enter a subject name');
@@ -352,18 +402,64 @@
             document.getElementById('stopStopwatchBtn').classList.remove('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
             document.getElementById('stopStopwatchBtn').classList.add('bg-red-600', 'text-white');
 
-            // Trigger Service Worker notification
+            if (isPomodoro) {
+                const studyMins = parseInt(document.getElementById('pomoStudyTime').value) || 25;
+                remainingSeconds = studyMins * 60;
+                pomoState = 'study';
+                document.getElementById('timerStatusLabel').textContent = "Pomodoro: Study Session";
+            } else {
+                document.getElementById('timerStatusLabel').textContent = "Live Stopwatch Running";
+            }
+
             if (navigator.serviceWorker && navigator.serviceWorker.controller) {
                 navigator.serviceWorker.controller.postMessage({ type: 'START_STOPWATCH_NOTIFICATION', subject });
             }
 
             stopwatchInterval = setInterval(() => {
-                const elapsedSeconds = Math.floor((Date.now() - stopwatchStartTime) / 1000);
-                const hrs = String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0');
-                const mins = String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0');
-                const secs = String(elapsedSeconds % 60).padStart(2, '0');
-                document.getElementById('stopwatchDisplay').textContent = `${hrs}:${mins}:${secs}`;
+                if (isPomodoro) {
+                    if (remainingSeconds > 0) {
+                        remainingSeconds--;
+                        const hrs = String(Math.floor(remainingSeconds / 3600)).padStart(2, '0');
+                        const mins = String(Math.floor((remainingSeconds % 3600) / 60)).padStart(2, '0');
+                        const secs = String(remainingSeconds % 60).padStart(2, '0');
+                        document.getElementById('stopwatchDisplay').textContent = `${hrs}:${mins}:${secs}`;
+                    } else {
+                        handlePomodoroTransition();
+                    }
+                } else {
+                    const elapsedSeconds = Math.floor((Date.now() - stopwatchStartTime) / 1000);
+                    const hrs = String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0');
+                    const mins = String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0');
+                    const secs = String(elapsedSeconds % 60).padStart(2, '0');
+                    document.getElementById('stopwatchDisplay').textContent = `${hrs}:${mins}:${secs}`;
+                }
             }, 1000);
+        }
+
+        function handlePomodoroTransition() {
+            if (pomoState === 'study') {
+                showPomoAlert("Study Time Finished!", "Great job! Time for a rest break.");
+                const restMins = parseInt(document.getElementById('pomoRestTime').value) || 5;
+                remainingSeconds = restMins * 60;
+                pomoState = 'rest';
+                document.getElementById('timerStatusLabel').textContent = "Pomodoro: Rest Break";
+            } else {
+                showPomoAlert("Rest Break Finished!", "Break is over. Back to studying!");
+                const studyMins = parseInt(document.getElementById('pomoStudyTime').value) || 25;
+                remainingSeconds = studyMins * 60;
+                pomoState = 'study';
+                document.getElementById('timerStatusLabel').textContent = "Pomodoro: Study Session";
+            }
+        }
+
+        function showPomoAlert(title, desc) {
+            document.getElementById('pomoAlertTitle').textContent = title;
+            document.getElementById('pomoAlertDesc').textContent = desc;
+            document.getElementById('pomoAlertOverlay').classList.remove('hidden');
+        }
+
+        function dismissPomoAlert() {
+            document.getElementById('pomoAlertOverlay').classList.add('hidden');
         }
 
         async function stopStopwatch() {
@@ -385,6 +481,7 @@
             }
 
             document.getElementById('stopwatchDisplay').textContent = "00:00:00";
+            document.getElementById('timerStatusLabel').textContent = "Ready to focus";
             document.getElementById('startStopwatchBtn').disabled = false;
             document.getElementById('stopStopwatchBtn').disabled = true;
             document.getElementById('stopStopwatchBtn').classList.add('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
@@ -410,14 +507,17 @@
             loadDashboardData();
         }
 
+        function updateWeeklyGoal() {
+            weeklyGoalHours = parseFloat(document.getElementById('goalInput').value) || 14;
+            loadDashboardData();
+        }
+
         async function saveExam() {
             const title = document.getElementById('examTitle').value.trim();
             const subject = document.getElementById('examSubject').value.trim();
             const exam_date = document.getElementById('examDate').value;
             const topics = document.getElementById('examTopics').value.trim();
-
             if (!title || !subject || !exam_date) return alert('Please fill required exam fields');
-
             await supabaseClient.from('exams').insert({ user_id: currentUser.id, title, subject, exam_date, topics });
             loadDashboardData();
         }
@@ -427,9 +527,7 @@
             const subject = document.getElementById('classSubject').value.trim();
             const day_of_week = parseInt(document.getElementById('classDay').value);
             const duration_minutes = parseInt(document.getElementById('classDuration').value);
-
             if (!title || !subject || !duration_minutes) return alert('Please fill required class fields');
-
             await supabaseClient.from('classes').insert({ user_id: currentUser.id, title, subject, day_of_week, duration_minutes });
             loadDashboardData();
         }
@@ -438,24 +536,15 @@
             const week_start_date = document.getElementById('gradeWeekDate').value;
             const subject = document.getElementById('gradeSubject').value.trim();
             const grade = parseFloat(document.getElementById('gradeValue').value);
-
             if (!week_start_date || !subject || isNaN(grade)) return alert('Please fill grade fields correctly');
-
             await supabaseClient.from('grades').insert({ user_id: currentUser.id, week_start_date, subject, grade });
             loadDashboardData();
         }
 
-        // Study Room Functions
         async function joinRoom() {
             const fakeEmail = currentUser.email || '';
             const username = fakeEmail.split('@')[0] || 'User';
-
-            await supabaseClient.from('room_members').upsert({
-                user_id: currentUser.id,
-                username,
-                last_active: new Date()
-            });
-
+            await supabaseClient.from('room_members').upsert({ user_id: currentUser.id, username, last_active: new Date() });
             document.getElementById('joinRoomBtn').classList.add('hidden');
             document.getElementById('leaveRoomBtn').classList.remove('hidden');
             fetchRoomLeaderboard();
@@ -474,9 +563,7 @@
         async function fetchRoomLeaderboard() {
             const { data, error } = await supabaseClient.from('room_leaderboard').select('*');
             if (error || !data) return;
-
-            const listEl = document.getElementById('roomMembersList');
-            listEl.innerHTML = data.map(m => `
+            document.getElementById('roomMembersList').innerHTML = data.map(m => `
                 <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs">
                     <span class="font-medium text-slate-200">${m.username}</span>
                     <div class="space-x-3 text-slate-400">
@@ -488,7 +575,6 @@
         }
 
         async function loadDashboardData() {
-            // Load sessions
             const { data: sessions } = await supabaseClient.from('study_sessions').select('*').order('created_at', { ascending: false });
             const sessionsList = document.getElementById('sessionsList');
             if (sessions) {
@@ -504,14 +590,13 @@
                 `).join('');
             }
 
-            // Calculate weekly goal progress (Target: 14 hours = 840 mins)
             const totalMinutes = sessions ? sessions.reduce((acc, curr) => acc + curr.duration_minutes, 0) : 0;
             const totalHrs = (totalMinutes / 60).toFixed(1);
-            document.getElementById('weeklyGoalText').textContent = `${totalHrs} / 14 hrs`;
-            const percent = Math.min(100, (totalMinutes / 840) * 100);
+            const targetMins = weeklyGoalHours * 60;
+            document.getElementById('weeklyGoalText').textContent = `${totalHrs} / ${weeklyGoalHours} hrs`;
+            const percent = Math.min(100, (totalMinutes / targetMins) * 100);
             document.getElementById('weeklyGoalBar').style.width = `${percent}%`;
 
-            // Load exams
             const { data: exams } = await supabaseClient.from('exams').select('*');
             if (exams) {
                 document.getElementById('examsList').innerHTML = exams.map(e => `
@@ -522,7 +607,6 @@
                 `).join('');
             }
 
-            // Load classes
             const { data: classes } = await supabaseClient.from('classes').select('*');
             if (classes) {
                 document.getElementById('classesList').innerHTML = classes.map(c => `
@@ -534,10 +618,7 @@
             }
         }
 
-        function toggleDarkMode() {
-            document.documentElement.classList.toggle('dark');
-        }
-
+        function toggleDarkMode() { document.documentElement.classList.toggle('dark'); }
         function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
     </script>
