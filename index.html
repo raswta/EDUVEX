@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EDUVEX - Study Planner</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        stopwatch: '#3b82f6', // blue
+                        classcolor: '#10b981', // green
+                        manual: '#f97316' // orange
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js for charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between">
+
+    <!-- Top Navigation / Header -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <span class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">EDUVEX</span>
+            <div id="streakBadge" class="hidden items-center bg-amber-500/10 text-amber-400 text-xs px-2.5 py-1 rounded-full font-medium border border-amber-500/20">
+                <i class="fa-solid fa-fire mr-1"></i> <span id="streakCount">0</span> Day Streak
+            </div>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white transition">
+                <i class="fa-solid fa-moon" id="darkModeIcon"></i>
+            </button>
+            <button onclick="openModal('guideModal')" class="p-2 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 transition">
+                <i class="fa-solid fa-lightbulb"></i>
+            </button>
+            <div id="userProfileArea" class="hidden flex items-center space-x-2">
+                <span id="navUsername" class="text-sm font-medium text-slate-300"></span>
+                <button onclick="logout()" class="text-xs text-red-400 hover:text-red-300 bg-red-500/10 px-2 py-1 rounded transition">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-4xl w-full mx-auto p-4 flex-grow">
+
+        <!-- AUTH SECTION -->
+        <section id="authSection" class="max-w-md mx-auto mt-12 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <h2 class="text-2xl font-bold text-center mb-2">Welcome to EDUVEX</h2>
+            <p class="text-xs text-center text-slate-400 mb-6">Enter your username and password to sync your study data securely.</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Username</label>
+                    <input type="text" id="authUsername" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500" placeholder="e.g. rasta">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">Password</label>
+                    <input type="password" id="authPassword" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500" placeholder="••••••••">
+                </div>
+                <div class="flex space-x-3 pt-2">
+                    <button onclick="handleLogin()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-lg text-sm transition">Sign In</button>
+                    <button onclick="handleSignup()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2 rounded-lg text-sm transition">Sign Up</button>
+                </div>
+                <p class="text-[10px] text-center text-slate-500 mt-4">Note: Admin can view stored data.</p>
+            </div>
+        </section>
+
+        <!-- APP DASHBOARD (Hidden until logged in) -->
+        <div id="appDashboard" class="hidden space-y-6">
+
+            <!-- Weekly Goal Progress Bar -->
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
+                <div class="flex justify-between items-center mb-2 text-xs">
+                    <span class="font-medium text-slate-300">Weekly Study Goal (<span id="weeklyGoalHours">14</span> hrs)</span>
+                    <span id="weeklyGoalText" class="text-blue-400 font-semibold">0 / 14 hrs</span>
+                </div>
+                <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                    <div id="weeklyGoalBar" class="bg-blue-500 h-full w-0 transition-all duration-500"></div>
+                </div>
+            </div>
+
+            <!-- TABS NAVIGATION -->
+            <div class="flex overflow-x-auto space-x-2 border-b border-slate-800 pb-2">
+                <button onclick="switchTab('timerTab')" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white transition">Timer & Study</button>
+                <button onclick="switchTab('plannerTab')" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition">Exams & Classes</button>
+                <button onclick="switchTab('roomTab')" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition">Study Room</button>
+                <button onclick="switchTab('chartsTab')" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition">Charts & Grades</button>
+            </div>
+
+            <!-- TAB 1: TIMER & STUDY -->
+            <div id="timerTab" class="tab-content space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Stopwatch Box -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col items-center justify-center">
+                        <h3 class="text-sm font-semibold text-slate-400 mb-4"><i class="fa-solid fa-stopwatch text-stopwatch mr-1"></i> Live Stopwatch Session</h3>
+                        <div class="w-full mb-4">
+                            <label class="block text-xs text-slate-400 mb-1">Select Subject</label>
+                            <input type="text" id="stopwatchSubject" placeholder="e.g. Mathematics" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                        </div>
+                        <div id="stopwatchDisplay" class="text-4xl font-bold font-mono tracking-wider mb-6 text-slate-100">00:00:00</div>
+                        <div class="flex space-x-3 w-full">
+                            <button id="startStopwatchBtn" onclick="startStopwatch()" class="flex-1 bg-stopwatch hover:bg-blue-600 text-white py-2.5 rounded-lg font-medium text-sm transition">Start</button>
+                            <button id="stopStopwatchBtn" onclick="stopStopwatch()" disabled class="flex-1 bg-slate-800 text-slate-500 py-2.5 rounded-lg font-medium text-sm transition cursor-not-allowed">Finish & Save</button>
+                        </div>
+                    </div>
+
+                    <!-- Manual Entry Box -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                        <h3 class="text-sm font-semibold text-slate-400 mb-4"><i class="fa-solid fa-pen-to-square text-manual mr-1"></i> Manual Time Entry</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Subject</label>
+                                <input type="text" id="manualSubject" placeholder="e.g. Physics" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Duration (Minutes)</label>
+                                <input type="number" id="manualMinutes" placeholder="45" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-orange-500">
+                            </div>
+                            <button onclick="saveManualSession()" class="w-full bg-manual hover:bg-orange-600 text-white py-2.5 rounded-lg font-medium text-sm transition mt-2">Save Manual Entry</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Sessions List -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                    <h3 class="text-sm font-semibold text-slate-400 mb-4">Recent Sessions</h3>
+                    <div id="sessionsList" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: EXAMS & CLASSES -->
+            <div id="plannerTab" class="tab-content hidden space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Exam Planner -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                        <h3 class="text-sm font-semibold text-slate-400">Exam Countdown & Planner</h3>
+                        <div class="space-y-3">
+                            <input type="text" id="examTitle" placeholder="Exam Title (e.g. Midterm)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                            <input type="text" id="examSubject" placeholder="Subject" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                            <input type="date" id="examDate" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                            <textarea id="examTopics" placeholder="Topics to cover" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></textarea>
+                            <button onclick="saveExam()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-medium">Add Exam</button>
+                        </div>
+                        <div id="examsList" class="space-y-2 mt-4 max-h-48 overflow-y-auto"></div>
+                    </div>
+
+                    <!-- Classes Schedule -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                        <h3 class="text-sm font-semibold text-slate-400">Weekly Classes Schedule</h3>
+                        <div class="space-y-3">
+                            <input type="text" id="classTitle" placeholder="Class Title" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                            <input type="text" id="classSubject" placeholder="Subject" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                            <select id="classDay" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                                <option value="6">Saturday</option>
+                                <option value="0">Sunday</option>
+                                <option value="1">Monday</option>
+                                <option value="2">Tuesday</option>
+                                <option value="3">Wednesday</option>
+                                <option value="4">Thursday</option>
+                                <option value="5">Friday</option>
+                            </select>
+                            <input type="number" id="classDuration" placeholder="Duration in minutes (e.g. 90)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                            <button onclick="saveClass()" class="w-full bg-classcolor hover:bg-emerald-600 text-white py-2 rounded-lg text-sm font-medium">Add Class</button>
+                        </div>
+                        <div id="classesList" class="space-y-2 mt-4 max-h-48 overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: STUDY ROOM -->
+            <div id="roomTab" class="tab-content hidden space-y-6">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center space-y-4">
+                    <h3 class="text-lg font-bold">Shared Study Room</h3>
+                    <p class="text-xs text-slate-400">Join the room to share your live stopwatch study hours with others. (Only real stopwatch time counts here!)</p>
+                    <div class="flex justify-center space-x-3">
+                        <button id="joinRoomBtn" onclick="joinRoom()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition">Join Room</button>
+                        <button id="leaveRoomBtn" onclick="leaveRoom()" class="hidden bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition">Leave Room</button>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                    <h4 class="text-sm font-semibold text-slate-400 mb-4">Active Room Members Leaderboard</h4>
+                    <div id="roomMembersList" class="space-y-3">
+                        <p class="text-xs text-slate-500 text-center py-4">You are not in the room or no active members found.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: CHARTS & GRADES -->
+            <div id="chartsTab" class="tab-content hidden space-y-6">
+                <!-- Charts Navigation -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-sm font-semibold text-slate-400">Weekly Study Breakdown</h3>
+                            <div class="space-x-1">
+                                <button onclick="changeWeek(-1)" class="p-1.5 bg-slate-800 rounded hover:bg-slate-700 text-xs"><i class="fa-solid fa-chevron-left"></i></button>
+                                <button onclick="changeWeek(1)" class="p-1.5 bg-slate-800 rounded hover:bg-slate-700 text-xs"><i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                        <canvas id="weeklyChart" height="200"></canvas>
+                    </div>
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+                        <h3 class="text-sm font-semibold text-slate-400 mb-4">Monthly Study Breakdown</h3>
+                        <canvas id="monthlyChart" height="200"></canvas>
+                    </div>
+                </div>
+
+                <!-- Grades Section -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                    <h3 class="text-sm font-semibold text-slate-400">End-of-Week Grades Entry</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <input type="date" id="gradeWeekDate" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                        <input type="text" id="gradeSubject" placeholder="Subject" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                        <input type="number" step="0.01" id="gradeValue" placeholder="Grade (e.g. 18.5)" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                    </div>
+                    <button onclick="saveGrade()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-medium">Save Grade</button>
+                    <div id="gradesList" class="space-y-2 mt-4 max-h-40 overflow-y-auto"></div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- GUIDE MODAL -->
+    <div id="guideModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 max-w-lg w-full rounded-2xl p-6 space-y-4 relative max-h-[85vh] overflow-y-auto">
+            <button onclick="closeModal('guideModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="text-lg font-bold text-blue-400">EDUVEX User Guide 💡</h3>
+            <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
+                <p><strong>1. Accounts:</strong> Sign up with any username and password. Your data securely syncs across all your devices.</p>
+                <p><strong>2. Stopwatch & Rest Timer:</strong> Track live sessions accurately. Notifications will stay active even if you switch tabs. Auto-rest timer tracks breaks when you return.</p>
+                <p><strong>3. Exams & Classes:</strong> Add upcoming exams with countdowns and input your weekly class schedule which automatically integrates into study hours.</p>
+                <p><strong>4. Study Room:</strong> Join the shared room to compare stopwatch study hours with friends in real-time. Only live stopwatch sessions count here!</p>
+                <p><strong>5. Charts & Colors:</strong> Stopwatch sessions appear in Blue, Classes in Green, and Manual entries in Orange with an "Edited / Manual" label.</p>
+            </div>
+            <button onclick="closeModal('guideModal')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-xs font-medium">Got it!</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs text-slate-400">
+        Made by <a href="https://linktr.ee/Raswta" target="_blank" class="text-blue-400 font-semibold hover:underline">raswta</a>
+    </footer>
+
+    <!-- App Logic Script -->
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = "https://kuescglkkpvsqqxnubww.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_su-MHh5kE2EuainNOAGuJA_EP0p7Mrb";
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentUser = null;
+        let stopwatchInterval = null;
+        let stopwatchStartTime = null;
+        let roomInterval = null;
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Register Service Worker for Notifications
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW error:', err));
+            }
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                onLoginSuccess();
+            }
+        });
+
+        // Auth Functions
+        async function handleSignup() {
+            const username = document.getElementById('authUsername').value.trim();
+            const password = document.getElementById('authPassword').value;
+            if (!username || !password) return alert('Please enter username and password');
+            
+            const fakeEmail = `${username.toLowerCase()}@studyapp.local`;
+            const { data, error } = await supabaseClient.auth.signUp({ email: fakeEmail, password });
+            if (error) return alert(error.message);
+            alert('Signup successful! Please sign in.');
+        }
+
+        async function handleLogin() {
+            const username = document.getElementById('authUsername').value.trim();
+            const password = document.getElementById('authPassword').value;
+            if (!username || !password) return alert('Please enter username and password');
+
+            const fakeEmail = `${username.toLowerCase()}@studyapp.local`;
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email: fakeEmail, password });
+            if (error) return alert(error.message);
+
+            currentUser = data.user;
+            onLoginSuccess();
+        }
+
+        async function logout() {
+            await supabaseClient.auth.signOut();
+            currentUser = null;
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('appDashboard').classList.add('hidden');
+            document.getElementById('userProfileArea').classList.add('hidden');
+        }
+
+        function onLoginSuccess() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('appDashboard').classList.remove('hidden');
+            document.getElementById('userProfileArea').classList.remove('hidden');
+            const fakeEmail = currentUser.email || '';
+            const uname = fakeEmail.split('@')[0] || 'User';
+            document.getElementById('navUsername').textContent = uname;
+            
+            loadDashboardData();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('bg-blue-600', 'text-white');
+                el.classList.add('text-slate-400');
+            });
+            document.getElementById(tabId).classList.remove('hidden');
+            event.currentTarget.classList.add('bg-blue-600', 'text-white');
+            event.currentTarget.classList.remove('text-slate-400');
+        }
+
+        // Stopwatch Functions
+        function startStopwatch() {
+            const subject = document.getElementById('stopwatchSubject').value.trim();
+            if (!subject) return alert('Please enter a subject name');
+
+            stopwatchStartTime = Date.now();
+            document.getElementById('startStopwatchBtn').disabled = true;
+            document.getElementById('stopStopwatchBtn').disabled = false;
+            document.getElementById('stopStopwatchBtn').classList.remove('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
+            document.getElementById('stopStopwatchBtn').classList.add('bg-red-600', 'text-white');
+
+            // Trigger Service Worker notification
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'START_STOPWATCH_NOTIFICATION', subject });
+            }
+
+            stopwatchInterval = setInterval(() => {
+                const elapsedSeconds = Math.floor((Date.now() - stopwatchStartTime) / 1000);
+                const hrs = String(Math.floor(elapsedSeconds / 3600)).padStart(2, '0');
+                const mins = String(Math.floor((elapsedSeconds % 3600) / 60)).padStart(2, '0');
+                const secs = String(elapsedSeconds % 60).padStart(2, '0');
+                document.getElementById('stopwatchDisplay').textContent = `${hrs}:${mins}:${secs}`;
+            }, 1000);
+        }
+
+        async function stopStopwatch() {
+            clearInterval(stopwatchInterval);
+            const elapsedMinutes = Math.round((Date.now() - stopwatchStartTime) / 60000);
+            const subject = document.getElementById('stopwatchSubject').value.trim();
+
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'STOP_STOPWATCH_NOTIFICATION' });
+            }
+
+            if (elapsedMinutes > 0) {
+                await supabaseClient.from('study_sessions').insert({
+                    user_id: currentUser.id,
+                    subject,
+                    duration_minutes: elapsedMinutes,
+                    type: 'stopwatch'
+                });
+            }
+
+            document.getElementById('stopwatchDisplay').textContent = "00:00:00";
+            document.getElementById('startStopwatchBtn').disabled = false;
+            document.getElementById('stopStopwatchBtn').disabled = true;
+            document.getElementById('stopStopwatchBtn').classList.add('bg-slate-800', 'text-slate-500', 'cursor-not-allowed');
+            document.getElementById('stopStopwatchBtn').classList.remove('bg-red-600', 'text-white');
+
+            loadDashboardData();
+        }
+
+        async function saveManualSession() {
+            const subject = document.getElementById('manualSubject').value.trim();
+            const minutes = parseInt(document.getElementById('manualMinutes').value);
+            if (!subject || !minutes || minutes <= 0) return alert('Please enter valid subject and minutes');
+
+            await supabaseClient.from('study_sessions').insert({
+                user_id: currentUser.id,
+                subject,
+                duration_minutes: minutes,
+                type: 'manual'
+            });
+
+            document.getElementById('manualSubject').value = '';
+            document.getElementById('manualMinutes').value = '';
+            loadDashboardData();
+        }
+
+        async function saveExam() {
+            const title = document.getElementById('examTitle').value.trim();
+            const subject = document.getElementById('examSubject').value.trim();
+            const exam_date = document.getElementById('examDate').value;
+            const topics = document.getElementById('examTopics').value.trim();
+
+            if (!title || !subject || !exam_date) return alert('Please fill required exam fields');
+
+            await supabaseClient.from('exams').insert({ user_id: currentUser.id, title, subject, exam_date, topics });
+            loadDashboardData();
+        }
+
+        async function saveClass() {
+            const title = document.getElementById('classTitle').value.trim();
+            const subject = document.getElementById('classSubject').value.trim();
+            const day_of_week = parseInt(document.getElementById('classDay').value);
+            const duration_minutes = parseInt(document.getElementById('classDuration').value);
+
+            if (!title || !subject || !duration_minutes) return alert('Please fill required class fields');
+
+            await supabaseClient.from('classes').insert({ user_id: currentUser.id, title, subject, day_of_week, duration_minutes });
+            loadDashboardData();
+        }
+
+        async function saveGrade() {
+            const week_start_date = document.getElementById('gradeWeekDate').value;
+            const subject = document.getElementById('gradeSubject').value.trim();
+            const grade = parseFloat(document.getElementById('gradeValue').value);
+
+            if (!week_start_date || !subject || isNaN(grade)) return alert('Please fill grade fields correctly');
+
+            await supabaseClient.from('grades').insert({ user_id: currentUser.id, week_start_date, subject, grade });
+            loadDashboardData();
+        }
+
+        // Study Room Functions
+        async function joinRoom() {
+            const fakeEmail = currentUser.email || '';
+            const username = fakeEmail.split('@')[0] || 'User';
+
+            await supabaseClient.from('room_members').upsert({
+                user_id: currentUser.id,
+                username,
+                last_active: new Date()
+            });
+
+            document.getElementById('joinRoomBtn').classList.add('hidden');
+            document.getElementById('leaveRoomBtn').classList.remove('hidden');
+            fetchRoomLeaderboard();
+            if (!roomInterval) roomInterval = setInterval(fetchRoomLeaderboard, 5000);
+        }
+
+        async function leaveRoom() {
+            await supabaseClient.from('room_members').delete().eq('user_id', currentUser.id);
+            document.getElementById('leaveRoomBtn').classList.add('hidden');
+            document.getElementById('joinRoomBtn').classList.remove('hidden');
+            if (roomInterval) clearInterval(roomInterval);
+            roomInterval = null;
+            document.getElementById('roomMembersList').innerHTML = `<p class="text-xs text-slate-500 text-center py-4">You are not in the room.</p>`;
+        }
+
+        async function fetchRoomLeaderboard() {
+            const { data, error } = await supabaseClient.from('room_leaderboard').select('*');
+            if (error || !data) return;
+
+            const listEl = document.getElementById('roomMembersList');
+            listEl.innerHTML = data.map(m => `
+                <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs">
+                    <span class="font-medium text-slate-200">${m.username}</span>
+                    <div class="space-x-3 text-slate-400">
+                        <span>Today: <strong class="text-blue-400">${m.today_minutes}m</strong></span>
+                        <span>This Week: <strong class="text-emerald-400">${m.week_minutes}m</strong></span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function loadDashboardData() {
+            // Load sessions
+            const { data: sessions } = await supabaseClient.from('study_sessions').select('*').order('created_at', { ascending: false });
+            const sessionsList = document.getElementById('sessionsList');
+            if (sessions) {
+                sessionsList.innerHTML = sessions.slice(0, 10).map(s => `
+                    <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs">
+                        <div>
+                            <span class="font-medium text-slate-200">${s.subject}</span>
+                            <span class="text-[10px] ml-2 px-1.5 py-0.5 rounded ${s.type === 'stopwatch' ? 'bg-blue-500/10 text-blue-400' : s.type === 'class' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-orange-500/10 text-orange-400'}">${s.type}</span>
+                            ${s.type === 'manual' ? '<span class="block text-[9px] text-orange-400 mt-0.5">Edited / Manual</span>' : ''}
+                        </div>
+                        <span class="font-mono text-slate-300">${s.duration_minutes} mins</span>
+                    </div>
+                `).join('');
+            }
+
+            // Calculate weekly goal progress (Target: 14 hours = 840 mins)
+            const totalMinutes = sessions ? sessions.reduce((acc, curr) => acc + curr.duration_minutes, 0) : 0;
+            const totalHrs = (totalMinutes / 60).toFixed(1);
+            document.getElementById('weeklyGoalText').textContent = `${totalHrs} / 14 hrs`;
+            const percent = Math.min(100, (totalMinutes / 840) * 100);
+            document.getElementById('weeklyGoalBar').style.width = `${percent}%`;
+
+            // Load exams
+            const { data: exams } = await supabaseClient.from('exams').select('*');
+            if (exams) {
+                document.getElementById('examsList').innerHTML = exams.map(e => `
+                    <div class="bg-slate-950 p-2 rounded border border-slate-800 text-xs flex justify-between items-center">
+                        <div><strong>${e.title}</strong> (${e.subject})</div>
+                        <div class="text-blue-400">${e.exam_date}</div>
+                    </div>
+                `).join('');
+            }
+
+            // Load classes
+            const { data: classes } = await supabaseClient.from('classes').select('*');
+            if (classes) {
+                document.getElementById('classesList').innerHTML = classes.map(c => `
+                    <div class="bg-slate-950 p-2 rounded border border-slate-800 text-xs flex justify-between items-center">
+                        <div><strong>${c.title}</strong> (${c.subject})</div>
+                        <div class="text-emerald-400">${c.duration_minutes}m</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    </script>
+</body>
+</html>
