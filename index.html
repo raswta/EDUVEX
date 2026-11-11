@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style type="text/tailwindcss">
 body{font-family:Inter,system-ui,sans-serif}
 .card{@apply bg-slate-900 border border-slate-800 rounded-2xl p-5}
@@ -28,8 +29,10 @@ body{font-family:Inter,system-ui,sans-serif}
     <a href="https://linktr.ee/Raswta" target="_blank" class="text-xs text-blue-400 hover:underline">by raswta</a>
   </div>
   <div class="flex items-center gap-2">
-    <span id="conn" class="px-2.5 py-1 rounded-full text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">Online</span>
-    <button onclick="modal('guide',1)" class="px-2.5 py-1 rounded-lg bg-blue-600/20 text-blue-400">💡</button>
+    <button id="conn" onclick="modal('offInfo',1)" class="px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
+      <span id="connDot" class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span><span id="connText">Online</span></button>
+    <button onclick="modal('install',1)" class="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 px-3 py-1.5 rounded-lg text-xs font-medium"><i class="fa-solid fa-mobile-screen-button mr-1"></i> Add App</button>
+    <button onclick="modal('guide',1)" class="p-2 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30"><i class="fa-solid fa-lightbulb"></i></button>
     <button id="logoutBtn" onclick="logout()" class="hidden text-xs text-red-400 bg-red-500/10 px-2.5 py-1.5 rounded-lg">Logout</button>
   </div>
 </header>
@@ -39,7 +42,7 @@ body{font-family:Inter,system-ui,sans-serif}
 <section id="auth" class="max-w-md mx-auto mt-10 card space-y-4">
   <h2 class="text-2xl font-bold text-center">Welcome to EDUVEX</h2>
   <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-[11px] text-amber-300">
-    ⚠️ Save your username and password somewhere safe. There is NO password recovery!
+    <i class="fa-solid fa-triangle-exclamation"></i> Save your username and password somewhere safe. There is NO password recovery!
   </div>
   <div><label class="lbl">Username</label><input id="aUser" class="inp" placeholder="e.g. rasta"></div>
   <div><label class="lbl">Password (min 6 characters)</label><input id="aPass" type="password" class="inp" onkeydown="if(event.key==='Enter')login()"></div>
@@ -69,7 +72,7 @@ body{font-family:Inter,system-ui,sans-serif}
   <div class="flex overflow-x-auto gap-2 border-b border-slate-800 pb-2">
     <button class="tab-btn on" data-t="timerTab" onclick="tab('timerTab')">Timer &amp; Study</button>
     <button class="tab-btn" data-t="plannerTab" onclick="tab('plannerTab')">Exams &amp; Classes</button>
-    <button class="tab-btn" data-t="roomTab" onclick="tab('roomTab')">Study Room 🟢</button>
+    <button class="tab-btn" data-t="roomTab" onclick="tab('roomTab')"><span class="flex items-center gap-1.5">Study Room <span class="flex h-2 w-2 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span></span></button>
     <button class="tab-btn" data-t="chartsTab" onclick="tab('chartsTab')">Charts &amp; Grades</button>
   </div>
 
@@ -78,7 +81,7 @@ body{font-family:Inter,system-ui,sans-serif}
     <div class="grid md:grid-cols-2 gap-6">
       <div class="card">
         <div class="flex justify-between items-center mb-3">
-          <h3 class="text-sm font-semibold text-slate-400">⏱ General Study Timer</h3>
+          <h3 class="text-sm font-semibold text-slate-400"><i class="fa-solid fa-stopwatch text-blue-500 mr-1"></i> General Study Timer</h3>
           <label class="flex items-center gap-1.5 text-xs cursor-pointer"><input type="checkbox" id="pomoOn" onchange="togglePomo()"> Pomodoro</label>
         </div>
         <div id="pomoSet" class="hidden grid grid-cols-2 gap-2 mb-3 text-xs">
@@ -97,12 +100,12 @@ body{font-family:Inter,system-ui,sans-serif}
         </div>
       </div>
       <div class="card space-y-3">
-        <h3 class="text-sm font-semibold text-slate-400">✏️ Manual Time Entry</h3>
+        <h3 class="text-sm font-semibold text-slate-400"><i class="fa-solid fa-pen-to-square text-orange-500 mr-1"></i> Manual Time Entry</h3>
         <div><label class="lbl">Subject</label>
           <select id="manSubject" class="inp" onchange="pickSubj('manSubject','manCustom')"></select>
           <input id="manCustom" placeholder="New subject name" class="inp hidden mt-2"></div>
         <div><label class="lbl">Duration (minutes)</label><input id="manMin" type="number" placeholder="45" class="inp"></div>
-        <div><label class="lbl">Date</label><input id="manDate" type="date" class="inp"></div>
+        <div><label class="lbl">Date (Shamsi)</label><div id="manDate" class="grid grid-cols-3 gap-2"></div></div>
         <button onclick="saveManual()" class="btn bg-orange-500 hover:bg-orange-600">Save Entry</button>
       </div>
     </div>
@@ -115,7 +118,7 @@ body{font-family:Inter,system-ui,sans-serif}
       <h3 class="text-sm font-semibold text-slate-400">Exam Countdown</h3>
       <input id="exTitle" placeholder="Exam title" class="inp">
       <select id="exSubject" class="inp"></select>
-      <input id="exDate" type="date" class="inp">
+      <div id="exDate" class="grid grid-cols-3 gap-2"></div>
       <textarea id="exTopics" placeholder="Topics" class="inp"></textarea>
       <button onclick="saveExam()" class="btn bg-blue-600 hover:bg-blue-500">Add Exam</button>
       <div id="examsList" class="space-y-2 max-h-56 overflow-y-auto"></div>
@@ -134,7 +137,7 @@ body{font-family:Inter,system-ui,sans-serif}
   <!-- ROOM -->
   <div id="roomTab" class="tab hidden space-y-6">
     <div class="card text-center space-y-3">
-      <h3 class="text-lg font-bold">Shared Live Study Room 🟢</h3>
+      <h3 class="text-lg font-bold">Shared Live Study Room <span class="inline-flex h-3 w-3 relative align-middle ml-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span></h3>
       <p class="text-xs text-slate-400">Start your timer, then join to show your live study time.</p>
       <label class="flex items-center justify-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="anon"> Join as Anonymous</label>
       <button id="joinBtn" onclick="joinRoom()" class="bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-lg text-sm font-medium">Join Room</button>
@@ -142,10 +145,10 @@ body{font-family:Inter,system-ui,sans-serif}
     </div>
     <div class="card">
       <div class="flex justify-between items-center mb-3"><h4 class="text-sm font-semibold text-slate-400">Active Members</h4>
-        <button onclick="syncRoom()" class="bg-slate-800 px-3 py-1 rounded-lg text-xs">🔄 Refresh</button></div>
+        <button onclick="syncRoom()" class="bg-slate-800 px-3 py-1 rounded-lg text-xs"><i class="fa-solid fa-rotate"></i> Refresh</button></div>
       <div id="roomList" class="space-y-2"></div>
     </div>
-    <div class="card text-center opacity-60 text-xs text-amber-300">🏆 Leaderboard - Coming Soon!</div>
+    <div class="card text-center opacity-60 text-xs text-amber-300"><i class="fa-solid fa-trophy mr-1"></i> Leaderboard - Coming Soon!</div>
   </div>
 
   <!-- CHARTS -->
@@ -157,12 +160,12 @@ body{font-family:Inter,system-ui,sans-serif}
       <span id="monthRange" class="text-blue-400 font-mono"></span>
     </div>
     <div class="card !p-4 space-y-3">
-      <h3 class="text-xs font-semibold text-amber-400">⭐ Log Exam Score</h3>
+      <h3 class="text-xs font-semibold text-amber-400"><i class="fa-solid fa-star mr-1"></i> Log Exam Score (Shamsi date)</h3>
       <div class="grid md:grid-cols-5 gap-3 text-xs">
         <input id="gTitle" placeholder="Exam title" class="inp">
         <input id="gScore" type="number" placeholder="Score" class="inp">
         <input id="gMax" type="number" value="100" placeholder="Max score" class="inp">
-        <input id="gDate" type="date" class="inp">
+        <div id="gDate" class="grid grid-cols-3 gap-1"></div>
         <button onclick="saveGrade()" class="bg-amber-600 hover:bg-amber-500 rounded-lg font-medium py-2">Save Grade</button>
       </div>
     </div>
@@ -174,7 +177,7 @@ body{font-family:Inter,system-ui,sans-serif}
     </div>
     <div class="grid md:grid-cols-2 gap-6">
       <div class="card"><h3 class="text-sm font-semibold text-slate-400 mb-2">Weekly (Saturday to Friday)</h3><div class="relative h-[260px]"><canvas id="weeklyChart"></canvas></div></div>
-      <div class="card"><h3 class="text-sm font-semibold text-slate-400 mb-2">Monthly hours &amp; grades</h3><div class="relative h-[260px]"><canvas id="monthlyChart"></canvas></div></div>
+      <div class="card"><h3 class="text-sm font-semibold text-slate-400 mb-2">Monthly (day by day) &amp; grades</h3><div class="relative h-[260px]"><canvas id="monthlyChart"></canvas></div></div>
     </div>
   </div>
 </div>
@@ -184,25 +187,37 @@ body{font-family:Inter,system-ui,sans-serif}
   Made by <a href="https://linktr.ee/Raswta" target="_blank" class="text-blue-400 font-semibold">raswta</a>
 </footer>
 
-<div id="confirm" class="modal"><div class="card max-w-sm w-full text-center space-y-4">
+<div id="offInfo" class="modal"><div class="card max-w-sm w-full space-y-4 relative">
+  <button onclick="modal('offInfo',0)" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+  <h3 class="text-base font-bold text-blue-400">Connection Status Info</h3>
+  <p class="text-xs text-slate-300 leading-relaxed">When you are <b>Offline</b> you cannot join the live study room, but your sessions, timers and manual entries are saved on this device. As soon as you reconnect, everything syncs to your account automatically.</p>
+  <button onclick="modal('offInfo',0)" class="btn bg-blue-600 hover:bg-blue-500">Got it!</button>
+</div></div>
+<div id="install" class="modal"><div class="card max-w-md w-full space-y-4 relative">
+  <button onclick="modal('install',0)" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+  <h3 class="text-lg font-bold text-emerald-400">Add to Home Screen</h3>
+  <p class="text-xs text-slate-300 leading-relaxed">iOS Safari: tap Share, then Add to Home Screen.<br>Android Chrome: tap Menu (⋮), then Add to Home screen.</p>
+</div></div>
+<div id="confirm" class="modal"><div class="card max-w-sm w-full text-center space-y-4"><div class="text-amber-400 text-4xl"><i class="fa-solid fa-circle-exclamation"></i></div>
   <h3 class="text-lg font-bold">Save &amp; Reset Timer?</h3>
   <p class="text-xs text-slate-300">Your time will be saved to your logs and the stopwatch will reset.</p>
   <div class="flex gap-3"><button onclick="modal('confirm',0)" class="btn bg-slate-800">Cancel</button><button onclick="finishTimer()" class="btn bg-blue-600">Yes, Save</button></div>
 </div></div>
-<div id="timerOff" class="modal"><div class="card max-w-sm w-full text-center space-y-4">
+<div id="timerOff" class="modal"><div class="card max-w-sm w-full text-center space-y-4"><div class="text-amber-400 text-4xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
   <h3 class="text-lg font-bold">Timer is stopped</h3><p class="text-xs text-slate-300">Start your timer before joining the live room.</p>
   <button onclick="modal('timerOff',0);tab('timerTab')" class="btn bg-blue-600">Go to Timer</button>
 </div></div>
-<div id="pomoAlert" class="modal"><div class="card max-w-sm w-full text-center space-y-4">
+<div id="pomoAlert" class="modal"><div class="card max-w-sm w-full text-center space-y-4"><div class="text-5xl text-amber-400 animate-bounce"><i class="fa-solid fa-bell"></i></div>
   <h3 id="pomoTitle" class="text-2xl font-bold"></h3><p id="pomoDesc" class="text-sm text-slate-300"></p>
   <button onclick="modal('pomoAlert',0)" class="btn bg-blue-600">Continue</button>
 </div></div>
 <div id="guide" class="modal"><div class="card max-w-xl w-full space-y-3 text-xs text-slate-300 max-h-[85vh] overflow-y-auto">
-  <h3 class="text-base font-bold text-blue-400">EDUVEX Guide 💡</h3>
+  <h3 class="text-base font-bold text-blue-400">EDUVEX Guide <i class="fa-solid fa-lightbulb"></i></h3>
   <p><b>Goal:</b> choose Daily or Weekly, type hours (12.5 = 12h30m) and press Save Goal.</p>
   <p><b>Timer:</b> Finish &amp; Save records the session in your logs, goal bar and charts. The stopwatch survives refresh.</p>
   <p><b>Classes &amp; manual entries</b> are added to goal and charts immediately.</p>
-  <p><b>Archive:</b> pick any previous week or Persian month in the Charts tab.</p>
+  <p><b>Archive:</b> pick any previous week or Shamsi month in the Charts tab.</p>
+  <p><b>Yellow bar:</b> a day with only manual entries shows as yellow with a Manual label.</p>
   <button onclick="modal('guide',0)" class="btn bg-blue-600">Got it!</button>
 </div></div>
 
@@ -212,6 +227,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const DAY = 864e5;
 const DAYS = ['Saturday (Shanbeh)','Sunday (Yekshanbeh)','Monday (Doshanbeh)','Tuesday (Seshanbeh)','Wednesday (Chaharshanbeh)','Thursday (Panjshanbeh)','Friday (Jomeh)'];
+const DAYSF = ['Shanbeh','Yekshanbeh','Doshanbeh','Seshanbeh','Chaharshanbeh','Panjshanbeh','Jomeh'];
 const COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#ef4444','#14b8a6','#a855f7'];
 const LS = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 
@@ -226,14 +242,35 @@ let D = { sessions: [], classes: [], exams: [], grades: [] };
 
 const color = s => COLORS[subjects.indexOf(s) % COLORS.length] || '#64748b';
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
-const fmt = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 const dayIdx = d => (d.getDay() + 1) % 7;               // Saturday = 0
 function weekStart(d) { const x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() - dayIdx(x)); return x; }
 
-// ---------- Persian month helpers ----------
-const pParts = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', { day: 'numeric' });
-const pName = new Intl.DateTimeFormat('en-u-ca-persian', { month: 'long', year: 'numeric' });
-function pMonthStart(d) { const x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() - (parseInt(pParts.format(x)) - 1)); return x; }
+// ---------- Shamsi (Persian) calendar helpers ----------
+const PM = ['Farvardin','Ordibehesht','Khordad','Tir','Mordad','Shahrivar','Mehr','Aban','Azar','Dey','Bahman','Esfand'];
+const pp = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', { year: 'numeric', month: 'numeric', day: 'numeric' });
+function pj(d) { const o = {}; pp.formatToParts(d).forEach(x => o[x.type] = +x.value); return { y: o.year, m: o.month, d: o.day }; }
+const fmt = d => { const p = pj(d); return `${p.d} ${PM[p.m - 1]}`; };
+const toYMD = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const ymd = str => new Date(str + 'T12:00:00');
+function fromJ(y, m, d) {
+  let t = new Date(y + 621, 1, 20, 12), best = null;
+  for (let i = 0; i < 430; i++) {
+    const p = pj(t);
+    if (p.y === y && p.m === m && p.d <= d) best = t;
+    if (best && (p.y > y || (p.y === y && p.m > m))) break;
+    t = addDays(t, 1);
+  }
+  return best || new Date();
+}
+function mkPicker(id) {
+  const t = pj(new Date()), c = 'class="inp !px-1.5"';
+  $(id).innerHTML =
+    `<select ${c}>${[t.y - 1, t.y, t.y + 1, t.y + 2].map(y => `<option ${y === t.y ? 'selected' : ''}>${y}</option>`).join('')}</select>` +
+    `<select ${c}>${PM.map((n, i) => `<option value="${i + 1}" ${i + 1 === t.m ? 'selected' : ''}>${n}</option>`).join('')}</select>` +
+    `<select ${c}>${Array.from({ length: 31 }, (_, i) => `<option ${i + 1 === t.d ? 'selected' : ''}>${i + 1}</option>`).join('')}</select>`;
+}
+function pickGet(id) { const [y, m, d] = [...$(id).children].map(e => +e.value); return toYMD(fromJ(y, m, d)); }
+function pMonthStart(d) { const x = new Date(d); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() - (pj(x).d - 1)); return x; }
 const pMonthEnd = s => pMonthStart(new Date(s.getTime() + 33 * DAY));
 
 // ---------- UI helpers ----------
@@ -246,9 +283,10 @@ function tab(id) {
   if (id === 'roomTab') syncRoom();
 }
 function status() {
-  const on = navigator.onLine, c = $('conn');
-  c.textContent = on ? 'Online' : 'Offline';
-  c.className = 'px-2.5 py-1 rounded-full text-[11px] border ' + (on ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25' : 'bg-amber-500/10 text-amber-400 border-amber-500/25');
+  const on = navigator.onLine;
+  $('conn').className = 'px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 border ' + (on ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25' : 'bg-amber-500/10 text-amber-400 border-amber-500/25');
+  $('connDot').className = 'h-2 w-2 rounded-full ' + (on ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500');
+  $('connText').textContent = on ? 'Online' : 'Offline';
 }
 
 // ---------- Data layer (server + offline queue) ----------
@@ -369,19 +407,20 @@ function renderGoal() {
 
 // ---------- Lists ----------
 function renderLists() {
-  $('sessionsList').innerHTML = D.sessions.slice(0, 15).map(s => `
+  const trash = (t, x) => x.id
+    ? `<button onclick="del('${t}',${x.id})" class="text-red-400 hover:text-red-300 ml-3" title="Delete"><i class="fa-solid fa-trash"></i></button>`
+    : '<span class="text-[10px] text-amber-400 ml-3">pending sync</span>';
+  $('sessionsList').innerHTML = D.sessions.slice(0, 40).map(s => `
     <div class="row"><div><span class="font-medium">${esc(s.subject)}</span>
     <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] ${s.type === 'manual' ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}">${s.type === 'manual' ? 'Manual' : 'Stopwatch'}</span></div>
-    <span class="font-mono text-slate-300">${s.duration_minutes} min · ${fmt(new Date(s.created_at))}</span></div>`).join('') || '<p class="text-xs text-slate-500">No sessions yet.</p>';
-  const today = new Date(); today.setHours(0,0,0,0);
+    <div class="flex items-center"><span class="font-mono text-slate-300">${s.duration_minutes} min · ${fmt(new Date(s.created_at))}</span>${trash('study_sessions', s)}</div></div>`).join('') || '<p class="text-xs text-slate-500">No sessions yet.</p>';
+  const today = new Date(); today.setHours(0, 0, 0, 0);
   $('examsList').innerHTML = [...D.exams].sort((a, b) => (a.exam_date > b.exam_date ? 1 : -1)).map(e => {
     const left = Math.ceil((new Date(e.exam_date + 'T00:00:00') - today) / DAY);
-    return `<div class="row"><div><b>${esc(e.title)}</b> (${esc(e.subject)})<span class="block text-[10px] text-slate-400">${esc(e.exam_date)} · ${left >= 0 ? left + ' days left' : 'passed'}</span></div>
-    ${e.id ? `<button onclick="del('exams',${e.id})" class="text-red-400">✕</button>` : '<span class="text-[10px] text-amber-400">pending sync</span>'}</div>`;
+    return `<div class="row"><div><b>${esc(e.title)}</b> (${esc(e.subject)})<span class="block text-[10px] text-slate-400">${fmt(ymd(e.exam_date))} · ${left >= 0 ? left + ' days left' : 'passed'}</span></div>${trash('exams', e)}</div>`;
   }).join('');
   $('classesList').innerHTML = D.classes.map(c => `
-    <div class="row"><div><b>${esc(c.title)}</b> (${esc(c.subject)})<span class="block text-[10px] text-slate-400">${DAYS[(+c.day_of_week + 1) % 7]} · ${c.duration_minutes} min</span></div>
-    ${c.id ? `<button onclick="del('classes',${c.id})" class="text-red-400">✕</button>` : '<span class="text-[10px] text-amber-400">pending sync</span>'}</div>`).join('');
+    <div class="row"><div><b>${esc(c.title)}</b> (${esc(c.subject)})<span class="block text-[10px] text-slate-400">${DAYS[(+c.day_of_week + 1) % 7]} · ${c.duration_minutes} min</span></div>${trash('classes', c)}</div>`).join('');
 }
 
 // ---------- Stopwatch ----------
@@ -466,8 +505,7 @@ async function saveManual() {
   const mins = parseInt($('manMin').value);
   if (!(mins > 0)) return alert('Enter the minutes');
   const subject = getSubject('manSubject', 'manCustom');
-  const dv = $('manDate').value, when = dv ? new Date(dv + 'T12:00:00') : new Date();
-  await save('study_sessions', { subject, duration_minutes: mins, type: 'manual', created_at: when.toISOString() });
+  await save('study_sessions', { subject, duration_minutes: mins, type: 'manual', created_at: ymd(pickGet('manDate')).toISOString() });
   $('manMin').value = ''; refresh();
 }
 async function saveClass() {
@@ -477,16 +515,15 @@ async function saveClass() {
   $('clTitle').value = ''; refresh();
 }
 async function saveExam() {
-  const title = $('exTitle').value.trim(), date = $('exDate').value;
-  if (!title || !date) return alert('Enter title and date');
-  await save('exams', { title, subject: $('exSubject').value, exam_date: date, topics: $('exTopics').value.trim() });
+  const title = $('exTitle').value.trim();
+  if (!title) return alert('Enter the exam title');
+  await save('exams', { title, subject: $('exSubject').value, exam_date: pickGet('exDate'), topics: $('exTopics').value.trim() });
   $('exTitle').value = ''; $('exTopics').value = ''; refresh();
 }
 async function saveGrade() {
   const title = $('gTitle').value.trim(), score = parseFloat($('gScore').value), max = parseFloat($('gMax').value) || 100;
   if (!title || isNaN(score)) return alert('Enter a valid title and score');
-  const d = $('gDate').value || new Date().toISOString().slice(0, 10);
-  await save('exam_grades', { title, score, max_score: max, grade_date: d });
+  await save('exam_grades', { title, score, max_score: max, grade_date: pickGet('gDate') });
   $('gTitle').value = ''; $('gScore').value = ''; refresh();
 }
 
@@ -520,7 +557,7 @@ async function syncRoom() {
   const live = (data || []).filter(m => !m.last_active || Date.now() - new Date(m.last_active) < 20000);
   $('roomList').innerHTML = live.map(m => {
     const h = String(Math.floor(m.live_seconds / 3600)).padStart(2, '0'), mm = String(Math.floor(m.live_seconds % 3600 / 60)).padStart(2, '0');
-    return `<div class="row"><div>👨‍💻 <b>${esc(m.username)}</b>${m.user_id === user.id ? ' (You)' : ''}<span class="block text-[10px] text-slate-400">${esc(m.current_subject)}</span></div>
+    return `<div class="row"><div><i class="fa-solid fa-user-graduate text-blue-400 mr-1"></i> <b>${esc(m.username)}</b>${m.user_id === user.id ? ' (You)' : ''}<span class="block text-[10px] text-slate-400">${esc(m.current_subject)}</span></div>
     <div class="flex items-center gap-3"><span class="text-[10px] px-1.5 py-0.5 rounded ${m.is_studying ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}">${m.is_studying ? 'Studying' : 'Resting'}</span><span class="font-mono text-sm">${h}:${mm}</span></div></div>`;
   }).join('') || '<p class="text-xs text-slate-500 text-center py-4">No active members.</p>';
 }
@@ -530,55 +567,78 @@ function initArchive() {
   let s = pMonthStart(new Date());
   starts = [];
   for (let i = 0; i < 12; i++) { starts.push(s); s = pMonthStart(addDays(s, -1)); }
-  $('monthSel').innerHTML = starts.map((m, i) => `<option value="${i}">${pName.format(m)}</option>`).join('');
+  $('monthSel').innerHTML = starts.map((m, i) => { const p = pj(m); return `<option value="${i}">${PM[p.m - 1]} ${p.y}</option>`; }).join('');
   const w0 = weekStart(new Date());
-  $('weekSel').innerHTML = Array.from({ length: 16 }, (_, i) => {
-    const a = addDays(w0, -7 * i);
-    return `<option value="${i}">${i === 0 ? 'This week' : i === 1 ? 'Last week' : 'Week of ' + fmt(a)}</option>`;
-  }).join('');
+  $('weekSel').innerHTML = Array.from({ length: 16 }, (_, i) =>
+    `<option value="${i}">${i === 0 ? 'This week' : i === 1 ? 'Last week' : 'Week of ' + fmt(addDays(w0, -7 * i))}</option>`).join('');
+}
+const manualLabel = {
+  id: 'manualLabel',
+  afterDatasetsDraw(ch) {
+    const i = ch.data.datasets.findIndex(d => d.label === 'Manual');
+    if (i < 0 || ch.config.type !== 'bar') return;
+    const c = ch.ctx, txt = (ch.options.plugins.manualLabel || {}).text || 'Manual';
+    c.save(); c.fillStyle = '#facc15'; c.font = 'bold 9px sans-serif'; c.textAlign = 'center';
+    ch.getDatasetMeta(i).data.forEach((b, j) => { if (ch.data.datasets[i].data[j] > 0) c.fillText(txt, b.x, b.y - 4); });
+    c.restore();
+  }
+};
+function dailySets(days, mode, showCl) {
+  const by = {};
+  D.sessions.forEach(s => { const k = toYMD(new Date(s.created_at)); (by[k] = by[k] || []).push(s); });
+  const day = days.map(d => by[toYMD(d)] || []);
+  const manual = day.map(ss => ss.length > 0 && ss.every(s => s.type === 'manual'));
+  const hrs = ss => +(ss.reduce((a, s) => a + s.duration_minutes, 0) / 60).toFixed(2);
+  const sets = [];
+  if (mode === 'stacked') {
+    subjects.forEach(sub => {
+      const data = day.map((ss, i) => manual[i] ? 0 : hrs(ss.filter(s => s.subject === sub)));
+      if (data.some(x => x)) sets.push({ label: sub, data, backgroundColor: color(sub), borderRadius: 4 });
+    });
+    const md = day.map((ss, i) => manual[i] ? hrs(ss) : 0);
+    if (md.some(x => x)) sets.push({ label: 'Manual', data: md, backgroundColor: '#facc15', borderRadius: 4 });
+  } else {
+    sets.push({ label: 'Total Hours', data: day.map(hrs), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,.2)', fill: true, tension: .2,
+      pointBackgroundColor: manual.map(m => m ? '#facc15' : '#3b82f6'), pointRadius: manual.map(m => m ? 6 : 3) });
+  }
+  if (showCl) sets.push({ type: 'line', label: 'Classes', data: days.map(d => +(D.classes.filter(c => +c.day_of_week === d.getDay()).reduce((a, c) => a + (+c.duration_minutes || 0), 0) / 60).toFixed(2)),
+    borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.3)', tension: .2 });
+  return sets;
 }
 function renderCharts() {
   if ($('chartsTab').classList.contains('hidden') || !starts.length) return;
-  const mode = $('chartMode').value, showCl = $('layerClasses').checked, showGr = $('layerGrades').checked;
+  const mode = $('chartMode').value, showCl = $('layerClasses').checked, showGr = $('layerGrades').checked, st = mode === 'stacked';
+  const yAxis = (extra = {}) => ({ stacked: st, beginAtZero: true, min: 0, max: 20, ticks: { stepSize: 1 }, title: { display: true, text: 'hours' }, ...extra });
+  const legend = { labels: { boxWidth: 10, font: { size: 10 } } };
 
   // weekly
-  const ws = addDays(weekStart(new Date()), -7 * +$('weekSel').value), we = addDays(ws, 7);
-  const wk = D.sessions.filter(s => { const d = new Date(s.created_at); return d >= ws && d < we; });
-  const bucket = f => { const a = Array(7).fill(0); wk.filter(f).forEach(s => a[dayIdx(new Date(s.created_at))] += s.duration_minutes / 60); return a.map(h => +h.toFixed(2)); };
-  const sets = [];
-  if (mode === 'stacked') subjects.forEach(sub => { const data = bucket(s => s.subject === sub); if (data.some(x => x)) sets.push({ label: sub, data, backgroundColor: color(sub), borderRadius: 4 }); });
-  else sets.push({ label: 'Total Hours', data: bucket(() => true), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,.2)', fill: true, tension: .2 });
-  if (showCl) {
-    const a = Array(7).fill(0);
-    D.classes.forEach(c => a[(+c.day_of_week + 1) % 7] += (c.duration_minutes || 0) / 60);
-    sets.push({ type: 'line', label: 'Classes', data: a.map(h => +h.toFixed(2)), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.3)', tension: .2 });
-  }
+  const ws = addDays(weekStart(new Date()), -7 * +$('weekSel').value);
+  const wdays = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
   if (wChart) wChart.destroy();
   wChart = new Chart($('weeklyChart'), {
-    type: mode === 'stacked' ? 'bar' : 'line',
-    data: { labels: DAYS.map((n, i) => n.slice(0, 3) + ' ' + addDays(ws, i).getDate()), datasets: sets },
-    options: { responsive: true, maintainAspectRatio: false,
-      scales: { x: { stacked: mode === 'stacked' }, y: { stacked: mode === 'stacked', beginAtZero: true, title: { display: true, text: 'hours' } } },
-      plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } }
+    type: st ? 'bar' : 'line', plugins: [manualLabel],
+    data: { labels: wdays.map(d => [DAYSF[dayIdx(d)], fmt(d)]), datasets: dailySets(wdays, mode, showCl) },
+    options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: st }, y: yAxis() }, plugins: { legend } }
   });
 
-  // monthly
+  // monthly, day by day
   const ms = starts[+$('monthSel').value], me = pMonthEnd(ms);
   $('monthRange').textContent = `${fmt(ms)} → ${fmt(addDays(me, -1))}`;
-  const bi = d => Math.min(4, Math.floor((d - ms) / (7 * DAY)));
-  const hrs = Array(5).fill(0), gs = Array.from({ length: 5 }, () => []);
-  D.sessions.forEach(s => { const d = new Date(s.created_at); if (d >= ms && d < me) hrs[bi(d)] += s.duration_minutes / 60; });
-  D.grades.forEach(g => { const d = new Date(g.grade_date + 'T12:00:00'); if (d >= ms && d < me) gs[bi(d)].push(g.score / (g.max_score || 100) * 100); });
-  const msets = [{ label: 'Study Hours', data: hrs.map(h => +h.toFixed(2)), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.2)', fill: true, tension: .2, yAxisID: 'y' }];
-  if (showGr) msets.push({ label: 'Exam Score (%)', data: gs.map(a => a.length ? +(a.reduce((x, y) => x + y) / a.length).toFixed(1) : null), borderColor: '#f59e0b', borderDash: [5, 5], pointRadius: 5, spanGaps: true, yAxisID: 'y1' });
+  const mdays = []; for (let d = new Date(ms); d < me; d = addDays(d, 1)) mdays.push(d);
+  const msets = dailySets(mdays, mode, showCl);
+  if (showGr) {
+    const by = {};
+    D.grades.forEach(g => (by[g.grade_date] = by[g.grade_date] || []).push(g.score / (g.max_score || 100) * 100));
+    msets.push({ type: 'line', label: 'Exam Score (%)', yAxisID: 'y1', showLine: false, pointRadius: 6, pointStyle: 'rectRot', borderColor: '#f59e0b', backgroundColor: '#f59e0b',
+      data: mdays.map(d => { const a = by[toYMD(d)]; return a ? +(a.reduce((x, y) => x + y) / a.length).toFixed(1) : null; }) });
+  }
   if (mChart) mChart.destroy();
   mChart = new Chart($('monthlyChart'), {
-    type: 'line',
-    data: { labels: ['Week 1','Week 2','Week 3','Week 4','Week 5'], datasets: msets },
+    type: st ? 'bar' : 'line', plugins: [manualLabel],
+    data: { labels: mdays.map(d => pj(d).d), datasets: msets },
     options: { responsive: true, maintainAspectRatio: false,
-      scales: { y: { beginAtZero: true, position: 'left', title: { display: true, text: 'hours' } },
-                y1: { display: showGr, position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false } } },
-      plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } }
+      scales: { x: { stacked: st, title: { display: true, text: 'day of month' } }, y: yAxis(), y1: { display: showGr, position: 'right', min: 0, max: 100, ticks: { stepSize: 10 }, grid: { drawOnChartArea: false } } },
+      plugins: { legend, manualLabel: { text: 'M' } } }
   });
 }
 
@@ -588,7 +648,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('clDay').innerHTML = DAYS.map((n, i) => `<option value="${(i + 6) % 7}">${n}</option>`).join('');
   $('goalType').value = goalType; $('goalIn').value = goalVal;
   $('goalType').onchange = () => { goalType = $('goalType').value; localStorage.setItem('ev_goal_type', goalType); renderGoal(); };
-  $('manDate').value = new Date().toISOString().slice(0, 10);
+  ['manDate', 'exDate', 'gDate'].forEach(mkPicker);
   initArchive(); fillSubjects(); restoreTimer(); status();
   window.addEventListener('online', () => { status(); refresh(); });
   window.addEventListener('offline', status);
