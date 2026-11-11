@@ -40,7 +40,7 @@
         </div>
         <div class="flex items-center space-x-3">
             <!-- Online/Offline Status Badge -->
-            <button id="connectionBadge" onclick="openModal('offlineInfoModal')" class="px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 transition">
+            <button id="connectionBadge" onclick="openModal('offlineInfoModal')" class="px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 transition">
                 <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" id="connDot"></span>
                 <span id="connText">Online</span>
             </button>
@@ -93,11 +93,11 @@
                             <option value="daily">Daily Goal:</option>
                             <option value="weekly">Weekly Goal:</option>
                         </select>
-                        <input type="number" id="goalInput" value="13" class="w-14 bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-xs text-blue-400 font-bold text-center">
-                        <span class="text-slate-400">hrs</span>
+                        <input type="number" step="0.1" id="goalInput" value="13" class="w-16 bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-xs text-blue-400 font-bold text-center">
+                        <span class="text-slate-400">hrs (e.g. 12.5)</span>
                         <button onclick="saveGoalSettings()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg font-medium transition">Save Goal</button>
                     </div>
-                    <span id="goalText" class="text-blue-400 font-semibold font-mono">0 / 13 hrs</span>
+                    <span id="goalText" class="text-blue-400 font-semibold font-mono">0 / 13 hrs (0%)</span>
                 </div>
                 <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
                     <div id="goalBar" class="bg-blue-500 h-full w-0 transition-all duration-500"></div>
@@ -422,17 +422,15 @@
         </div>
     </div>
 
-    <!-- GUIDE MODAL (💡) - Fully Detailed in English -->
+    <!-- GUIDE MODAL (💡) - Fully Updated -->
     <div id="guideModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 max-w-xl w-full rounded-2xl p-6 space-y-4 relative max-h-[85vh] overflow-y-auto text-xs text-slate-300 leading-relaxed">
             <button onclick="closeModal('guideModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             <h3 class="text-base font-bold text-blue-400">EDUVEX Complete Operational Guide 💡</h3>
-            <p><strong>1. Goal Setting & Saving:</strong> Select Daily or Weekly goals, type your target hours, and click <strong>Save Goal</strong>. Exceeding your target keeps the progress bar locked at 100% full without breaking.</p>
-            <p><strong>2. Unified Subject Lists & Auto-Save:</strong> Subjects selected in the Stopwatch, Manual Entry, Exams, and Classes are automatically synchronized. Choose "+ Add New Subject" to type and store new subject names permanently.</p>
-            <p><strong>3. Manual & Edited Manual Records:</strong> Any manual study entry instantly triggers the <strong>Edited Manual</strong> tag, coloring that entire day's bar orange with an explicit badge.</p>
-            <p><strong>4. Study Room & Refresh:</strong> Use the dedicated <strong>Refresh Room</strong> button or auto-sync features to check active members. Toggle the <em>Anonymous</em> checkbox before joining to show or hide your real username.</p>
-            <p><strong>5. Chart Layers & Stacked Breakdown:</strong> Charts feature a max scale of 20 hours. You can toggle Classes, Stacked Breakdown by Subject, and Exam Grades Overlay independently.</p>
-            <p><strong>6. Weekdays Order:</strong> Weekly charts and selectors strictly follow the Saturday to Friday (Shanbeh to Jomeh) cycle.</p>
+            <p><strong>1. Goal Setting & Saving:</strong> Select Daily or Weekly goals, type your target hours (supports decimals like 12.5 for 12 hours and 30 mins), and click <strong>Save Goal</strong>.</p>
+            <p><strong>2. Changing Subjects & Timer:</strong> To change your study subject, simply pause the timer, select a new subject from the dropdown, or continue with "General Study" from the very beginning. As soon as you click <strong>Finish & Save</strong>, your session time is instantly recorded and added to that day's charts and logs!</p>
+            <p><strong>3. Classes & Manual Entries:</strong> Both manual entries and scheduled classes are immediately synced and added to your daily/weekly charts upon saving.</p>
+            <p><strong>4. Persistent Stopwatch:</strong> Your stopwatch never resets when you refresh or leave the tab.</p>
             <button onclick="closeModal('guideModal')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg font-medium">Got it!</button>
         </div>
     </div>
@@ -469,16 +467,16 @@
         document.addEventListener('DOMContentLoaded', async () => {
             if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
             
-            // Restore Goal from localStorage
             const savedGoalType = localStorage.getItem('eduvex_goal_type');
             const savedGoalVal = localStorage.getItem('eduvex_goal_value');
             if (savedGoalType) goalType = savedGoalType;
-            if (savedGoalVal) goalValue = parseFloat(savedGoalVal) || 13;
+            if (savedGoalVal !== null && savedGoalVal !== undefined) {
+                goalValue = parseFloat(savedGoalVal) || 13;
+            }
             
             document.getElementById('goalTypeSelect').value = goalType;
             document.getElementById('goalInput').value = goalValue;
 
-            // Restore Stopwatch state if persisted
             restoreStopwatchState();
 
             const { data: { session } } = await supabaseClient.auth.getSession();
@@ -608,7 +606,6 @@
             });
         }
 
-        // Persistent Stopwatch State via localStorage
         function saveStopwatchState() {
             const state = {
                 isTimerRunning,
@@ -671,7 +668,6 @@
             if (pomoState === 'study') {
                 totalElapsedSeconds++;
                 
-                // Notifications at 10 minutes (600s) and 30 minutes (1800s)
                 if (totalElapsedSeconds === 600 && !hasAlerted10) {
                     hasAlerted10 = true;
                     showBrowserNotification("EDUVEX Reminder", "Your stopwatch has been running for 10 minutes!");
@@ -953,6 +949,8 @@
                 alert('Offline: Class saved locally.');
             }
             loadExamsAndClasses();
+            loadDashboardData();
+            renderCharts();
         }
 
         async function loadExamsAndClasses() {
@@ -990,10 +988,17 @@
         }
 
         function saveGoalSettings() {
-            goalValue = parseFloat(document.getElementById('goalInput').value) || 13;
+            const inputVal = parseFloat(document.getElementById('goalInput').value);
+            if (isNaN(inputVal) || inputVal <= 0) {
+                alert('Please enter a valid target hours number.');
+                return;
+            }
+            goalValue = inputVal;
             goalType = document.getElementById('goalTypeSelect').value;
+            
             localStorage.setItem('eduvex_goal_value', goalValue);
             localStorage.setItem('eduvex_goal_type', goalType);
+            
             loadDashboardData();
             alert('Goal settings saved successfully!');
         }
@@ -1048,12 +1053,14 @@
                 if (classes) { classes.forEach(c => { currentTotalMins += (c.duration_minutes || 0); }); }
             }
 
-            const totalHrs = (currentTotalMins / 60).toFixed(1);
-            document.getElementById('goalText').textContent = `${totalHrs} / ${goalValue} hrs`;
-            const pct = Math.min(100, (totalHrs / goalValue) * 100);
-            document.getElementById('goalBar').style.width = `${pct}%`;
+            const totalHrs = currentTotalMins / 60;
+            const percentage = goalValue > 0 ? Math.min(100, Math.round((totalHrs / goalValue) * 100)) : 0;
+            
+            document.getElementById('goalText').textContent = `${totalHrs.toFixed(1)} / ${goalValue} hrs (${percentage}%)`;
+            document.getElementById('goalBar').style.width = `${percentage}%`;
 
             loadExamsAndClasses();
+            renderCharts();
         }
 
         async function renderCharts() {
