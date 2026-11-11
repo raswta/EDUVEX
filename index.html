@@ -1,1263 +1,600 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EDUVEX - Live Study Planner</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        stopwatch: '#3b82f6',
-                        classcolor: '#10b981',
-                        manual: '#f97316'
-                    }
-                }
-            }
-        }
-    </script>
-    <!-- Supabase JS Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDUVEX - Live Study Planner</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style type="text/tailwindcss">
+body{font-family:Inter,system-ui,sans-serif}
+.card{@apply bg-slate-900 border border-slate-800 rounded-2xl p-5}
+.inp{@apply w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500}
+.btn{@apply w-full text-white py-2.5 rounded-lg text-sm font-medium transition}
+.tab-btn{@apply px-4 py-2 text-sm font-medium rounded-lg text-slate-400 whitespace-nowrap}
+.tab-btn.on{@apply bg-blue-600 text-white}
+.row{@apply flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs}
+.lbl{@apply block text-xs text-slate-400 mb-1}
+.modal{display:none;@apply fixed inset-0 bg-slate-950/80 z-50 items-center justify-center p-4}
+.modal.show{display:flex}
+</style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
 
-    <!-- Header -->
-    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 px-4 py-3 flex justify-between items-center">
-        <div class="flex items-center space-x-3">
-            <span class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">EDUVEX</span>
-            <a href="https://linktr.ee/Raswta" target="_blank" class="text-xs text-blue-400 font-medium hover:underline">by raswta</a>
-        </div>
-        <div class="flex items-center space-x-3">
-            <!-- Online/Offline Status Badge -->
-            <button id="connectionBadge" onclick="openModal('offlineInfoModal')" class="px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 transition">
-                <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" id="connDot"></span>
-                <span id="connText">Online</span>
-            </button>
-            <button onclick="openModal('installModal')" class="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 px-3 py-1.5 rounded-lg text-xs font-medium transition">
-                <i class="fa-solid fa-mobile-screen-button mr-1"></i> Add App
-            </button>
-            <button onclick="openModal('guideModal')" class="p-2 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 transition">
-                <i class="fa-solid fa-lightbulb"></i>
-            </button>
-            <div id="userProfileArea" class="hidden flex items-center space-x-2">
-                <button onclick="logout()" class="text-xs text-red-400 hover:text-red-300 bg-red-500/10 px-2.5 py-1.5 rounded-lg transition font-medium">Logout</button>
-            </div>
-        </div>
-    </header>
+<header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 px-4 py-3 flex justify-between items-center">
+  <div class="flex items-center gap-3">
+    <span class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">EDUVEX</span>
+    <a href="https://linktr.ee/Raswta" target="_blank" class="text-xs text-blue-400 hover:underline">by raswta</a>
+  </div>
+  <div class="flex items-center gap-2">
+    <span id="conn" class="px-2.5 py-1 rounded-full text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">Online</span>
+    <button onclick="modal('guide',1)" class="px-2.5 py-1 rounded-lg bg-blue-600/20 text-blue-400">💡</button>
+    <button id="logoutBtn" onclick="logout()" class="hidden text-xs text-red-400 bg-red-500/10 px-2.5 py-1.5 rounded-lg">Logout</button>
+  </div>
+</header>
 
-    <!-- Main Section -->
-    <main class="max-w-4xl w-full mx-auto p-4 flex-grow">
+<main class="max-w-4xl w-full mx-auto p-4 flex-grow">
 
-        <!-- AUTH -->
-        <section id="authSection" class="max-w-md mx-auto mt-12 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-            <h2 class="text-2xl font-bold text-center mb-2">Welcome to EDUVEX</h2>
-            <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-4 text-[11px] text-amber-300 leading-relaxed">
-                ⚠️ <strong>Important Security Notice:</strong> Please save or write down your username and password in a safe place. There is NO password recovery option available!
-            </div>
-            
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Username</label>
-                    <input type="text" id="authUsername" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500" placeholder="e.g. rasta">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Password</label>
-                    <input type="password" id="authPassword" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500" placeholder="••••••••">
-                </div>
-                <div class="flex space-x-3 pt-2">
-                    <button onclick="handleLogin()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-lg text-sm transition">Sign In</button>
-                    <button onclick="handleSignup()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium py-2 rounded-lg text-sm transition">Sign Up</button>
-                </div>
-            </div>
-        </section>
+<section id="auth" class="max-w-md mx-auto mt-10 card space-y-4">
+  <h2 class="text-2xl font-bold text-center">Welcome to EDUVEX</h2>
+  <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-[11px] text-amber-300">
+    ⚠️ Save your username and password somewhere safe. There is NO password recovery!
+  </div>
+  <div><label class="lbl">Username</label><input id="aUser" class="inp" placeholder="e.g. rasta"></div>
+  <div><label class="lbl">Password (min 6 characters)</label><input id="aPass" type="password" class="inp" onkeydown="if(event.key==='Enter')login()"></div>
+  <div class="flex gap-3">
+    <button onclick="login()" class="btn bg-blue-600 hover:bg-blue-500">Sign In</button>
+    <button onclick="signup()" class="btn bg-slate-800 hover:bg-slate-700">Sign Up</button>
+  </div>
+</section>
 
-        <!-- DASHBOARD -->
-        <div id="appDashboard" class="hidden space-y-6">
+<div id="app" class="hidden space-y-6">
 
-            <!-- Goal Progress Bar with Save Button -->
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
-                <div class="flex flex-wrap justify-between items-center gap-2 text-xs">
-                    <div class="flex items-center space-x-2">
-                        <select id="goalTypeSelect" onchange="changeGoalType()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200">
-                            <option value="daily">Daily Goal:</option>
-                            <option value="weekly">Weekly Goal:</option>
-                        </select>
-                        <input type="number" step="0.1" id="goalInput" value="13" class="w-16 bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-xs text-blue-400 font-bold text-center">
-                        <span class="text-slate-400">hrs (e.g. 12.5)</span>
-                        <button onclick="saveGoalSettings()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg font-medium transition">Save Goal</button>
-                    </div>
-                    <span id="goalText" class="text-blue-400 font-semibold font-mono">0 / 13 hrs (0%)</span>
-                </div>
-                <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
-                    <div id="goalBar" class="bg-blue-500 h-full w-0 transition-all duration-500"></div>
-                </div>
-            </div>
-
-            <!-- TABS -->
-            <div class="flex overflow-x-auto space-x-2 border-b border-slate-800 pb-2">
-                <button onclick="switchTab('timerTab')" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white transition">Timer & Study</button>
-                <button onclick="switchTab('plannerTab')" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition">Exams & Classes</button>
-                <button onclick="switchTab('roomTab')" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition flex items-center gap-1.5">
-                    <span>Study Room</span>
-                    <span class="flex h-2 w-2 relative">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                </button>
-                <button onclick="switchTab('chartsTab')" class="tab-btn px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition">Charts & Grades</button>
-            </div>
-
-            <!-- TAB 1: TIMER -->
-            <div id="timerTab" class="tab-content space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- General Stopwatch Box -->
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
-                        <div>
-                            <div class="flex justify-between items-center mb-3">
-                                <h3 class="text-sm font-semibold text-slate-400"><i class="fa-solid fa-stopwatch text-stopwatch mr-1"></i> General Study Timer</h3>
-                                <label class="flex items-center space-x-1.5 text-xs text-slate-300 cursor-pointer">
-                                    <input type="checkbox" id="pomodoroToggle" onchange="togglePomodoro()" class="rounded bg-slate-950 border-slate-800 text-blue-600 focus:ring-0">
-                                    <span>Pomodoro Mode</span>
-                                </label>
-                            </div>
-
-                            <div id="pomodoroSettings" class="hidden grid grid-cols-2 gap-2 mb-3 bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
-                                <div>
-                                    <label class="block text-slate-400 mb-1">Study (min)</label>
-                                    <input type="number" id="pomoStudyTime" value="50" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-slate-200">
-                                </div>
-                                <div>
-                                    <label class="block text-slate-400 mb-1">Rest (min)</label>
-                                    <input type="number" id="pomoRestTime" value="10" class="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-slate-200">
-                                </div>
-                            </div>
-
-                            <div class="w-full mb-3">
-                                <label class="block text-xs text-slate-400 mb-1">Subject (Select or Add New)</label>
-                                <div class="flex gap-2">
-                                    <select id="stopwatchSubjectSelect" onchange="handleSubjectSelection('stopwatch')" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
-                                        <option value="General Study">General Study</option>
-                                        <option value="Physics">Physics</option>
-                                        <option value="Mathematics">Mathematics</option>
-                                        <option value="Chemistry">Chemistry</option>
-                                        <option value="Biology">Biology</option>
-                                        <option value="add_new">+ Add New Subject</option>
-                                    </select>
-                                    <input type="text" id="stopwatchSubjectCustom" placeholder="New subject name" class="hidden w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-                                </div>
-                            </div>
-
-                            <div id="stopwatchDisplay" class="text-4xl font-bold font-mono tracking-wider text-center my-3 text-slate-100">00:00:00</div>
-                            <div id="timerStatusLabel" class="text-center text-xs text-blue-400 font-medium mb-3 h-4">Ready</div>
-                        </div>
-
-                        <div class="space-y-2">
-                            <div class="flex space-x-2">
-                                <button id="startStopwatchBtn" onclick="toggleTimer()" class="flex-1 bg-stopwatch hover:bg-blue-600 text-white py-2.5 rounded-lg font-medium text-sm transition">Start</button>
-                                <button id="finishBtn" onclick="confirmFinishTimer()" class="flex-1 bg-slate-800 text-slate-500 py-2.5 rounded-lg font-medium text-sm transition" disabled>Finish & Save</button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Manual Entry Box -->
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                        <h3 class="text-sm font-semibold text-slate-400 mb-4"><i class="fa-solid fa-pen-to-square text-manual mr-1"></i> Manual Time Entry</h3>
-                        <div class="space-y-3">
-                            <div>
-                                <label class="block text-xs text-slate-400 mb-1">Subject</label>
-                                <select id="manualSubjectSelect" onchange="handleSubjectSelection('manual')" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-                                    <option value="General Study">General Study</option>
-                                    <option value="Physics">Physics</option>
-                                    <option value="Mathematics">Mathematics</option>
-                                    <option value="Chemistry">Chemistry</option>
-                                    <option value="Biology">Biology</option>
-                                    <option value="add_new">+ Add New Subject</option>
-                                </select>
-                                <input type="text" id="manualSubjectCustom" placeholder="New subject name" class="hidden w-full mt-2 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-slate-400 mb-1">Duration (Minutes)</label>
-                                <input type="number" id="manualMinutes" placeholder="45" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-                            </div>
-                            <button onclick="saveManualSession()" class="w-full bg-manual hover:bg-orange-600 text-white py-2.5 rounded-lg font-medium text-sm transition mt-2">Save Entry (Edited Manual)</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recent Sessions -->
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                    <h3 class="text-sm font-semibold text-slate-400 mb-4">Saved Study Logs</h3>
-                    <div id="sessionsList" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
-                </div>
-            </div>
-
-            <!-- TAB 2: EXAMS & CLASSES -->
-            <div id="plannerTab" class="tab-content hidden space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-                        <h3 class="text-sm font-semibold text-slate-400">Exam Countdown & Planner</h3>
-                        <div class="space-y-3">
-                            <input type="text" id="examTitle" placeholder="Exam Title" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-                            <select id="examSubjectSelect" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-                                <option value="General Study">General Study</option>
-                                <option value="Physics">Physics</option>
-                                <option value="Mathematics">Mathematics</option>
-                                <option value="Biology">Biology</option>
-                            </select>
-                            <input type="date" id="examDate" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-                            <textarea id="examTopics" placeholder="Topics" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></textarea>
-                            <button onclick="saveExam()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-medium">Add Exam</button>
-                        </div>
-                        <div id="examsList" class="space-y-2 mt-4 max-h-48 overflow-y-auto"></div>
-                    </div>
-
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-                        <h3 class="text-sm font-semibold text-slate-400">Weekly Classes Schedule</h3>
-                        <div class="space-y-3">
-                            <input type="text" id="classTitle" placeholder="Class Title" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-                            <select id="classSubjectSelect" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-                                <option value="General Study">General Study</option>
-                                <option value="Physics">Physics</option>
-                                <option value="Biology">Biology</option>
-                            </select>
-                            <select id="classDay" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-                                <option value="6">Saturday (Shanbeh)</option>
-                                <option value="0">Sunday (Yekshanbeh)</option>
-                                <option value="1">Monday (Doshanbeh)</option>
-                                <option value="2">Tuesday (Seshanbeh)</option>
-                                <option value="3">Wednesday (Chaharshanbeh)</option>
-                                <option value="4">Thursday (Panjshanbeh)</option>
-                                <option value="5">Friday (Jomeh)</option>
-                            </select>
-                            <input type="number" id="classDuration" placeholder="Duration in minutes" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-                            <button onclick="saveClass()" class="w-full bg-classcolor hover:bg-emerald-600 text-white py-2 rounded-lg text-sm font-medium">Add Class</button>
-                        </div>
-                        <div id="classesList" class="space-y-2 mt-4 max-h-48 overflow-y-auto"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 3: LIVE STUDY ROOM -->
-            <div id="roomTab" class="tab-content hidden space-y-6">
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center space-y-4">
-                    <h3 class="text-lg font-bold flex items-center justify-center gap-2">
-                        <span>Shared Live Study Room</span>
-                        <span class="flex h-3 w-3 relative">
-                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                        </span>
-                    </h3>
-                    <p class="text-xs text-slate-400">Join to display your live study time with others (Timer must be running).</p>
-                    
-                    <!-- Anonymous Toggle -->
-                    <div class="flex items-center justify-center space-x-2 text-xs text-slate-300 py-1">
-                        <label class="cursor-pointer flex items-center space-x-2">
-                            <input type="checkbox" id="anonymousToggle" class="rounded bg-slate-950 border-slate-800 text-blue-600">
-                            <span>Join as Anonymous (Hide Username)</span>
-                        </label>
-                    </div>
-
-                    <div class="flex justify-center space-x-3">
-                        <button id="joinRoomBtn" onclick="joinRoom()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition">Join Room</button>
-                        <button id="leaveRoomBtn" onclick="leaveRoom()" class="hidden bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition">Leave Room</button>
-                    </div>
-                </div>
-
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h4 class="text-sm font-semibold text-slate-400">Active Room Members (Live Status)</h4>
-                        <button onclick="syncLiveRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-lg text-xs transition flex items-center gap-1.5" title="Refresh Room">
-                            <i class="fa-solid fa-rotate"></i> Refresh Room
-                        </button>
-                    </div>
-                    <div id="roomMembersList" class="space-y-3">
-                        <p class="text-xs text-slate-500 text-center py-4">No active members.</p>
-                    </div>
-                </div>
-
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center space-y-3 opacity-60">
-                    <h4 class="text-sm font-semibold text-amber-400"><i class="fa-solid fa-trophy mr-1"></i> Leaderboard</h4>
-                    <p class="text-xs text-slate-400">Scores are only added when you complete and save sessions, not when paused.</p>
-                    <div class="inline-block bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-xs px-4 py-2 rounded-xl">
-                        🚀 Leaderboard - Coming Soon!
-                    </div>
-                </div>
-            </div>
-
-            <!-- TAB 4: CHARTS & GRADES -->
-            <div id="chartsTab" class="tab-content hidden space-y-6">
-                <!-- Select Month/Week Review Bar -->
-                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-slate-300 font-medium">Review Archive:</span>
-                        <select id="archiveMonthSelect" onchange="renderCharts()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200">
-                            <option value="current">Current Month (Azar)</option>
-                            <option value="aban">Aban</option>
-                            <option value="mehr">Mehr</option>
-                        </select>
-                        <select id="archiveWeekSelect" onchange="renderCharts()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200">
-                            <option value="all">All Weeks</option>
-                            <option value="0">Week 1</option>
-                            <option value="1">Week 2</option>
-                            <option value="2">Week 3</option>
-                            <option value="3">Week 4</option>
-                        </select>
-                    </div>
-                    <span id="monthlyDateRange" class="text-blue-400 font-mono"></span>
-                </div>
-
-                <!-- Log Exam Grade Box with Max Score -->
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-                    <h3 class="text-xs font-semibold text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-star"></i> Log Exam Score / Grade (with Date & Max Score)</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs">
-                        <input type="text" id="gradeTitle" placeholder="Exam Title" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200">
-                        <input type="number" id="gradeScore" placeholder="Score Obtained" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200">
-                        <input type="number" id="gradeMaxScore" placeholder="Max Score (e.g. 90)" value="100" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200">
-                        <input type="date" id="gradeDate" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200">
-                        <button onclick="saveExamGrade()" class="bg-amber-600 hover:bg-amber-500 text-white font-medium rounded-lg py-2 transition">Save Grade</button>
-                    </div>
-                </div>
-
-                <!-- Layer Toggles & View Mode -->
-                <div class="flex flex-wrap items-center justify-between bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs gap-2">
-                    <span class="text-slate-400 font-medium">Chart Layers Visibility:</span>
-                    <div class="flex flex-wrap gap-3 items-center">
-                        <select id="chartModeSelect" onchange="renderCharts()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200">
-                            <option value="stacked">Stacked Breakdown (By Subject)</option>
-                            <option value="total">Total Hours Line</option>
-                        </select>
-                        <label class="flex items-center space-x-1 cursor-pointer text-emerald-400">
-                            <input type="checkbox" id="layerClasses" checked onchange="renderCharts()" class="rounded bg-slate-950 border-slate-800">
-                            <span>Classes Layer</span>
-                        </label>
-                        <label class="flex items-center space-x-1 cursor-pointer text-amber-400">
-                            <input type="checkbox" id="layerGrades" checked onchange="renderCharts()" class="rounded bg-slate-950 border-slate-800">
-                            <span>Exam Grades Overlay</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-2">
-                        <h3 class="text-sm font-semibold text-slate-400">Weekly Breakdown (Saturday - Friday / Shanbeh - Jomeh)</h3>
-                        <div class="relative w-full h-[260px]">
-                            <canvas id="weeklyChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-2">
-                        <div class="flex justify-between items-center">
-                            <h3 class="text-sm font-semibold text-slate-400">Monthly Hours & Grades</h3>
-                        </div>
-                        <div class="relative w-full h-[260px]">
-                            <canvas id="monthlyChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-    </main>
-
-    <!-- OFFLINE INFO MODAL -->
-    <div id="offlineInfoModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 max-w-sm w-full rounded-2xl p-6 space-y-4 relative">
-            <button onclick="closeModal('offlineInfoModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <h3 class="text-base font-bold text-blue-400">Connection Status Info</h3>
-            <p class="text-xs text-slate-300 leading-relaxed">
-                When you are <strong>Offline</strong>, you cannot join the live study room, but all your study sessions, timers, manual entries, and progress are securely saved locally. As soon as you reconnect to the internet, everything automatically syncs and saves to your account!
-            </p>
-            <button onclick="closeModal('offlineInfoModal')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-xs font-medium">Got it!</button>
-        </div>
+  <div class="card !p-4 space-y-3">
+    <div class="flex flex-wrap justify-between items-center gap-2 text-xs">
+      <div class="flex items-center gap-2">
+        <select id="goalType" class="bg-slate-950 border border-slate-800 rounded px-2 py-1">
+          <option value="daily">Daily Goal:</option><option value="weekly">Weekly Goal:</option>
+        </select>
+        <input id="goalIn" type="number" step="0.1" class="w-16 bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-blue-400 font-bold text-center">
+        <span class="text-slate-400">hrs</span>
+        <button onclick="saveGoal()" class="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded-lg font-medium">Save Goal</button>
+      </div>
+      <span id="goalText" class="text-blue-400 font-semibold font-mono"></span>
     </div>
+    <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden"><div id="goalBar" class="bg-blue-500 h-full w-0 transition-all duration-500"></div></div>
+  </div>
 
-    <!-- WARNING MODAL IF TIMER IS OFF UPON JOINING ROOM -->
-    <div id="timerOffModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-[120] flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 max-w-sm w-full rounded-2xl p-6 space-y-4 text-center">
-            <div class="text-amber-400 text-4xl"><i class="fa-solid fa-triangle-exclamation"></i></div>
-            <h3 class="text-lg font-bold text-white">Timer is Stopped!</h3>
-            <p class="text-xs text-slate-300">Please start your study timer first before joining the live room so others can see your activity.</p>
-            <button onclick="closeModal('timerOffModal'); switchTab('timerTab');" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-xs font-medium">Go to Timer & Start</button>
+  <div class="flex overflow-x-auto gap-2 border-b border-slate-800 pb-2">
+    <button class="tab-btn on" data-t="timerTab" onclick="tab('timerTab')">Timer &amp; Study</button>
+    <button class="tab-btn" data-t="plannerTab" onclick="tab('plannerTab')">Exams &amp; Classes</button>
+    <button class="tab-btn" data-t="roomTab" onclick="tab('roomTab')">Study Room 🟢</button>
+    <button class="tab-btn" data-t="chartsTab" onclick="tab('chartsTab')">Charts &amp; Grades</button>
+  </div>
+
+  <!-- TIMER -->
+  <div id="timerTab" class="tab space-y-6">
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="card">
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="text-sm font-semibold text-slate-400">⏱ General Study Timer</h3>
+          <label class="flex items-center gap-1.5 text-xs cursor-pointer"><input type="checkbox" id="pomoOn" onchange="togglePomo()"> Pomodoro</label>
         </div>
-    </div>
-
-    <!-- CONFIRMATION MODAL FOR FINISH -->
-    <div id="confirmFinishModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-[110] flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 max-w-sm w-full rounded-2xl p-6 space-y-4 text-center">
-            <div class="text-amber-400 text-4xl"><i class="fa-solid fa-circle-exclamation"></i></div>
-            <h3 class="text-lg font-bold text-white">Save & Reset Timer?</h3>
-            <p class="text-xs text-slate-300">Are you sure you want to finish this session? Your time will be saved to your logs and the stopwatch will reset.</p>
-            <div class="flex space-x-3 pt-2">
-                <button onclick="closeModal('confirmFinishModal')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-2 rounded-lg text-xs font-medium">Cancel</button>
-                <button onclick="finishAndSaveTimer()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-xs font-medium">Yes, Finish & Save</button>
-            </div>
+        <div id="pomoSet" class="hidden grid grid-cols-2 gap-2 mb-3 text-xs">
+          <div><label class="lbl">Study (min)</label><input id="pomoStudy" type="number" value="50" class="inp"></div>
+          <div><label class="lbl">Rest (min)</label><input id="pomoRest" type="number" value="10" class="inp"></div>
         </div>
-    </div>
-
-    <!-- POMODORO ALERT -->
-    <div id="pomoAlertOverlay" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden z-[100] flex flex-col items-center justify-center p-6 text-center space-y-4">
-        <div class="text-6xl text-amber-400 animate-bounce"><i class="fa-solid fa-bell"></i></div>
-        <h2 id="pomoAlertTitle" class="text-3xl font-bold text-white">Session Finished!</h2>
-        <p id="pomoAlertDesc" class="text-sm text-slate-300 max-w-sm"></p>
-        <button onclick="dismissPomoAlert()" class="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-xl font-medium transition">Continue</button>
-    </div>
-
-    <!-- MODALS -->
-    <div id="installModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 max-w-md w-full rounded-2xl p-6 space-y-4 relative">
-            <button onclick="closeModal('installModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <h3 class="text-lg font-bold text-emerald-400">Add to Home Screen</h3>
-            <p class="text-xs text-slate-300 leading-relaxed">For iOS Safari: Tap Share -> Add to Home Screen.<br>For Android Chrome: Tap Menu (⋮) -> Add to Home screen.</p>
+        <label class="lbl">Subject</label>
+        <select id="swSubject" class="inp" onchange="pickSubj('swSubject','swCustom');if(this.value!=='__new')syncSub()"></select>
+        <input id="swCustom" placeholder="New subject name" class="inp hidden mt-2" onchange="syncSub()">
+        <div id="swDisplay" class="text-4xl font-bold font-mono text-center my-4">00:00:00</div>
+        <div id="swStatus" class="text-center text-xs text-blue-400 mb-2 h-4">Ready</div>
+        <div id="swBreak" class="text-xs text-slate-400 space-y-1 mb-3"></div>
+        <div class="flex gap-2">
+          <button id="startBtn" onclick="toggleTimer()" class="btn bg-blue-500 hover:bg-blue-600 flex-1">Start</button>
+          <button id="finishBtn" onclick="modal('confirm',1)" disabled class="btn bg-slate-800 text-slate-500 flex-1">Finish &amp; Save</button>
         </div>
+      </div>
+      <div class="card space-y-3">
+        <h3 class="text-sm font-semibold text-slate-400">✏️ Manual Time Entry</h3>
+        <div><label class="lbl">Subject</label>
+          <select id="manSubject" class="inp" onchange="pickSubj('manSubject','manCustom')"></select>
+          <input id="manCustom" placeholder="New subject name" class="inp hidden mt-2"></div>
+        <div><label class="lbl">Duration (minutes)</label><input id="manMin" type="number" placeholder="45" class="inp"></div>
+        <div><label class="lbl">Date</label><input id="manDate" type="date" class="inp"></div>
+        <button onclick="saveManual()" class="btn bg-orange-500 hover:bg-orange-600">Save Entry</button>
+      </div>
     </div>
+    <div class="card"><h3 class="text-sm font-semibold text-slate-400 mb-3">Saved Study Logs</h3><div id="sessionsList" class="space-y-2 max-h-60 overflow-y-auto"></div></div>
+  </div>
 
-    <!-- GUIDE MODAL (💡) - Fully Updated -->
-    <div id="guideModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 max-w-xl w-full rounded-2xl p-6 space-y-4 relative max-h-[85vh] overflow-y-auto text-xs text-slate-300 leading-relaxed">
-            <button onclick="closeModal('guideModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <h3 class="text-base font-bold text-blue-400">EDUVEX Complete Operational Guide 💡</h3>
-            <p><strong>1. Goal Setting & Saving:</strong> Select Daily or Weekly goals, type your target hours (supports decimals like 12.5 for 12 hours and 30 mins), and click <strong>Save Goal</strong>.</p>
-            <p><strong>2. Changing Subjects & Timer:</strong> To change your study subject, simply pause the timer, select a new subject from the dropdown, or continue with "General Study" from the very beginning. As soon as you click <strong>Finish & Save</strong>, your session time is instantly recorded and added to that day's charts and logs!</p>
-            <p><strong>3. Classes & Manual Entries:</strong> Both manual entries and scheduled classes are immediately synced and added to your daily/weekly charts upon saving.</p>
-            <p><strong>4. Persistent Stopwatch:</strong> Your stopwatch never resets when you refresh or leave the tab.</p>
-            <button onclick="closeModal('guideModal')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg font-medium">Got it!</button>
-        </div>
+  <!-- PLANNER -->
+  <div id="plannerTab" class="tab hidden grid md:grid-cols-2 gap-6">
+    <div class="card space-y-3">
+      <h3 class="text-sm font-semibold text-slate-400">Exam Countdown</h3>
+      <input id="exTitle" placeholder="Exam title" class="inp">
+      <select id="exSubject" class="inp"></select>
+      <input id="exDate" type="date" class="inp">
+      <textarea id="exTopics" placeholder="Topics" class="inp"></textarea>
+      <button onclick="saveExam()" class="btn bg-blue-600 hover:bg-blue-500">Add Exam</button>
+      <div id="examsList" class="space-y-2 max-h-56 overflow-y-auto"></div>
     </div>
-
-    <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs text-slate-400">
-        Made by <a href="https://linktr.ee/Raswta" target="_blank" class="text-blue-400 font-semibold hover:underline">raswta</a>
-    </footer>
-
-    <!-- Logic Script -->
-    <script>
-        const SUPABASE_URL = "https://kuescglkkpvsqqxnubww.supabase.co";
-        const SUPABASE_KEY = "sb_publishable_su-MHh5kE2EuainNOAGuJA_EP0p7Mrb";
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        let currentUser = null;
-        let isTimerRunning = false;
-        let totalElapsedSeconds = 0;
-        let timerInterval = null;
-        let isInRoom = false;
-        let isPomodoro = false;
-        let pomoState = 'study';
-        let pomoSecondsLeft = 0;
-        let hasAlerted10 = false;
-        let hasAlerted30 = false;
-        
-        let goalType = 'daily';
-        let goalValue = 13;
-        let weeklyChartInstance = null;
-        let monthlyChartInstance = null;
-        let examGradesData = [];
-        let knownSubjects = ['General Study', 'Physics', 'Mathematics', 'Chemistry', 'Biology'];
-        const subjectColors = { 'General Study': '#3b82f6', 'Physics': '#10b981', 'Mathematics': '#f59e0b', 'Chemistry': '#8b5cf6', 'Biology': '#ec4899' };
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
-            
-            const savedGoalType = localStorage.getItem('eduvex_goal_type');
-            const savedGoalVal = localStorage.getItem('eduvex_goal_value');
-            if (savedGoalType) goalType = savedGoalType;
-            if (savedGoalVal !== null && savedGoalVal !== undefined) {
-                goalValue = parseFloat(savedGoalVal) || 13;
-            }
-            
-            document.getElementById('goalTypeSelect').value = goalType;
-            document.getElementById('goalInput').value = goalValue;
-
-            restoreStopwatchState();
-
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                currentUser = session.user;
-                onLoginSuccess();
-            } else {
-                loadDashboardData();
-            }
-            updateSubjectDropdowns();
-            updateConnectionStatus();
-
-            window.addEventListener('online', handleOnlineStatus);
-            window.addEventListener('offline', handleOnlineStatus);
-        });
-
-        function handleOnlineStatus() {
-            updateConnectionStatus();
-            if (navigator.onLine) {
-                syncOfflineQueue();
-            }
-        }
-
-        function updateConnectionStatus() {
-            const badge = document.getElementById('connectionBadge');
-            const dot = document.getElementById('connDot');
-            const text = document.getElementById('connText');
-            if (navigator.onLine) {
-                badge.className = "px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 transition";
-                dot.className = "h-2 w-2 rounded-full bg-emerald-500 animate-pulse";
-                text.textContent = "Online";
-            } else {
-                badge.className = "px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/25 transition";
-                dot.className = "h-2 w-2 rounded-full bg-amber-500";
-                text.textContent = "Offline";
-            }
-        }
-
-        async function handleSignup() {
-            const username = document.getElementById('authUsername').value.trim();
-            const password = document.getElementById('authPassword').value;
-            if (!username || !password) return alert('Enter credentials');
-            const { error } = await supabaseClient.auth.signUp({ email: `${username.toLowerCase()}@studyapp.local`, password });
-            if (error) return alert(error.message);
-            alert('Signed up! Now sign in.');
-        }
-
-        async function handleLogin() {
-            const username = document.getElementById('authUsername').value.trim();
-            const password = document.getElementById('authPassword').value;
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email: `${username.toLowerCase()}@studyapp.local`, password });
-            if (error) return alert(error.message);
-            currentUser = data.user;
-            onLoginSuccess();
-        }
-
-        async function logout() {
-            await leaveRoomClean();
-            await supabaseClient.auth.signOut();
-            location.reload();
-        }
-
-        function onLoginSuccess() {
-            document.getElementById('authSection').classList.add('hidden');
-            document.getElementById('appDashboard').classList.remove('hidden');
-            document.getElementById('userProfileArea').classList.remove('hidden');
-            loadDashboardData();
-            leaveRoomClean();
-            setInterval(syncLiveRoom, 3000);
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.replace('bg-blue-600', 'text-slate-400'));
-            document.getElementById(tabId).classList.remove('hidden');
-            event.currentTarget.classList.replace('text-slate-400', 'bg-blue-600');
-            if (tabId === 'chartsTab') renderCharts();
-            if (tabId === 'roomTab') syncLiveRoom();
-        }
-
-        function togglePomodoro() {
-            isPomodoro = document.getElementById('pomodoroToggle').checked;
-            document.getElementById('pomodoroSettings').classList.toggle('hidden', !isPomodoro);
-        }
-
-        function handleSubjectSelection(type) {
-            const selectEl = document.getElementById(type === 'stopwatch' ? 'stopwatchSubjectSelect' : 'manualSubjectSelect');
-            const customEl = document.getElementById(type === 'stopwatch' ? 'stopwatchSubjectCustom' : 'manualSubjectCustom');
-            if (selectEl.value === 'add_new') {
-                customEl.classList.remove('hidden');
-                customEl.focus();
-            } else {
-                customEl.classList.add('hidden');
-            }
-        }
-
-        function getActiveSubject(type) {
-            const selectEl = document.getElementById(type === 'stopwatch' ? 'stopwatchSubjectSelect' : 'manualSubjectSelect');
-            const customEl = document.getElementById(type === 'stopwatch' ? 'stopwatchSubjectCustom' : 'manualSubjectCustom');
-            if (selectEl.value === 'add_new') {
-                const val = customEl.value.trim();
-                if (val && !knownSubjects.includes(val)) {
-                    knownSubjects.push(val);
-                    subjectColor(val);
-                    updateSubjectDropdowns();
-                }
-                return val || 'General Study';
-            }
-            return selectEl.value;
-        }
-
-        function subjectColor(sub) {
-            if (!subjectColors[sub]) {
-                const letters = '0123456789ABCDEF';
-                let color = '#';
-                for (let i = 0; i < 6; i++) color += letters[Math.floor(Math.random() * 16)];
-                subjectColors[sub] = color;
-            }
-            return subjectColors[sub];
-        }
-
-        function updateSubjectDropdowns() {
-            ['stopwatchSubjectSelect', 'manualSubjectSelect', 'examSubjectSelect', 'classSubjectSelect'].forEach(id => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                const currentVal = el.value;
-                el.innerHTML = knownSubjects.map(s => `<option value="${s}">${s}</option>`).join('') + `<option value="add_new">+ Add New Subject</option>`;
-                el.value = currentVal || knownSubjects[0];
-            });
-        }
-
-        function saveStopwatchState() {
-            if (!isTimerRunning && totalElapsedSeconds === 0) {
-                localStorage.removeItem('eduvex_stopwatch_state');
-                return;
-            }
-            const state = {
-                isTimerRunning,
-                totalElapsedSeconds,
-                startTime: isTimerRunning ? Date.now() - (totalElapsedSeconds * 1000) : null,
-                subject: getActiveSubject('stopwatch')
-            };
-            localStorage.setItem('eduvex_stopwatch_state', JSON.stringify(state));
-        }
-
-        function restoreStopwatchState() {
-            const saved = localStorage.getItem('eduvex_stopwatch_state');
-            if (!saved) return;
-            try {
-                const state = JSON.parse(saved);
-                if (!state.isTimerRunning) {
-                    localStorage.removeItem('eduvex_stopwatch_state');
-                    return;
-                }
-                if (state.isTimerRunning && state.startTime) {
-                    const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
-                    totalElapsedSeconds = elapsed > 0 ? elapsed : 0;
-                    isTimerRunning = true;
-                    document.getElementById('startStopwatchBtn').textContent = "Pause";
-                    document.getElementById('startStopwatchBtn').classList.replace('bg-stopwatch', 'bg-amber-600');
-                    document.getElementById('finishBtn').disabled = false;
-                    document.getElementById('finishBtn').classList.replace('bg-slate-800', 'bg-red-600');
-                    document.getElementById('finishBtn').classList.replace('text-slate-500', 'text-white');
-                    timerInterval = setInterval(tickTimer, 1000);
-                }
-            } catch(e) { console.error(e); }
-        }
-
-        function toggleTimer() {
-            if (!isTimerRunning) {
-                isTimerRunning = true;
-                document.getElementById('startStopwatchBtn').textContent = "Pause";
-                document.getElementById('startStopwatchBtn').classList.replace('bg-stopwatch', 'bg-amber-600');
-                document.getElementById('finishBtn').disabled = false;
-                document.getElementById('finishBtn').classList.replace('bg-slate-800', 'bg-red-600');
-                document.getElementById('finishBtn').classList.replace('text-slate-500', 'text-white');
-
-                if (isPomodoro && pomoSecondsLeft === 0) {
-                    pomoState = 'study';
-                    pomoSecondsLeft = (parseInt(document.getElementById('pomoStudyTime').value) || 50) * 60;
-                }
-
-                timerInterval = setInterval(tickTimer, 1000);
-            } else {
-                isTimerRunning = false;
-                clearInterval(timerInterval);
-                document.getElementById('startStopwatchBtn').textContent = "Resume";
-                document.getElementById('startStopwatchBtn').classList.replace('bg-amber-600', 'bg-stopwatch');
-                document.getElementById('timerStatusLabel').textContent = "Paused";
-                if (isInRoom) syncLiveRoom();
-            }
-            saveStopwatchState();
-        }
-
-        function tickTimer() {
-            if (pomoState === 'study') {
-                totalElapsedSeconds++;
-                
-                if (totalElapsedSeconds === 600 && !hasAlerted10) {
-                    hasAlerted10 = true;
-                    showBrowserNotification("EDUVEX Reminder", "Your stopwatch has been running for 10 minutes!");
-                }
-                if (totalElapsedSeconds === 1800 && !hasAlerted30) {
-                    hasAlerted30 = true;
-                    showBrowserNotification("EDUVEX Reminder", "Your stopwatch has been running for 30 minutes!");
-                }
-
-                if (isPomodoro) {
-                    pomoSecondsLeft--;
-                    if (pomoSecondsLeft <= 0) {
-                        pomoState = 'rest';
-                        pomoSecondsLeft = (parseInt(document.getElementById('pomoRestTime').value) || 10) * 60;
-                        showPomoAlert("Study Completed!", "Time for a rest break. Rest timer started.");
-                    }
-                }
-            } else if (pomoState === 'rest') {
-                pomoSecondsLeft--;
-                if (pomoSecondsLeft <= 0) {
-                    pomoState = 'study';
-                    pomoSecondsLeft = (parseInt(document.getElementById('pomoStudyTime').value) || 50) * 60;
-                    showPomoAlert("Rest Finished!", "Break is over. Back to studying!");
-                }
-            }
-            updateDisplay();
-            saveStopwatchState();
-        }
-
-        function showBrowserNotification(title, body) {
-            if ("Notification" in window) {
-                if (Notification.permission === "granted") {
-                    new Notification(title, { body });
-                } else if (Notification.permission !== "denied") {
-                    Notification.requestPermission().then(permission => {
-                        if (permission === "granted") {
-                            new Notification(title, { body });
-                        }
-                    });
-                }
-            }
-        }
-
-        function updateDisplay() {
-            const displaySecs = isPomodoro ? pomoSecondsLeft : totalElapsedSeconds;
-            const hrs = String(Math.floor(displaySecs / 3600)).padStart(2, '0');
-            const mins = String(Math.floor((displaySecs % 3600) / 60)).padStart(2, '0');
-            const secs = String(displaySecs % 60).padStart(2, '0');
-            document.getElementById('stopwatchDisplay').textContent = `${hrs}:${mins}:${secs}`;
-            document.getElementById('timerStatusLabel').textContent = pomoState === 'rest' ? " Resting..." : " Studying...";
-        }
-
-        function confirmFinishTimer() { openModal('confirmFinishModal'); }
-
-        async function finishAndSaveTimer() {
-            closeModal('confirmFinishModal');
-            clearInterval(timerInterval);
-            isTimerRunning = false;
-            hasAlerted10 = false;
-            hasAlerted30 = false;
-            
-            localStorage.removeItem('eduvex_stopwatch_state');
-
-            const subject = getActiveSubject('stopwatch');
-            const minutes = Math.round(totalElapsedSeconds / 60);
-
-            if (minutes > 0) {
-                const sessionData = {
-                    user_id: currentUser?.id || 'offline_user',
-                    subject,
-                    duration_minutes: minutes,
-                    type: 'stopwatch',
-                    created_at: new Date().toISOString()
-                };
-                await saveSessionOfflineFirst(sessionData);
-            }
-
-            totalElapsedSeconds = 0;
-            pomoSecondsLeft = 0;
-            pomoState = 'study';
-            document.getElementById('stopwatchDisplay').textContent = "00:00:00";
-            document.getElementById('startStopwatchBtn').textContent = "Start";
-            document.getElementById('startStopwatchBtn').classList.replace('bg-amber-600', 'bg-stopwatch');
-            document.getElementById('finishBtn').disabled = true;
-            document.getElementById('finishBtn').classList.replace('bg-red-600', 'bg-slate-800');
-            document.getElementById('finishBtn').classList.replace('text-white', 'text-slate-500');
-            document.getElementById('timerStatusLabel').textContent = "Finished & Saved!";
-
-            await leaveRoomClean();
-        }
-
-        async function saveSessionOfflineFirst(sessionData) {
-            if (navigator.onLine && currentUser) {
-                const { error } = await supabaseClient.from('study_sessions').insert(sessionData);
-                if (error) {
-                    storeLocally(sessionData);
-                } else {
-                    await syncOfflineQueue();
-                }
-            } else {
-                storeLocally(sessionData);
-            }
-            loadDashboardData();
-            renderCharts();
-        }
-
-        function storeLocally(data) {
-            let queue = JSON.parse(localStorage.getItem('offline_sessions') || '[]');
-            queue.push(data);
-            localStorage.setItem('offline_sessions', JSON.stringify(queue));
-            loadDashboardData();
-            renderCharts();
-        }
-
-        async function syncOfflineQueue() {
-            let queue = JSON.parse(localStorage.getItem('offline_sessions') || '[]');
-            if (queue.length === 0 || !navigator.onLine || !currentUser) return;
-
-            let remaining = [];
-            for (let item of queue) {
-                item.user_id = currentUser.id;
-                const { error } = await supabaseClient.from('study_sessions').insert(item);
-                if (error) {
-                    remaining.push(item);
-                }
-            }
-            localStorage.setItem('offline_sessions', JSON.stringify(remaining));
-            if (queue.length > remaining.length) {
-                loadDashboardData();
-                renderCharts();
-            }
-        }
-
-        async function joinRoom() {
-            if (!isTimerRunning) {
-                openModal('timerOffModal');
-                return;
-            }
-            if (!navigator.onLine) {
-                alert('You cannot join the study room while offline.');
-                return;
-            }
-            isInRoom = true;
-            document.getElementById('joinRoomBtn').classList.add('hidden');
-            document.getElementById('leaveRoomBtn').classList.remove('hidden');
-            await syncLiveRoom();
-        }
-
-        async function leaveRoomClean() {
-            isInRoom = false;
-            if (currentUser && navigator.onLine) {
-                await supabaseClient.from('room_members').delete().eq('user_id', currentUser.id);
-            }
-            const joinBtn = document.getElementById('joinRoomBtn');
-            const leaveBtn = document.getElementById('leaveRoomBtn');
-            if (joinBtn) joinBtn.classList.remove('hidden');
-            if (leaveBtn) leaveBtn.classList.add('hidden');
-            await syncLiveRoom();
-        }
-
-        async function leaveRoom() {
-            await leaveRoomClean();
-        }
-
-        async function syncLiveRoom() {
-            if (!currentUser || !navigator.onLine) return;
-
-            if (isInRoom) {
-                const rawUsername = currentUser.email.split('@')[0];
-                const isAnonymous = document.getElementById('anonymousToggle').checked;
-                const displayName = isAnonymous ? 'Anonymous Member' : rawUsername;
-                const isStudyingActive = isTimerRunning && pomoState === 'study';
-
-                await supabaseClient.from('room_members').upsert({
-                    user_id: currentUser.id,
-                    username: displayName,
-                    is_studying: isStudyingActive,
-                    live_seconds: totalElapsedSeconds,
-                    current_subject: getActiveSubject('stopwatch'),
-                    last_active: new Date().toISOString()
-                }, { onConflict: 'user_id' });
-            }
-
-            const { data: members, error } = await supabaseClient.from('room_members').select('*');
-            const listEl = document.getElementById('roomMembersList');
-
-            if (error || !members || members.length === 0) {
-                listEl.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No active members.</p>`;
-                return;
-            }
-
-            const nowTime = new Date();
-            const activeMembers = members.filter(m => {
-                if (!m.last_active) return true;
-                return (nowTime - new Date(m.last_active)) < 20000;
-            });
-
-            if (activeMembers.length === 0) {
-                listEl.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No active members.</p>`;
-                return;
-            }
-
-            listEl.innerHTML = activeMembers.map(m => {
-                const hrs = String(Math.floor(m.live_seconds / 3600)).padStart(2, '0');
-                const mins = String(Math.floor((m.live_seconds % 3600) / 60)).padStart(2, '0');
-                const iconColor = m.is_studying ? 'text-blue-400 opacity-100' : 'text-slate-600 opacity-40';
-                const statusBadge = m.is_studying ? '<span class="text-[10px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Studying</span>' : '<span class="text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">Resting</span>';
-                const isMe = m.user_id === currentUser?.id;
-
-                return `
-                    <div class="flex justify-between items-center bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs">
-                        <div class="flex items-center space-x-2">
-                            <span class="text-lg ${iconColor}">👨‍💻</span>
-                            <div>
-                                <span class="font-medium text-slate-200">${m.username} ${isMe ? '(You)' : ''}</span>
-                                <span class="block text-[10px] text-slate-400">${m.current_subject}</span>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-3">
-                            ${statusBadge}
-                            <span class="font-mono text-slate-200 text-sm font-semibold">${hrs}:${mins}</span>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        async function saveManualSession() {
-            const subject = getActiveSubject('manual');
-            const minutes = parseInt(document.getElementById('manualMinutes').value);
-            if (!subject || !minutes) return alert('Enter subject and minutes');
-
-            const sessionData = {
-                user_id: currentUser?.id || 'offline_user',
-                subject,
-                duration_minutes: minutes,
-                type: 'manual',
-                created_at: new Date().toISOString()
-            };
-            await saveSessionOfflineFirst(sessionData);
-            document.getElementById('manualMinutes').value = '';
-            alert('Manual session saved successfully and added to charts!');
-        }
-
-        async function saveExamGrade() {
-            const title = document.getElementById('gradeTitle').value.trim();
-            const score = parseFloat(document.getElementById('gradeScore').value);
-            const maxScore = parseFloat(document.getElementById('gradeMaxScore').value) || 100;
-            const date = document.getElementById('gradeDate').value || new Date().toISOString().split('T')[0];
-            if (!title || isNaN(score)) return alert('Enter valid title and score');
-
-            const percentage = (score / maxScore) * 100;
-            examGradesData.push({ title, score: percentage, date });
-            renderCharts();
-            alert('Exam grade saved successfully!');
-        }
-
-        async function saveExam() {
-            const title = document.getElementById('examTitle').value.trim();
-            const subject = document.getElementById('examSubjectSelect').value;
-            const date = document.getElementById('examDate').value;
-            const topics = document.getElementById('examTopics').value.trim();
-            if (!title || !date) return alert('Enter title and date');
-
-            if (navigator.onLine && currentUser) {
-                await supabaseClient.from('exams').insert({ user_id: currentUser.id, title, subject, exam_date: date, topics });
-            } else {
-                alert('Offline: Exam saved locally.');
-            }
-            loadExamsAndClasses();
-        }
-
-        async function saveClass() {
-            const title = document.getElementById('classTitle').value.trim();
-            const subject = document.getElementById('classSubjectSelect').value;
-            const day_of_week = parseInt(document.getElementById('classDay').value);
-            const duration_minutes = parseInt(document.getElementById('classDuration').value) || 60;
-            if (!title) return alert('Enter class title');
-
-            if (navigator.onLine && currentUser) {
-                await supabaseClient.from('classes').insert({ user_id: currentUser.id, title, subject, day_of_week, duration_minutes });
-            } else {
-                let localClasses = JSON.parse(localStorage.getItem('local_classes') || '[]');
-                localClasses.push({ title, subject, day_of_week, duration_minutes });
-                localStorage.setItem('local_classes', JSON.stringify(localClasses));
-            }
-            loadExamsAndClasses();
-            loadDashboardData();
-            renderCharts();
-            alert('Class saved successfully and added to charts!');
-        }
-
-        async function loadExamsAndClasses() {
-            if (navigator.onLine && currentUser) {
-                const { data: exams } = await supabaseClient.from('exams').select('*').order('exam_date', { ascending: true });
-                if (exams) {
-                    document.getElementById('examsList').innerHTML = exams.map(e => `
-                        <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs flex justify-between items-center">
-                            <div>
-                                <span class="font-bold text-slate-200">${e.title}</span> (${e.subject})
-                                <span class="block text-[10px] text-slate-400">Date: ${e.exam_date}</span>
-                            </div>
-                        </div>
-                    `).join('');
-                }
-            }
-
-            let classes = [];
-            if (navigator.onLine && currentUser) {
-                const { data } = await supabaseClient.from('classes').select('*');
-                if (data) classes = data;
-            } else {
-                classes = JSON.parse(localStorage.getItem('local_classes') || '[]');
-            }
-
-            if (classes) {
-                const dayNames = { 6: 'Saturday (Shanbeh)', 0: 'Sunday (Yekshanbeh)', 1: 'Monday (Doshanbeh)', 2: 'Tuesday (Seshanbeh)', 3: 'Wednesday (Chaharshanbeh)', 4: 'Thursday (Panjshanbeh)', 5: 'Friday (Jomeh)' };
-                document.getElementById('classesList').innerHTML = classes.map(c => `
-                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs flex justify-between items-center">
-                        <div>
-                            <span class="font-bold text-slate-200">${c.title} (${c.subject})</span>
-                            <span class="block text-[10px] text-slate-400">${dayNames[c.day_of_week] || ''} - ${c.duration_minutes} mins</span>
-                        </div>
-                    </div>
-                `).join('');
-            }
-        }
-
-        function changeGoalType() {
-            goalType = document.getElementById('goalTypeSelect').value;
-            localStorage.setItem('eduvex_goal_type', goalType);
-            loadDashboardData();
-        }
-
-        function saveGoalSettings() {
-            const inputVal = parseFloat(document.getElementById('goalInput').value);
-            if (isNaN(inputVal) || inputVal <= 0) {
-                alert('Please enter a valid target hours number.');
-                return;
-            }
-            goalValue = inputVal;
-            goalType = document.getElementById('goalTypeSelect').value;
-            
-            localStorage.setItem('eduvex_goal_value', goalValue);
-            localStorage.setItem('eduvex_goal_type', goalType);
-            
-            loadDashboardData();
-            alert('Goal settings saved successfully!');
-        }
-
-        async function loadDashboardData() {
-            let sessions = [];
-            if (navigator.onLine && currentUser) {
-                await syncOfflineQueue();
-                const { data } = await supabaseClient.from('study_sessions').select('*').order('created_at', { ascending: false });
-                if (data) sessions = data;
-            } else {
-                let offlineQueue = JSON.parse(localStorage.getItem('offline_sessions') || '[]');
-                sessions = offlineQueue;
-            }
-
-            let classes = [];
-            if (navigator.onLine && currentUser) {
-                const { data } = await supabaseClient.from('classes').select('*');
-                if (data) classes = data;
-            } else {
-                classes = JSON.parse(localStorage.getItem('local_classes') || '[]');
-            }
-
-            document.getElementById('sessionsList').innerHTML = sessions.slice(0, 10).map(s => {
-                const isManual = s.type === 'manual';
-                return `
-                    <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs">
-                        <div>
-                            <span class="font-medium text-slate-200">${s.subject}</span>
-                            <span class="text-[10px] ml-2 px-1.5 py-0.5 rounded ${isManual ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}">${isManual ? 'Manual' : 'Stopwatch'}</span>
-                        </div>
-                        <span class="font-mono text-slate-300">${s.duration_minutes} mins</span>
-                    </div>
-                `;
-            }).join('');
-
-            const now = new Date();
-            let currentTotalMins = 0;
-
-            if (goalType === 'daily') {
-                currentTotalMins = sessions.reduce((acc, s) => {
-                    const sDate = new Date(s.created_at);
-                    return sDate.toDateString() === now.toDateString() ? acc + s.duration_minutes : acc;
-                }, 0);
-                const todayDayIndex = now.getDay() === 6 ? 6 : now.getDay();
-                if (classes) {
-                    classes.forEach(c => { if (c.day_of_week === todayDayIndex) currentTotalMins += c.duration_minutes; });
-                }
-            } else {
-                currentTotalMins = sessions.reduce((acc, s) => {
-                    const sDate = new Date(s.created_at);
-                    return (now - sDate) / (1000 * 60 * 60 * 24) <= 7 ? acc + s.duration_minutes : acc;
-                }, 0);
-                if (classes) { classes.forEach(c => { currentTotalMins += (c.duration_minutes || 0); }); }
-            }
-
-            const totalHrs = currentTotalMins / 60;
-            const percentage = goalValue > 0 ? Math.min(100, Math.round((totalHrs / goalValue) * 100)) : 0;
-            
-            document.getElementById('goalText').textContent = `${totalHrs.toFixed(1)} / ${goalValue} hrs (${percentage}%)`;
-            document.getElementById('goalBar').style.width = `${percentage}%`;
-
-            loadExamsAndClasses();
-            renderCharts();
-        }
-
-        async function renderCharts() {
-            let sessions = [];
-            if (navigator.onLine && currentUser) {
-                const { data } = await supabaseClient.from('study_sessions').select('*');
-                if (data) sessions = data;
-            } else {
-                sessions = JSON.parse(localStorage.getItem('offline_sessions') || '[]');
-            }
-
-            let classes = [];
-            if (navigator.onLine && currentUser) {
-                const { data } = await supabaseClient.from('classes').select('*');
-                if (data) classes = data;
-            } else {
-                classes = JSON.parse(localStorage.getItem('local_classes') || '[]');
-            }
-
-            const chartMode = document.getElementById('chartModeSelect').value;
-            const showClasses = document.getElementById('layerClasses').checked;
-            const showGrades = document.getElementById('layerGrades').checked;
-
-            const weekDaysMap = { 6: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6 };
-            const rawLabels = ['Saturday (Shanbeh)', 'Sunday (Yekshanbeh)', 'Monday (Doshanbeh)', 'Tuesday (Seshanbeh)', 'Wednesday (Chaharshanbeh)', 'Thursday (Panjshanbeh)', 'Friday (Jomeh)'];
-            const classHoursPerDay = [0, 0, 0, 0, 0, 0, 0];
-
-            if (classes) {
-                classes.forEach(c => {
-                    const dayIdx = weekDaysMap[c.day_of_week];
-                    if (dayIdx !== undefined) classHoursPerDay[dayIdx] += ((c.duration_minutes || 60) / 60);
-                });
-            }
-
-            const weeklyDatasets = [];
-
-            if (chartMode === 'stacked') {
-                knownSubjects.forEach(sub => {
-                    const dataArr = [0, 0, 0, 0, 0, 0, 0];
-                    if (sessions) {
-                        sessions.forEach(s => {
-                            if (s.subject === sub) {
-                                const d = new Date(s.created_at);
-                                const dayIdx = weekDaysMap[d.getDay()];
-                                if (dayIdx !== undefined) dataArr[dayIdx] += (s.duration_minutes / 60);
-                            }
-                        });
-                    }
-                    weeklyDatasets.push({
-                        label: sub,
-                        data: dataArr.map(h => parseFloat(h.toFixed(1))),
-                        backgroundColor: subjectColor(sub),
-                        borderRadius: 4
-                    });
-                });
-            } else {
-                const totalArr = [0, 0, 0, 0, 0, 0, 0];
-                if (sessions) {
-                    sessions.forEach(s => {
-                        const d = new Date(s.created_at);
-                        const dayIdx = weekDaysMap[d.getDay()];
-                        if (dayIdx !== undefined) totalArr[dayIdx] += (s.duration_minutes / 60);
-                    });
-                }
-                weeklyDatasets.push({
-                    label: 'Total Hours',
-                    data: totalArr.map(h => parseFloat(h.toFixed(1))),
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                    fill: true,
-                    tension: 0.2
-                });
-            }
-
-            if (showClasses) {
-                weeklyDatasets.push({
-                    label: 'Classes Layer',
-                    data: classHoursPerDay.map(h => parseFloat(h.toFixed(1))),
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.3)',
-                    borderWidth: 2,
-                    type: 'line',
-                    tension: 0.2
-                });
-            }
-
-            if (weeklyChartInstance) weeklyChartInstance.destroy();
-            const ctxWeek = document.getElementById('weeklyChart').getContext('2d');
-            weeklyChartInstance = new Chart(ctxWeek, {
-                type: chartMode === 'stacked' ? 'bar' : 'line',
-                data: {
-                    labels: rawLabels,
-                    datasets: weeklyDatasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { stacked: chartMode === 'stacked' },
-                        y: { stacked: chartMode === 'stacked', beginAtZero: true, min: 0, max: 20 }
-                    },
-                    plugins: { legend: { display: true, labels: { boxWidth: 10, font: { size: 10 } } } }
-                }
-            });
-
-            // Monthly Chart
-            const monthlyHours = [0, 0, 0, 0];
-
-            if (sessions) {
-                sessions.forEach(s => {
-                    const d = new Date(s.created_at);
-                    const weekNum = Math.min(3, Math.floor((d.getDate() - 1) / 7));
-                    monthlyHours[weekNum] += (s.duration_minutes / 60);
-                });
-            }
-
-            if (monthlyChartInstance) monthlyChartInstance.destroy();
-            const ctxMonth = document.getElementById('monthlyChart').getContext('2d');
-            
-            const monthlyDatasets = [{
-                label: 'Study Hours',
-                data: monthlyHours.map(h => parseFloat(h.toFixed(1))),
-                borderColor: '#10b981',
-                backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                fill: true,
-                tension: 0.2,
-                yAxisID: 'y'
-            }];
-
-            if (showGrades) {
-                monthlyDatasets.push({
-                    label: 'Exam Score (%)',
-                    data: [
-                        examGradesData[0]?.score || 0,
-                        examGradesData[1]?.score || 0,
-                        examGradesData[2]?.score || 0,
-                        examGradesData[3]?.score || 0
-                    ],
-                    borderColor: '#f59e0b',
-                    backgroundColor: 'transparent',
-                    borderDash: [5, 5],
-                    pointRadius: 5,
-                    yAxisID: 'y1'
-                });
-            }
-
-            monthlyChartInstance = new Chart(ctxMonth, {
-                type: 'line',
-                data: {
-                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                    datasets: monthlyDatasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { type: 'linear', display: true, position: 'left', beginAtZero: true, min: 0, max: 20 },
-                        y1: { type: 'linear', display: showGrades, position: 'right', beginAtZero: true, min: 0, max: 100, grid: { drawOnChartArea: false } }
-                    },
-                    plugins: { legend: { display: true, labels: { boxWidth: 10, font: { size: 10 } } } }
-                }
-            });
-        }
-
-        function showPomoAlert(title, desc) {
-            document.getElementById('pomoAlertTitle').textContent = title;
-            document.getElementById('pomoAlertDesc').textContent = desc;
-            openModal('pomoAlertOverlay');
-        }
-        function dismissPomoAlert() { closeModal('pomoAlertOverlay'); }
-
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-    </script>
+    <div class="card space-y-3">
+      <h3 class="text-sm font-semibold text-slate-400">Weekly Classes</h3>
+      <input id="clTitle" placeholder="Class title" class="inp">
+      <select id="clSubject" class="inp"></select>
+      <select id="clDay" class="inp"></select>
+      <input id="clDur" type="number" placeholder="Duration in minutes" class="inp">
+      <button onclick="saveClass()" class="btn bg-emerald-500 hover:bg-emerald-600">Add Class</button>
+      <div id="classesList" class="space-y-2 max-h-56 overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <!-- ROOM -->
+  <div id="roomTab" class="tab hidden space-y-6">
+    <div class="card text-center space-y-3">
+      <h3 class="text-lg font-bold">Shared Live Study Room 🟢</h3>
+      <p class="text-xs text-slate-400">Start your timer, then join to show your live study time.</p>
+      <label class="flex items-center justify-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="anon"> Join as Anonymous</label>
+      <button id="joinBtn" onclick="joinRoom()" class="bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-lg text-sm font-medium">Join Room</button>
+      <button id="leaveBtn" onclick="leaveRoom()" class="hidden bg-red-600 hover:bg-red-500 px-6 py-2 rounded-lg text-sm font-medium">Leave Room</button>
+    </div>
+    <div class="card">
+      <div class="flex justify-between items-center mb-3"><h4 class="text-sm font-semibold text-slate-400">Active Members</h4>
+        <button onclick="syncRoom()" class="bg-slate-800 px-3 py-1 rounded-lg text-xs">🔄 Refresh</button></div>
+      <div id="roomList" class="space-y-2"></div>
+    </div>
+    <div class="card text-center opacity-60 text-xs text-amber-300">🏆 Leaderboard - Coming Soon!</div>
+  </div>
+
+  <!-- CHARTS -->
+  <div id="chartsTab" class="tab hidden space-y-6">
+    <div class="card !p-4 flex flex-wrap gap-3 items-center text-xs">
+      <span class="font-medium">Review Archive:</span>
+      <select id="weekSel" onchange="renderCharts()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1"></select>
+      <select id="monthSel" onchange="renderCharts()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1"></select>
+      <span id="monthRange" class="text-blue-400 font-mono"></span>
+    </div>
+    <div class="card !p-4 space-y-3">
+      <h3 class="text-xs font-semibold text-amber-400">⭐ Log Exam Score</h3>
+      <div class="grid md:grid-cols-5 gap-3 text-xs">
+        <input id="gTitle" placeholder="Exam title" class="inp">
+        <input id="gScore" type="number" placeholder="Score" class="inp">
+        <input id="gMax" type="number" value="100" placeholder="Max score" class="inp">
+        <input id="gDate" type="date" class="inp">
+        <button onclick="saveGrade()" class="bg-amber-600 hover:bg-amber-500 rounded-lg font-medium py-2">Save Grade</button>
+      </div>
+    </div>
+    <div class="card !p-3 flex flex-wrap gap-3 items-center justify-between text-xs">
+      <select id="chartMode" onchange="renderCharts()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1">
+        <option value="stacked">Stacked (by subject)</option><option value="total">Total hours line</option></select>
+      <label class="text-emerald-400 cursor-pointer"><input type="checkbox" id="layerClasses" checked onchange="renderCharts()"> Classes layer</label>
+      <label class="text-amber-400 cursor-pointer"><input type="checkbox" id="layerGrades" checked onchange="renderCharts()"> Grades overlay</label>
+    </div>
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="card"><h3 class="text-sm font-semibold text-slate-400 mb-2">Weekly (Saturday to Friday)</h3><div class="relative h-[260px]"><canvas id="weeklyChart"></canvas></div></div>
+      <div class="card"><h3 class="text-sm font-semibold text-slate-400 mb-2">Monthly hours &amp; grades</h3><div class="relative h-[260px]"><canvas id="monthlyChart"></canvas></div></div>
+    </div>
+  </div>
+</div>
+</main>
+
+<footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs text-slate-400">
+  Made by <a href="https://linktr.ee/Raswta" target="_blank" class="text-blue-400 font-semibold">raswta</a>
+</footer>
+
+<div id="confirm" class="modal"><div class="card max-w-sm w-full text-center space-y-4">
+  <h3 class="text-lg font-bold">Save &amp; Reset Timer?</h3>
+  <p class="text-xs text-slate-300">Your time will be saved to your logs and the stopwatch will reset.</p>
+  <div class="flex gap-3"><button onclick="modal('confirm',0)" class="btn bg-slate-800">Cancel</button><button onclick="finishTimer()" class="btn bg-blue-600">Yes, Save</button></div>
+</div></div>
+<div id="timerOff" class="modal"><div class="card max-w-sm w-full text-center space-y-4">
+  <h3 class="text-lg font-bold">Timer is stopped</h3><p class="text-xs text-slate-300">Start your timer before joining the live room.</p>
+  <button onclick="modal('timerOff',0);tab('timerTab')" class="btn bg-blue-600">Go to Timer</button>
+</div></div>
+<div id="pomoAlert" class="modal"><div class="card max-w-sm w-full text-center space-y-4">
+  <h3 id="pomoTitle" class="text-2xl font-bold"></h3><p id="pomoDesc" class="text-sm text-slate-300"></p>
+  <button onclick="modal('pomoAlert',0)" class="btn bg-blue-600">Continue</button>
+</div></div>
+<div id="guide" class="modal"><div class="card max-w-xl w-full space-y-3 text-xs text-slate-300 max-h-[85vh] overflow-y-auto">
+  <h3 class="text-base font-bold text-blue-400">EDUVEX Guide 💡</h3>
+  <p><b>Goal:</b> choose Daily or Weekly, type hours (12.5 = 12h30m) and press Save Goal.</p>
+  <p><b>Timer:</b> Finish &amp; Save records the session in your logs, goal bar and charts. The stopwatch survives refresh.</p>
+  <p><b>Classes &amp; manual entries</b> are added to goal and charts immediately.</p>
+  <p><b>Archive:</b> pick any previous week or Persian month in the Charts tab.</p>
+  <button onclick="modal('guide',0)" class="btn bg-blue-600">Got it!</button>
+</div></div>
+
+<script>
+const sb = supabase.createClient("https://kuescglkkpvsqqxnubww.supabase.co", "sb_publishable_su-MHh5kE2EuainNOAGuJA_EP0p7Mrb");
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DAY = 864e5;
+const DAYS = ['Saturday (Shanbeh)','Sunday (Yekshanbeh)','Monday (Doshanbeh)','Tuesday (Seshanbeh)','Wednesday (Chaharshanbeh)','Thursday (Panjshanbeh)','Friday (Jomeh)'];
+const COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#ef4444','#14b8a6','#a855f7'];
+const LS = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
+
+let user = null, running = false, base = 0, lastTick = 0, tInt = null, roomInt = null;
+let inRoom = false, pomo = false, pState = 'study', pLeft = 0, alerted = {};
+let wChart = null, mChart = null, starts = [];
+let segs = {}, curSub = 'General Study';
+let subjects = LS('ev_subjects', ['General Study','Physics','Mathematics','Chemistry','Biology']);
+let goalType = localStorage.getItem('ev_goal_type') || 'daily';
+let goalVal = parseFloat(localStorage.getItem('ev_goal_val')) || 13;
+let D = { sessions: [], classes: [], exams: [], grades: [] };
+
+const color = s => COLORS[subjects.indexOf(s) % COLORS.length] || '#64748b';
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+const fmt = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+const dayIdx = d => (d.getDay() + 1) % 7;               // Saturday = 0
+function weekStart(d) { const x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() - dayIdx(x)); return x; }
+
+// ---------- Persian month helpers ----------
+const pParts = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', { day: 'numeric' });
+const pName = new Intl.DateTimeFormat('en-u-ca-persian', { month: 'long', year: 'numeric' });
+function pMonthStart(d) { const x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() - (parseInt(pParts.format(x)) - 1)); return x; }
+const pMonthEnd = s => pMonthStart(new Date(s.getTime() + 33 * DAY));
+
+// ---------- UI helpers ----------
+function modal(id, show) { $(id).classList.toggle('show', !!show); }
+function tab(id) {
+  document.querySelectorAll('.tab').forEach(e => e.classList.add('hidden'));
+  $(id).classList.remove('hidden');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('on', b.dataset.t === id));
+  if (id === 'chartsTab') renderCharts();
+  if (id === 'roomTab') syncRoom();
+}
+function status() {
+  const on = navigator.onLine, c = $('conn');
+  c.textContent = on ? 'Online' : 'Offline';
+  c.className = 'px-2.5 py-1 rounded-full text-[11px] border ' + (on ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25' : 'bg-amber-500/10 text-amber-400 border-amber-500/25');
+}
+
+// ---------- Data layer (server + offline queue) ----------
+const Q = () => LS('ev_queue', []);
+const setQ = q => localStorage.setItem('ev_queue', JSON.stringify(q));
+
+async function save(table, row) {
+  row.user_id = user.id;
+  if (navigator.onLine) {
+    const { error } = await sb.from(table).insert(row);
+    if (!error) return true;
+    console.error(table, error);
+    alert('Server save failed: ' + error.message + '\nSaved on this device for now.');
+  }
+  setQ([...Q(), { table, row }]);
+  return false;
+}
+async function sync() {
+  if (!user || !navigator.onLine) return;
+  const rest = [];
+  for (const it of Q()) {
+    if (it.row.user_id !== user.id) { rest.push(it); continue; }
+    const { error } = await sb.from(it.table).insert(it.row);
+    if (error) { console.error('sync', error); rest.push(it); }
+  }
+  setQ(rest);
+}
+async function rows(table) {
+  let r = [];
+  if (navigator.onLine) {
+    const { data, error } = await sb.from(table).select('*').eq('user_id', user.id);
+    if (error) console.error('load ' + table, error); else r = data || [];
+  }
+  return [...r, ...Q().filter(i => i.table === table && i.row.user_id === user.id).map(i => ({ ...i.row, _local: 1 }))];
+}
+async function del(table, id) {
+  if (!confirm('Delete this item?')) return;
+  const { error } = await sb.from(table).delete().eq('id', id).eq('user_id', user.id);
+  if (error) return alert('Error: ' + error.message);
+  refresh();
+}
+async function refresh() {
+  if (!user) return;
+  await sync();
+  [D.sessions, D.classes, D.exams, D.grades] = await Promise.all(['study_sessions','classes','exams','exam_grades'].map(rows));
+  D.sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  D.sessions.forEach(s => { if (s.subject && !subjects.includes(s.subject)) subjects.push(s.subject); });
+  D.classes.forEach(c => { if (c.subject && !subjects.includes(c.subject)) subjects.push(c.subject); });
+  localStorage.setItem('ev_subjects', JSON.stringify(subjects));
+  fillSubjects(); renderGoal(); renderLists(); renderCharts();
+}
+
+// ---------- Auth ----------
+const mail = u => `${u.trim().toLowerCase()}@studyapp.local`;
+async function signup() {
+  const u = $('aUser').value, p = $('aPass').value;
+  if (!u.trim() || p.length < 6) return alert('Enter a username and a password of at least 6 characters');
+  const { data, error } = await sb.auth.signUp({ email: mail(u), password: p });
+  if (error) return alert(error.message);
+  if (data.session) { user = data.user; onLogin(); } else alert('Signed up! Now press Sign In.');
+}
+async function login() {
+  const { data, error } = await sb.auth.signInWithPassword({ email: mail($('aUser').value), password: $('aPass').value });
+  if (error) return alert(error.message);
+  user = data.user; onLogin();
+}
+async function logout() { await leaveRoom(); await sb.auth.signOut(); location.reload(); }
+function onLogin() {
+  $('auth').classList.add('hidden'); $('app').classList.remove('hidden'); $('logoutBtn').classList.remove('hidden');
+  leaveRoom(); refresh();
+  if (!roomInt) roomInt = setInterval(() => { if (inRoom || !$('roomTab').classList.contains('hidden')) syncRoom(); }, 3000);
+}
+
+// ---------- Subjects ----------
+function fillSubjects() {
+  [['swSubject',1],['manSubject',1],['exSubject',0],['clSubject',0]].forEach(([id, add]) => {
+    const e = $(id), v = e.value;
+    e.innerHTML = subjects.map(s => `<option>${esc(s)}</option>`).join('') + (add ? '<option value="__new">+ Add New Subject</option>' : '');
+    if (v && [...e.options].some(o => o.value === v)) e.value = v;
+  });
+}
+function pickSubj(sel, custom) {
+  $(custom).classList.toggle('hidden', $(sel).value !== '__new');
+  if ($(sel).value === '__new') $(custom).focus();
+}
+function getSubject(sel, custom) {
+  if ($(sel).value !== '__new') return $(sel).value;
+  const n = $(custom).value.trim();
+  if (!n) return 'General Study';
+  if (!subjects.includes(n)) { subjects.push(n); localStorage.setItem('ev_subjects', JSON.stringify(subjects)); }
+  fillSubjects(); $(sel).value = n; $(custom).value = ''; $(custom).classList.add('hidden');
+  return n;
+}
+
+// ---------- Goal ----------
+function saveGoal() {
+  const v = parseFloat($('goalIn').value);
+  if (!(v > 0)) return alert('Enter a valid number of hours');
+  goalVal = v; goalType = $('goalType').value;
+  localStorage.setItem('ev_goal_val', v); localStorage.setItem('ev_goal_type', goalType);
+  renderGoal();
+}
+function renderGoal() {
+  const now = new Date(), t0 = new Date(now); t0.setHours(0,0,0,0);
+  const sum = (arr, f) => arr.reduce((a, x) => a + (+f(x) || 0), 0);
+  let mins;
+  if (goalType === 'daily') {
+    mins = sum(D.sessions.filter(s => new Date(s.created_at) >= t0), s => s.duration_minutes)
+         + sum(D.classes.filter(c => +c.day_of_week === now.getDay()), c => c.duration_minutes);
+  } else {
+    const ws = weekStart(now);
+    mins = sum(D.sessions.filter(s => new Date(s.created_at) >= ws), s => s.duration_minutes) + sum(D.classes, c => c.duration_minutes);
+  }
+  const h = mins / 60, pct = Math.min(100, Math.round(h / goalVal * 100));
+  $('goalText').textContent = `${h.toFixed(1)} / ${goalVal} hrs (${pct}%)`;
+  $('goalBar').style.width = pct + '%';
+}
+
+// ---------- Lists ----------
+function renderLists() {
+  $('sessionsList').innerHTML = D.sessions.slice(0, 15).map(s => `
+    <div class="row"><div><span class="font-medium">${esc(s.subject)}</span>
+    <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] ${s.type === 'manual' ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}">${s.type === 'manual' ? 'Manual' : 'Stopwatch'}</span></div>
+    <span class="font-mono text-slate-300">${s.duration_minutes} min · ${fmt(new Date(s.created_at))}</span></div>`).join('') || '<p class="text-xs text-slate-500">No sessions yet.</p>';
+  const today = new Date(); today.setHours(0,0,0,0);
+  $('examsList').innerHTML = [...D.exams].sort((a, b) => (a.exam_date > b.exam_date ? 1 : -1)).map(e => {
+    const left = Math.ceil((new Date(e.exam_date + 'T00:00:00') - today) / DAY);
+    return `<div class="row"><div><b>${esc(e.title)}</b> (${esc(e.subject)})<span class="block text-[10px] text-slate-400">${esc(e.exam_date)} · ${left >= 0 ? left + ' days left' : 'passed'}</span></div>
+    ${e.id ? `<button onclick="del('exams',${e.id})" class="text-red-400">✕</button>` : '<span class="text-[10px] text-amber-400">pending sync</span>'}</div>`;
+  }).join('');
+  $('classesList').innerHTML = D.classes.map(c => `
+    <div class="row"><div><b>${esc(c.title)}</b> (${esc(c.subject)})<span class="block text-[10px] text-slate-400">${DAYS[(+c.day_of_week + 1) % 7]} · ${c.duration_minutes} min</span></div>
+    ${c.id ? `<button onclick="del('classes',${c.id})" class="text-red-400">✕</button>` : '<span class="text-[10px] text-amber-400">pending sync</span>'}</div>`).join('');
+}
+
+// ---------- Stopwatch ----------
+function persist() {
+  if (!running && base === 0) return localStorage.removeItem('ev_timer');
+  localStorage.setItem('ev_timer', JSON.stringify({ running, base, lastTick, subject: curSub, segs }));
+}
+function draw() {
+  const s = pomo ? Math.max(0, pLeft) : base;
+  const p = n => String(n).padStart(2, '0');
+  $('swDisplay').textContent = `${p(Math.floor(s / 3600))}:${p(Math.floor(s % 3600 / 60))}:${p(s % 60)}`;
+  $('swStatus').textContent = !running ? (base ? 'Paused' : 'Ready') : (pState === 'rest' ? 'Resting...' : 'Studying...');
+  $('swBreak').innerHTML = Object.entries(segs).map(([n, v]) => `<div class="flex justify-between"><span>${esc(n)}</span><span class="font-mono">${Math.floor(v / 60)} min</span></div>`).join('');
+}
+function ui() {
+  $('startBtn').textContent = running ? 'Pause' : (base ? 'Resume' : 'Start');
+  $('startBtn').className = 'btn flex-1 ' + (running ? 'bg-amber-600' : 'bg-blue-500 hover:bg-blue-600');
+  $('finishBtn').disabled = base === 0 && !running;
+  $('finishBtn').className = 'btn flex-1 ' + ($('finishBtn').disabled ? 'bg-slate-800 text-slate-500' : 'bg-red-600');
+  draw();
+}
+function notify(t, b) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'granted') new Notification(t, { body: b });
+  else if (Notification.permission !== 'denied') Notification.requestPermission();
+}
+function tick() {
+  const d = Math.floor((Date.now() - lastTick) / 1000);
+  if (d < 1) return;
+  lastTick += d * 1000;
+  if (pState === 'study') { base += d; segs[curSub] = (segs[curSub] || 0) + d; }
+  if (pomo) {
+    pLeft -= d;
+    if (pLeft <= 0) {
+      pState = pState === 'study' ? 'rest' : 'study';
+      pLeft = (+$(pState === 'study' ? 'pomoStudy' : 'pomoRest').value || (pState === 'study' ? 50 : 10)) * 60;
+      $('pomoTitle').textContent = pState === 'rest' ? 'Study completed!' : 'Rest finished!';
+      $('pomoDesc').textContent = pState === 'rest' ? 'Time for a break.' : 'Back to studying!';
+      modal('pomoAlert', 1);
+    }
+  }
+  [[600, '10'], [1800, '30']].forEach(([s, m]) => { if (base >= s && !alerted[m]) { alerted[m] = 1; notify('EDUVEX', `Your stopwatch has been running for ${m} minutes!`); } });
+  draw(); persist();
+}
+function toggleTimer() {
+  if (!running) {
+    syncSub(); running = true; lastTick = Date.now();
+    if (pomo && pLeft <= 0) { pState = 'study'; pLeft = (+$('pomoStudy').value || 50) * 60; }
+    tInt = setInterval(tick, 1000);
+  } else {
+    running = false; clearInterval(tInt);
+    if (inRoom) syncRoom();
+  }
+  ui(); persist();
+}
+function syncSub() { curSub = getSubject('swSubject', 'swCustom'); }
+function togglePomo() { pomo = $('pomoOn').checked; $('pomoSet').classList.toggle('hidden', !pomo); pLeft = 0; pState = 'study'; draw(); }
+async function finishTimer() {
+  modal('confirm', 0);
+  clearInterval(tInt); running = false;
+  const parts = Object.entries(segs);
+  base = 0; segs = {}; pLeft = 0; pState = 'study'; alerted = {};
+  localStorage.removeItem('ev_timer');
+  ui(); $('swStatus').textContent = 'Finished & Saved!';
+  for (const [subject, secs] of parts)
+    if (secs >= 15) await save('study_sessions', { subject, duration_minutes: Math.max(1, Math.round(secs / 60)), type: 'stopwatch', created_at: new Date().toISOString() });
+  await leaveRoom(); refresh();
+}
+function restoreTimer() {
+  const s = LS('ev_timer', null);
+  if (!s) return;
+  base = s.base || 0;
+  curSub = s.subject || 'General Study';
+  segs = s.segs || { [curSub]: base };
+  if (s.running) { const gap = Math.max(0, Math.floor((Date.now() - s.lastTick) / 1000)); base += gap; segs[curSub] = (segs[curSub] || 0) + gap; running = true; lastTick = Date.now(); tInt = setInterval(tick, 1000); }
+  setTimeout(() => { if ([...$('swSubject').options].some(o => o.value === s.subject)) $('swSubject').value = s.subject; }, 600);
+  ui();
+}
+
+// ---------- Manual / classes / exams / grades ----------
+async function saveManual() {
+  const mins = parseInt($('manMin').value);
+  if (!(mins > 0)) return alert('Enter the minutes');
+  const subject = getSubject('manSubject', 'manCustom');
+  const dv = $('manDate').value, when = dv ? new Date(dv + 'T12:00:00') : new Date();
+  await save('study_sessions', { subject, duration_minutes: mins, type: 'manual', created_at: when.toISOString() });
+  $('manMin').value = ''; refresh();
+}
+async function saveClass() {
+  const title = $('clTitle').value.trim();
+  if (!title) return alert('Enter the class title');
+  await save('classes', { title, subject: $('clSubject').value, day_of_week: +$('clDay').value, duration_minutes: parseInt($('clDur').value) || 60 });
+  $('clTitle').value = ''; refresh();
+}
+async function saveExam() {
+  const title = $('exTitle').value.trim(), date = $('exDate').value;
+  if (!title || !date) return alert('Enter title and date');
+  await save('exams', { title, subject: $('exSubject').value, exam_date: date, topics: $('exTopics').value.trim() });
+  $('exTitle').value = ''; $('exTopics').value = ''; refresh();
+}
+async function saveGrade() {
+  const title = $('gTitle').value.trim(), score = parseFloat($('gScore').value), max = parseFloat($('gMax').value) || 100;
+  if (!title || isNaN(score)) return alert('Enter a valid title and score');
+  const d = $('gDate').value || new Date().toISOString().slice(0, 10);
+  await save('exam_grades', { title, score, max_score: max, grade_date: d });
+  $('gTitle').value = ''; $('gScore').value = ''; refresh();
+}
+
+// ---------- Room ----------
+async function joinRoom() {
+  if (!running) return modal('timerOff', 1);
+  if (!navigator.onLine) return alert('You cannot join the study room while offline.');
+  inRoom = true; $('joinBtn').classList.add('hidden'); $('leaveBtn').classList.remove('hidden');
+  syncRoom();
+}
+async function leaveRoom() {
+  inRoom = false;
+  if (user && navigator.onLine) await sb.from('room_members').delete().eq('user_id', user.id);
+  $('joinBtn').classList.remove('hidden'); $('leaveBtn').classList.add('hidden');
+  syncRoom();
+}
+async function syncRoom() {
+  if (!user || !navigator.onLine) return;
+  if (inRoom) {
+    const { error } = await sb.from('room_members').upsert({
+      user_id: user.id,
+      username: $('anon').checked ? 'Anonymous Member' : user.email.split('@')[0],
+      is_studying: running && pState === 'study',
+      live_seconds: base,
+      current_subject: $('swSubject').value === '__new' ? 'General Study' : $('swSubject').value,
+      last_active: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+    if (error) console.error('room', error);
+  }
+  const { data } = await sb.from('room_members').select('*');
+  const live = (data || []).filter(m => !m.last_active || Date.now() - new Date(m.last_active) < 20000);
+  $('roomList').innerHTML = live.map(m => {
+    const h = String(Math.floor(m.live_seconds / 3600)).padStart(2, '0'), mm = String(Math.floor(m.live_seconds % 3600 / 60)).padStart(2, '0');
+    return `<div class="row"><div>👨‍💻 <b>${esc(m.username)}</b>${m.user_id === user.id ? ' (You)' : ''}<span class="block text-[10px] text-slate-400">${esc(m.current_subject)}</span></div>
+    <div class="flex items-center gap-3"><span class="text-[10px] px-1.5 py-0.5 rounded ${m.is_studying ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}">${m.is_studying ? 'Studying' : 'Resting'}</span><span class="font-mono text-sm">${h}:${mm}</span></div></div>`;
+  }).join('') || '<p class="text-xs text-slate-500 text-center py-4">No active members.</p>';
+}
+
+// ---------- Charts ----------
+function initArchive() {
+  let s = pMonthStart(new Date());
+  starts = [];
+  for (let i = 0; i < 12; i++) { starts.push(s); s = pMonthStart(addDays(s, -1)); }
+  $('monthSel').innerHTML = starts.map((m, i) => `<option value="${i}">${pName.format(m)}</option>`).join('');
+  const w0 = weekStart(new Date());
+  $('weekSel').innerHTML = Array.from({ length: 16 }, (_, i) => {
+    const a = addDays(w0, -7 * i);
+    return `<option value="${i}">${i === 0 ? 'This week' : i === 1 ? 'Last week' : 'Week of ' + fmt(a)}</option>`;
+  }).join('');
+}
+function renderCharts() {
+  if ($('chartsTab').classList.contains('hidden') || !starts.length) return;
+  const mode = $('chartMode').value, showCl = $('layerClasses').checked, showGr = $('layerGrades').checked;
+
+  // weekly
+  const ws = addDays(weekStart(new Date()), -7 * +$('weekSel').value), we = addDays(ws, 7);
+  const wk = D.sessions.filter(s => { const d = new Date(s.created_at); return d >= ws && d < we; });
+  const bucket = f => { const a = Array(7).fill(0); wk.filter(f).forEach(s => a[dayIdx(new Date(s.created_at))] += s.duration_minutes / 60); return a.map(h => +h.toFixed(2)); };
+  const sets = [];
+  if (mode === 'stacked') subjects.forEach(sub => { const data = bucket(s => s.subject === sub); if (data.some(x => x)) sets.push({ label: sub, data, backgroundColor: color(sub), borderRadius: 4 }); });
+  else sets.push({ label: 'Total Hours', data: bucket(() => true), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,.2)', fill: true, tension: .2 });
+  if (showCl) {
+    const a = Array(7).fill(0);
+    D.classes.forEach(c => a[(+c.day_of_week + 1) % 7] += (c.duration_minutes || 0) / 60);
+    sets.push({ type: 'line', label: 'Classes', data: a.map(h => +h.toFixed(2)), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.3)', tension: .2 });
+  }
+  if (wChart) wChart.destroy();
+  wChart = new Chart($('weeklyChart'), {
+    type: mode === 'stacked' ? 'bar' : 'line',
+    data: { labels: DAYS.map((n, i) => n.slice(0, 3) + ' ' + addDays(ws, i).getDate()), datasets: sets },
+    options: { responsive: true, maintainAspectRatio: false,
+      scales: { x: { stacked: mode === 'stacked' }, y: { stacked: mode === 'stacked', beginAtZero: true, title: { display: true, text: 'hours' } } },
+      plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } }
+  });
+
+  // monthly
+  const ms = starts[+$('monthSel').value], me = pMonthEnd(ms);
+  $('monthRange').textContent = `${fmt(ms)} → ${fmt(addDays(me, -1))}`;
+  const bi = d => Math.min(4, Math.floor((d - ms) / (7 * DAY)));
+  const hrs = Array(5).fill(0), gs = Array.from({ length: 5 }, () => []);
+  D.sessions.forEach(s => { const d = new Date(s.created_at); if (d >= ms && d < me) hrs[bi(d)] += s.duration_minutes / 60; });
+  D.grades.forEach(g => { const d = new Date(g.grade_date + 'T12:00:00'); if (d >= ms && d < me) gs[bi(d)].push(g.score / (g.max_score || 100) * 100); });
+  const msets = [{ label: 'Study Hours', data: hrs.map(h => +h.toFixed(2)), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.2)', fill: true, tension: .2, yAxisID: 'y' }];
+  if (showGr) msets.push({ label: 'Exam Score (%)', data: gs.map(a => a.length ? +(a.reduce((x, y) => x + y) / a.length).toFixed(1) : null), borderColor: '#f59e0b', borderDash: [5, 5], pointRadius: 5, spanGaps: true, yAxisID: 'y1' });
+  if (mChart) mChart.destroy();
+  mChart = new Chart($('monthlyChart'), {
+    type: 'line',
+    data: { labels: ['Week 1','Week 2','Week 3','Week 4','Week 5'], datasets: msets },
+    options: { responsive: true, maintainAspectRatio: false,
+      scales: { y: { beginAtZero: true, position: 'left', title: { display: true, text: 'hours' } },
+                y1: { display: showGr, position: 'right', min: 0, max: 100, grid: { drawOnChartArea: false } } },
+      plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } }
+  });
+}
+
+// ---------- Init ----------
+document.addEventListener('DOMContentLoaded', async () => {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  $('clDay').innerHTML = DAYS.map((n, i) => `<option value="${(i + 6) % 7}">${n}</option>`).join('');
+  $('goalType').value = goalType; $('goalIn').value = goalVal;
+  $('goalType').onchange = () => { goalType = $('goalType').value; localStorage.setItem('ev_goal_type', goalType); renderGoal(); };
+  $('manDate').value = new Date().toISOString().slice(0, 10);
+  initArchive(); fillSubjects(); restoreTimer(); status();
+  window.addEventListener('online', () => { status(); refresh(); });
+  window.addEventListener('offline', status);
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) { user = session.user; onLogin(); }
+});
+</script>
 </body>
 </html>
