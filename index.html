@@ -32,6 +32,7 @@ body{font-family:Inter,system-ui,sans-serif}
     <button id="conn" onclick="modal('offInfo',1)" class="px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
       <span id="connDot" class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span><span id="connText">Online</span></button>
     <button onclick="modal('install',1)" class="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 px-3 py-1.5 rounded-lg text-xs font-medium"><i class="fa-solid fa-mobile-screen-button mr-1"></i> Add App</button>
+    <button onclick="modal('calModal',1)" class="px-2.5 py-2 rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30 text-xs font-medium" title="Calendar type"><i class="fa-solid fa-calendar-days"></i><span id="calLbl" class="hidden sm:inline ml-1.5"></span></button>
     <button onclick="modal('guide',1)" class="p-2 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30"><i class="fa-solid fa-lightbulb"></i></button>
     <button id="logoutBtn" onclick="logout()" class="hidden text-xs text-red-400 bg-red-500/10 px-2.5 py-1.5 rounded-lg">Logout</button>
   </div>
@@ -105,7 +106,7 @@ body{font-family:Inter,system-ui,sans-serif}
           <select id="manSubject" class="inp" onchange="pickSubj('manSubject','manCustom')"></select>
           <input id="manCustom" placeholder="New subject name" class="inp hidden mt-2"></div>
         <div><label class="lbl">Duration (minutes)</label><input id="manMin" type="number" placeholder="45" class="inp"></div>
-        <div><label class="lbl">Date (Shamsi)</label><div id="manDate" class="grid grid-cols-3 gap-2"></div></div>
+        <div><label class="lbl">Date</label><div id="manDate" class="grid grid-cols-3 gap-2"></div></div>
         <button onclick="saveManual()" class="btn bg-orange-500 hover:bg-orange-600">Save Entry</button>
       </div>
     </div>
@@ -160,7 +161,7 @@ body{font-family:Inter,system-ui,sans-serif}
       <span id="monthRange" class="text-blue-400 font-mono"></span>
     </div>
     <div class="card !p-4 space-y-3">
-      <h3 class="text-xs font-semibold text-amber-400"><i class="fa-solid fa-star mr-1"></i> Log Exam Score (Shamsi date)</h3>
+      <h3 class="text-xs font-semibold text-amber-400"><i class="fa-solid fa-star mr-1"></i> Log Exam Score</h3>
       <div class="grid md:grid-cols-5 gap-3 text-xs">
         <input id="gTitle" placeholder="Exam title" class="inp">
         <input id="gScore" type="number" placeholder="Score" class="inp">
@@ -187,6 +188,12 @@ body{font-family:Inter,system-ui,sans-serif}
   Made by <a href="https://linktr.ee/Raswta" target="_blank" class="text-blue-400 font-semibold">raswta</a>
 </footer>
 
+<div id="calModal" class="modal"><div class="card max-w-xs w-full space-y-3 text-center">
+  <h3 class="text-base font-bold text-indigo-300"><i class="fa-solid fa-calendar-days mr-1"></i> Calendar type</h3>
+  <p class="text-xs text-slate-400">All dates on the site will use this calendar.</p>
+  <button id="calS" onclick="setCal('shamsi')" class="btn">Shamsi (Persian)</button>
+  <button id="calG" onclick="setCal('gregorian')" class="btn">Gregorian</button>
+</div></div>
 <div id="offInfo" class="modal"><div class="card max-w-sm w-full space-y-4 relative">
   <button onclick="modal('offInfo',0)" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
   <h3 class="text-base font-bold text-blue-400">Connection Status Info</h3>
@@ -216,7 +223,8 @@ body{font-family:Inter,system-ui,sans-serif}
   <p><b>Goal:</b> choose Daily or Weekly, type hours (12.5 = 12h30m) and press Save Goal.</p>
   <p><b>Timer:</b> Finish &amp; Save records the session in your logs, goal bar and charts. The stopwatch survives refresh.</p>
   <p><b>Classes &amp; manual entries</b> are added to goal and charts immediately.</p>
-  <p><b>Archive:</b> pick any previous week or Shamsi month in the Charts tab.</p>
+  <p><b>Archive:</b> pick any previous week or month in the Charts tab.</p>
+  <p><b>Calendar:</b> use the calendar icon at the top to switch all dates between Shamsi and Gregorian.</p>
   <p><b>Yellow bar:</b> a day with only manual entries shows as yellow with a Manual label.</p>
   <button onclick="modal('guide',0)" class="btn bg-blue-600">Got it!</button>
 </div></div>
@@ -228,6 +236,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 const DAY = 864e5;
 const DAYS = ['Saturday (Shanbeh)','Sunday (Yekshanbeh)','Monday (Doshanbeh)','Tuesday (Seshanbeh)','Wednesday (Chaharshanbeh)','Thursday (Panjshanbeh)','Friday (Jomeh)'];
 const DAYSF = ['Shanbeh','Yekshanbeh','Doshanbeh','Seshanbeh','Chaharshanbeh','Panjshanbeh','Jomeh'];
+const DAYSE = ['Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday','Friday'];
 const COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#ef4444','#14b8a6','#a855f7'];
 const LS = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 
@@ -245,11 +254,15 @@ const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); r
 const dayIdx = d => (d.getDay() + 1) % 7;               // Saturday = 0
 function weekStart(d) { const x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() - dayIdx(x)); return x; }
 
-// ---------- Shamsi (Persian) calendar helpers ----------
+// ---------- Calendar helpers (Shamsi / Gregorian switch) ----------
+let CAL = localStorage.getItem('ev_cal') === 'gregorian' ? 'gregorian' : 'shamsi';
 const PM = ['Farvardin','Ordibehesht','Khordad','Tir','Mordad','Shahrivar','Mehr','Aban','Azar','Dey','Bahman','Esfand'];
+const GM = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MN = () => CAL === 'shamsi' ? PM : GM;
 const pp = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', { year: 'numeric', month: 'numeric', day: 'numeric' });
 function pj(d) { const o = {}; pp.formatToParts(d).forEach(x => o[x.type] = +x.value); return { y: o.year, m: o.month, d: o.day }; }
-const fmt = d => { const p = pj(d); return `${p.d} ${PM[p.m - 1]}`; };
+const pc = d => CAL === 'shamsi' ? pj(d) : { y: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate() };
+const fmt = d => { const p = pc(d), n = MN()[p.m - 1]; return `${p.d} ${CAL === 'shamsi' ? n : n.slice(0, 3)}`; };
 const toYMD = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const ymd = str => new Date(str + 'T12:00:00');
 function fromJ(y, m, d) {
@@ -262,16 +275,32 @@ function fromJ(y, m, d) {
   }
   return best || new Date();
 }
-function mkPicker(id) {
-  const t = pj(new Date()), c = 'class="inp !px-1.5"';
+const fromC = (y, m, d) => CAL === 'shamsi' ? fromJ(y, m, d) : new Date(y, m - 1, Math.min(d, new Date(y, m, 0).getDate()), 12);
+function mkPicker(id, date) {
+  const t = pc(date || new Date()), now = pc(new Date()), c = 'class="inp !px-1.5"';
+  const years = [...new Set([now.y - 1, now.y, now.y + 1, now.y + 2, t.y])].sort();
   $(id).innerHTML =
-    `<select ${c}>${[t.y - 1, t.y, t.y + 1, t.y + 2].map(y => `<option ${y === t.y ? 'selected' : ''}>${y}</option>`).join('')}</select>` +
-    `<select ${c}>${PM.map((n, i) => `<option value="${i + 1}" ${i + 1 === t.m ? 'selected' : ''}>${n}</option>`).join('')}</select>` +
+    `<select ${c}>${years.map(y => `<option ${y === t.y ? 'selected' : ''}>${y}</option>`).join('')}</select>` +
+    `<select ${c}>${MN().map((n, i) => `<option value="${i + 1}" ${i + 1 === t.m ? 'selected' : ''}>${n}</option>`).join('')}</select>` +
     `<select ${c}>${Array.from({ length: 31 }, (_, i) => `<option ${i + 1 === t.d ? 'selected' : ''}>${i + 1}</option>`).join('')}</select>`;
 }
-function pickGet(id) { const [y, m, d] = [...$(id).children].map(e => +e.value); return toYMD(fromJ(y, m, d)); }
+function pickGet(id) { const [y, m, d] = [...$(id).children].map(e => +e.value); return toYMD(fromC(y, m, d)); }
 function pMonthStart(d) { const x = new Date(d); x.setHours(12, 0, 0, 0); x.setDate(x.getDate() - (pj(x).d - 1)); return x; }
 const pMonthEnd = s => pMonthStart(new Date(s.getTime() + 33 * DAY));
+const mStart = d => CAL === 'shamsi' ? pMonthStart(d) : new Date(d.getFullYear(), d.getMonth(), 1, 12);
+const mEnd = s => CAL === 'shamsi' ? pMonthEnd(s) : new Date(s.getFullYear(), s.getMonth() + 1, 1, 12);
+function calUI() {
+  $('calLbl').textContent = CAL === 'shamsi' ? 'Shamsi' : 'Gregorian';
+  $('calS').className = 'btn ' + (CAL === 'shamsi' ? 'bg-blue-600' : 'bg-slate-800 hover:bg-slate-700');
+  $('calG').className = 'btn ' + (CAL === 'gregorian' ? 'bg-blue-600' : 'bg-slate-800 hover:bg-slate-700');
+}
+function setCal(k) {
+  const ids = ['manDate', 'exDate', 'gDate'], keep = ids.map(id => ymd(pickGet(id)));
+  CAL = k; localStorage.setItem('ev_cal', k);
+  ids.forEach((id, i) => mkPicker(id, keep[i]));
+  const w = $('weekSel').value; initArchive(); $('weekSel').value = w;
+  calUI(); renderLists(); renderCharts(); modal('calModal', 0);
+}
 
 // ---------- UI helpers ----------
 function modal(id, show) { $(id).classList.toggle('show', !!show); }
@@ -448,6 +477,7 @@ function notify(t, b) {
   else if (Notification.permission !== 'denied') Notification.requestPermission();
 }
 function tick() {
+  if (!running) { clearInterval(tInt); return; }
   const d = Math.floor((Date.now() - lastTick) / 1000);
   if (d < 1) return;
   lastTick += d * 1000;
@@ -467,7 +497,7 @@ function tick() {
 }
 function toggleTimer() {
   if (!running) {
-    syncSub(); running = true; lastTick = Date.now();
+    syncSub(); clearInterval(tInt); running = true; lastTick = Date.now();
     if (pomo && pLeft <= 0) { pState = 'study'; pLeft = (+$('pomoStudy').value || 50) * 60; }
     tInt = setInterval(tick, 1000);
   } else {
@@ -480,13 +510,14 @@ function syncSub() { curSub = getSubject('swSubject', 'swCustom'); }
 function togglePomo() { pomo = $('pomoOn').checked; $('pomoSet').classList.toggle('hidden', !pomo); pLeft = 0; pState = 'study'; draw(); }
 async function finishTimer() {
   modal('confirm', 0);
-  clearInterval(tInt); running = false;
+  clearInterval(tInt); running = false; localStorage.removeItem('ev_timer');
   const parts = Object.entries(segs);
   base = 0; segs = {}; pLeft = 0; pState = 'study'; alerted = {};
   localStorage.removeItem('ev_timer');
   ui(); $('swStatus').textContent = 'Finished & Saved!';
   for (const [subject, secs] of parts)
     if (secs >= 15) await save('study_sessions', { subject, duration_minutes: Math.max(1, Math.round(secs / 60)), type: 'stopwatch', created_at: new Date().toISOString() });
+  localStorage.removeItem('ev_timer');
   await leaveRoom(); refresh();
 }
 function restoreTimer() {
@@ -495,7 +526,7 @@ function restoreTimer() {
   base = s.base || 0;
   curSub = s.subject || 'General Study';
   segs = s.segs || { [curSub]: base };
-  if (s.running) { const gap = Math.max(0, Math.floor((Date.now() - s.lastTick) / 1000)); base += gap; segs[curSub] = (segs[curSub] || 0) + gap; running = true; lastTick = Date.now(); tInt = setInterval(tick, 1000); }
+  if (s.running) { const gap = Math.max(0, Math.floor((Date.now() - s.lastTick) / 1000)); base += gap; segs[curSub] = (segs[curSub] || 0) + gap; running = true; lastTick = Date.now(); clearInterval(tInt); tInt = setInterval(tick, 1000); }
   setTimeout(() => { if ([...$('swSubject').options].some(o => o.value === s.subject)) $('swSubject').value = s.subject; }, 600);
   ui();
 }
@@ -564,10 +595,10 @@ async function syncRoom() {
 
 // ---------- Charts ----------
 function initArchive() {
-  let s = pMonthStart(new Date());
+  let s = mStart(new Date());
   starts = [];
-  for (let i = 0; i < 12; i++) { starts.push(s); s = pMonthStart(addDays(s, -1)); }
-  $('monthSel').innerHTML = starts.map((m, i) => { const p = pj(m); return `<option value="${i}">${PM[p.m - 1]} ${p.y}</option>`; }).join('');
+  for (let i = 0; i < 12; i++) { starts.push(s); s = mStart(addDays(s, -1)); }
+  $('monthSel').innerHTML = starts.map((m, i) => { const p = pc(m); return `<option value="${i}">${MN()[p.m - 1]} ${p.y}</option>`; }).join('');
   const w0 = weekStart(new Date());
   $('weekSel').innerHTML = Array.from({ length: 16 }, (_, i) =>
     `<option value="${i}">${i === 0 ? 'This week' : i === 1 ? 'Last week' : 'Week of ' + fmt(addDays(w0, -7 * i))}</option>`).join('');
@@ -617,12 +648,12 @@ function renderCharts() {
   if (wChart) wChart.destroy();
   wChart = new Chart($('weeklyChart'), {
     type: st ? 'bar' : 'line', plugins: [manualLabel],
-    data: { labels: wdays.map(d => [DAYSF[dayIdx(d)], fmt(d)]), datasets: dailySets(wdays, mode, showCl) },
+    data: { labels: wdays.map(d => [(CAL === 'shamsi' ? DAYSF : DAYSE)[dayIdx(d)], fmt(d)]), datasets: dailySets(wdays, mode, showCl) },
     options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: st }, y: yAxis() }, plugins: { legend } }
   });
 
   // monthly, day by day
-  const ms = starts[+$('monthSel').value], me = pMonthEnd(ms);
+  const ms = starts[+$('monthSel').value], me = mEnd(ms);
   $('monthRange').textContent = `${fmt(ms)} → ${fmt(addDays(me, -1))}`;
   const mdays = []; for (let d = new Date(ms); d < me; d = addDays(d, 1)) mdays.push(d);
   const msets = dailySets(mdays, mode, showCl);
@@ -635,7 +666,7 @@ function renderCharts() {
   if (mChart) mChart.destroy();
   mChart = new Chart($('monthlyChart'), {
     type: st ? 'bar' : 'line', plugins: [manualLabel],
-    data: { labels: mdays.map(d => pj(d).d), datasets: msets },
+    data: { labels: mdays.map(d => pc(d).d), datasets: msets },
     options: { responsive: true, maintainAspectRatio: false,
       scales: { x: { stacked: st, title: { display: true, text: 'day of month' } }, y: yAxis(), y1: { display: showGr, position: 'right', min: 0, max: 100, ticks: { stepSize: 10 }, grid: { drawOnChartArea: false } } },
       plugins: { legend, manualLabel: { text: 'M' } } }
@@ -648,8 +679,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('clDay').innerHTML = DAYS.map((n, i) => `<option value="${(i + 6) % 7}">${n}</option>`).join('');
   $('goalType').value = goalType; $('goalIn').value = goalVal;
   $('goalType').onchange = () => { goalType = $('goalType').value; localStorage.setItem('ev_goal_type', goalType); renderGoal(); };
-  ['manDate', 'exDate', 'gDate'].forEach(mkPicker);
-  initArchive(); fillSubjects(); restoreTimer(); status();
+  ['manDate', 'exDate', 'gDate'].forEach(id => mkPicker(id));
+  initArchive(); fillSubjects(); restoreTimer(); status(); calUI();
   window.addEventListener('online', () => { status(); refresh(); });
   window.addEventListener('offline', status);
   const { data: { session } } = await sb.auth.getSession();
