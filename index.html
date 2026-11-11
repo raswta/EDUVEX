@@ -146,6 +146,7 @@
                                         <option value="Physics">Physics</option>
                                         <option value="Mathematics">Mathematics</option>
                                         <option value="Chemistry">Chemistry</option>
+                                        <option value="Biology">Biology</option>
                                         <option value="add_new">+ Add New Subject</option>
                                     </select>
                                     <input type="text" id="stopwatchSubjectCustom" placeholder="New subject name" class="hidden w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
@@ -175,6 +176,7 @@
                                     <option value="Physics">Physics</option>
                                     <option value="Mathematics">Mathematics</option>
                                     <option value="Chemistry">Chemistry</option>
+                                    <option value="Biology">Biology</option>
                                     <option value="add_new">+ Add New Subject</option>
                                 </select>
                                 <input type="text" id="manualSubjectCustom" placeholder="New subject name" class="hidden w-full mt-2 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
@@ -206,6 +208,7 @@
                                 <option value="General Study">General Study</option>
                                 <option value="Physics">Physics</option>
                                 <option value="Mathematics">Mathematics</option>
+                                <option value="Biology">Biology</option>
                             </select>
                             <input type="date" id="examDate" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
                             <textarea id="examTopics" placeholder="Topics" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></textarea>
@@ -221,6 +224,7 @@
                             <select id="classSubjectSelect" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
                                 <option value="General Study">General Study</option>
                                 <option value="Physics">Physics</option>
+                                <option value="Biology">Biology</option>
                             </select>
                             <select id="classDay" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
                                 <option value="6">Saturday (Shanbeh)</option>
@@ -249,7 +253,16 @@
                           <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                         </span>
                     </h3>
-                    <p class="text-xs text-slate-400">Join anonymously to display your live study time with others.</p>
+                    <p class="text-xs text-slate-400">Join to display your live study time with others.</p>
+                    
+                    <!-- Anonymous Toggle -->
+                    <div class="flex items-center justify-center space-x-2 text-xs text-slate-300 py-1">
+                        <label class="cursor-pointer flex items-center space-x-2">
+                            <input type="checkbox" id="anonymousToggle" class="rounded bg-slate-950 border-slate-800 text-blue-600">
+                            <span>Join as Anonymous (Hide Username)</span>
+                        </label>
+                    </div>
+
                     <div class="flex justify-center space-x-3">
                         <button id="joinRoomBtn" onclick="joinRoom()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition">Join Room</button>
                         <button id="leaveRoomBtn" onclick="leaveRoom()" class="hidden bg-red-600 hover:bg-red-500 text-white px-6 py-2 rounded-lg text-sm font-medium transition">Leave Room</button>
@@ -257,7 +270,12 @@
                 </div>
 
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-                    <h4 class="text-sm font-semibold text-slate-400 mb-4">Anonymous Active Members (Live Status)</h4>
+                    <div class="flex justify-between items-center mb-4">
+                        <h4 class="text-sm font-semibold text-slate-400">Active Room Members (Live Status)</h4>
+                        <button onclick="syncLiveRoom()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-lg text-xs transition flex items-center gap-1.5" title="Refresh Room">
+                            <i class="fa-solid fa-rotate"></i> Refresh Room
+                        </button>
+                    </div>
                     <div id="roomMembersList" class="space-y-3">
                         <p class="text-xs text-slate-500 text-center py-4">No active members.</p>
                     </div>
@@ -308,12 +326,16 @@
 
                 <!-- Layer Toggles & View Mode -->
                 <div class="flex flex-wrap items-center justify-between bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs gap-2">
-                    <span class="text-slate-400 font-medium">Chart Mode & Layers:</span>
+                    <span class="text-slate-400 font-medium">Chart Layers Visibility:</span>
                     <div class="flex flex-wrap gap-3 items-center">
                         <select id="chartModeSelect" onchange="renderCharts()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200">
                             <option value="stacked">Stacked Breakdown (By Subject)</option>
                             <option value="total">Total Hours Line</option>
                         </select>
+                        <label class="flex items-center space-x-1 cursor-pointer text-emerald-400">
+                            <input type="checkbox" id="layerClasses" checked onchange="renderCharts()" class="rounded bg-slate-950 border-slate-800">
+                            <span>Classes Layer</span>
+                        </label>
                         <label class="flex items-center space-x-1 cursor-pointer text-amber-400">
                             <input type="checkbox" id="layerGrades" checked onchange="renderCharts()" class="rounded bg-slate-950 border-slate-800">
                             <span>Exam Grades Overlay</span>
@@ -390,9 +412,9 @@
             <h3 class="text-base font-bold text-blue-400">EDUVEX Complete Operational Guide 💡</h3>
             <p><strong>1. Goal Setting & Saving:</strong> Select Daily or Weekly goals, type your target hours, and click <strong>Save Goal</strong>. Exceeding your target keeps the progress bar locked at 100% full without breaking.</p>
             <p><strong>2. Unified Subject Lists & Auto-Save:</strong> Subjects selected in the Stopwatch, Manual Entry, Exams, and Classes are automatically synchronized. Choose "+ Add New Subject" to type and store new subject names permanently.</p>
-            <p><strong>3. Manual & Edited Manual Records:</strong> Any manual study entry instantly triggers the <strong>Edited Manual</strong> tag and highlights that day's log in orange style.</p>
-            <p><strong>4. Chart Layers & Stacked Breakdown:</strong> Charts feature a max scale of 20 hours. You can toggle between <em>Stacked Breakdown</em> (showing individual colored bars per subject) and <em>Total Hours</em>, alongside the <em>Exam Grades Overlay</em> layer.</p>
-            <p><strong>5. Archive & Date Filters:</strong> Use the archive dropdowns to review historical monthly data (e.g., Aban, Mehr, Azar) and specific weeks effortlessly.</p>
+            <p><strong>3. Manual & Edited Manual Records:</strong> Any manual study entry instantly triggers the <strong>Edited Manual</strong> tag, coloring that entire day's bar orange with an explicit badge.</p>
+            <p><strong>4. Study Room & Refresh:</strong> Use the dedicated <strong>Refresh Room</strong> button or auto-sync features to check active members. Toggle the <em>Anonymous</em> checkbox before joining to show or hide your real username.</p>
+            <p><strong>5. Chart Layers & Stacked Breakdown:</strong> Charts feature a max scale of 20 hours. You can toggle Classes, Stacked Breakdown by Subject, and Exam Grades Overlay independently.</p>
             <p><strong>6. Weekdays Order:</strong> Weekly charts and selectors strictly follow the Saturday to Friday (Shanbeh to Jomeh) cycle.</p>
             <button onclick="closeModal('guideModal')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg font-medium">Got it!</button>
         </div>
@@ -422,8 +444,8 @@
         let weeklyChartInstance = null;
         let monthlyChartInstance = null;
         let examGradesData = [];
-        let knownSubjects = ['General Study', 'Physics', 'Mathematics', 'Chemistry'];
-        const subjectColors = { 'General Study': '#3b82f6', 'Physics': '#10b981', 'Mathematics': '#f59e0b', 'Chemistry': '#8b5cf6' };
+        let knownSubjects = ['General Study', 'Physics', 'Mathematics', 'Chemistry', 'Biology'];
+        const subjectColors = { 'General Study': '#3b82f6', 'Physics': '#10b981', 'Mathematics': '#f59e0b', 'Chemistry': '#8b5cf6', 'Biology': '#ec4899' };
 
         document.addEventListener('DOMContentLoaded', async () => {
             if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
@@ -454,6 +476,7 @@
         }
 
         async function logout() {
+            if (isInRoom) await leaveRoom();
             await supabaseClient.auth.signOut();
             location.reload();
         }
@@ -472,6 +495,7 @@
             document.getElementById(tabId).classList.remove('hidden');
             event.currentTarget.classList.replace('text-slate-400', 'bg-blue-600');
             if (tabId === 'chartsTab') renderCharts();
+            if (tabId === 'roomTab') syncLiveRoom();
         }
 
         function togglePomodoro() {
@@ -506,7 +530,7 @@
         }
 
         function subjectColor(sub) {
-            if (!subjectColor[sub]) {
+            if (!subjectColors[sub]) {
                 const letters = '0123456789ABCDEF';
                 let color = '#';
                 for (let i = 0; i < 6; i++) color += letters[Math.floor(Math.random() * 16)];
@@ -610,6 +634,8 @@
             document.getElementById('finishBtn').classList.replace('text-white', 'text-slate-500');
             document.getElementById('timerStatusLabel').textContent = "Finished & Saved!";
 
+            if (isInRoom) await leaveRoom();
+
             loadDashboardData();
             renderCharts();
         }
@@ -634,11 +660,14 @@
         }
 
         async function syncLiveRoom() {
-            const username = currentUser ? currentUser.email.split('@')[0] : 'User';
+            const rawUsername = currentUser ? currentUser.email.split('@')[0] : 'User';
+            const isAnonymous = document.getElementById('anonymousToggle').checked;
+            const displayName = isAnonymous ? 'Anonymous Member' : rawUsername;
+
             if (isInRoom) {
                 await supabaseClient.from('room_members').upsert({
                     user_id: currentUser.id,
-                    username,
+                    username: displayName,
                     is_studying: isTimerRunning && pomoState === 'study',
                     live_seconds: totalElapsedSeconds,
                     current_subject: getActiveSubject('stopwatch'),
@@ -666,7 +695,7 @@
                         <div class="flex items-center space-x-2">
                             <span class="text-lg ${iconColor}">👨‍💻</span>
                             <div>
-                                <span class="font-medium text-slate-200">Anonymous Member ${isMe ? '(You)' : ''}</span>
+                                <span class="font-medium text-slate-200">${m.username} ${isMe ? '(You)' : ''}</span>
                                 <span class="block text-[10px] text-slate-400">${m.current_subject}</span>
                             </div>
                         </div>
@@ -811,17 +840,38 @@
 
         async function renderCharts() {
             const { data: sessions } = await supabaseClient.from('study_sessions').select('*');
+            const { data: classes } = await supabaseClient.from('classes').select('*');
             const chartMode = document.getElementById('chartModeSelect').value;
+            const showClasses = document.getElementById('layerClasses').checked;
             const showGrades = document.getElementById('layerGrades').checked;
 
             const weekDaysMap = { 6: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6 };
-            
-            // Weekly Data mapping per subject
-            const subjectsList = knownSubjects;
+            const rawLabels = ['Saturday (Shanbeh)', 'Sunday (Yekshanbeh)', 'Monday (Doshanbeh)', 'Tuesday (Seshanbeh)', 'Wednesday (Chaharshanbeh)', 'Thursday (Panjshanbeh)', 'Friday (Jomeh)'];
+            const hasManualDay = [false, false, false, false, false, false, false];
+            const classHoursPerDay = [0, 0, 0, 0, 0, 0, 0];
+
+            if (sessions) {
+                sessions.forEach(s => {
+                    const d = new Date(s.created_at);
+                    const dayIdx = weekDaysMap[d.getDay()];
+                    if (dayIdx !== undefined && s.type === 'manual') {
+                        hasManualDay[dayIdx] = true;
+                    }
+                });
+            }
+
+            if (classes) {
+                classes.forEach(c => {
+                    const dayIdx = weekDaysMap[c.day_of_week];
+                    if (dayIdx !== undefined) classHoursPerDay[dayIdx] += ((c.duration_minutes || 60) / 60);
+                });
+            }
+
+            const weeklyLabels = rawLabels.map((lbl, idx) => hasManualDay[idx] ? `${lbl} (Edited Manual)` : lbl);
             const weeklyDatasets = [];
 
             if (chartMode === 'stacked') {
-                subjectsList.forEach(sub => {
+                knownSubjects.forEach(sub => {
                     const dataArr = [0, 0, 0, 0, 0, 0, 0];
                     if (sessions) {
                         sessions.forEach(s => {
@@ -835,7 +885,10 @@
                     weeklyDatasets.push({
                         label: sub,
                         data: dataArr.map(h => parseFloat(h.toFixed(1))),
-                        backgroundColor: subjectColor(sub),
+                        backgroundColor: (ctx) => {
+                            const idx = ctx.dataIndex;
+                            return hasManualDay[idx] ? '#f97316' : subjectColor(sub);
+                        },
                         borderRadius: 4
                     });
                 });
@@ -858,12 +911,24 @@
                 });
             }
 
+            if (showClasses) {
+                weeklyDatasets.push({
+                    label: 'Classes Layer',
+                    data: classHoursPerDay.map(h => parseFloat(h.toFixed(1))),
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.3)',
+                    borderWidth: 2,
+                    type: 'line',
+                    tension: 0.2
+                });
+            }
+
             if (weeklyChartInstance) weeklyChartInstance.destroy();
             const ctxWeek = document.getElementById('weeklyChart').getContext('2d');
             weeklyChartInstance = new Chart(ctxWeek, {
                 type: chartMode === 'stacked' ? 'bar' : 'line',
                 data: {
-                    labels: ['Saturday (Shanbeh)', 'Sunday (Yekshanbeh)', 'Monday (Doshanbeh)', 'Tuesday (Seshanbeh)', 'Wednesday (Chaharshanbeh)', 'Thursday (Panjshanbeh)', 'Friday (Jomeh)'],
+                    labels: weeklyLabels,
                     datasets: weeklyDatasets
                 },
                 options: {
