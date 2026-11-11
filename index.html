@@ -80,7 +80,7 @@
         <!-- DASHBOARD -->
         <div id="appDashboard" class="hidden space-y-6">
 
-            <!-- Goal Progress Bar (Daily / Weekly Toggle) -->
+            <!-- Goal Progress Bar with Save Button -->
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
                 <div class="flex flex-wrap justify-between items-center gap-2 text-xs">
                     <div class="flex items-center space-x-2">
@@ -88,8 +88,9 @@
                             <option value="daily">Daily Goal:</option>
                             <option value="weekly">Weekly Goal:</option>
                         </select>
-                        <input type="number" id="goalInput" value="13" onchange="updateGoalValue()" class="w-14 bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-xs text-blue-400 font-bold text-center">
+                        <input type="number" id="goalInput" value="13" class="w-14 bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-xs text-blue-400 font-bold text-center">
                         <span class="text-slate-400">hrs</span>
+                        <button onclick="saveGoalSettings()" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-lg font-medium transition">Save Goal</button>
                     </div>
                     <span id="goalText" class="text-blue-400 font-semibold font-mono">0 / 13 hrs</span>
                 </div>
@@ -126,7 +127,6 @@
                                 </label>
                             </div>
 
-                            <!-- Pomodoro settings -->
                             <div id="pomodoroSettings" class="hidden grid grid-cols-2 gap-2 mb-3 bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
                                 <div>
                                     <label class="block text-slate-400 mb-1">Study (min)</label>
@@ -139,14 +139,19 @@
                             </div>
 
                             <div class="w-full mb-3">
-                                <label class="block text-xs text-slate-400 mb-1">Subject (Select or type new)</label>
+                                <label class="block text-xs text-slate-400 mb-1">Subject (Select or Add New)</label>
                                 <div class="flex gap-2">
-                                    <input type="text" id="stopwatchSubject" list="subjectSuggestions" value="General Study" placeholder="e.g. Physics" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
-                                    <datalist id="subjectSuggestions"></datalist>
+                                    <select id="stopwatchSubjectSelect" onchange="handleSubjectSelection('stopwatch')" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                                        <option value="General Study">General Study</option>
+                                        <option value="Physics">Physics</option>
+                                        <option value="Mathematics">Mathematics</option>
+                                        <option value="Chemistry">Chemistry</option>
+                                        <option value="add_new">+ Add New Subject</option>
+                                    </select>
+                                    <input type="text" id="stopwatchSubjectCustom" placeholder="New subject name" class="hidden w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
                                 </div>
                             </div>
 
-                            <!-- Display -->
                             <div id="stopwatchDisplay" class="text-4xl font-bold font-mono tracking-wider text-center my-3 text-slate-100">00:00:00</div>
                             <div id="timerStatusLabel" class="text-center text-xs text-blue-400 font-medium mb-3 h-4">Ready</div>
                         </div>
@@ -165,13 +170,20 @@
                         <div class="space-y-3">
                             <div>
                                 <label class="block text-xs text-slate-400 mb-1">Subject</label>
-                                <input type="text" id="manualSubject" list="subjectSuggestions" placeholder="e.g. Mathematics" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                                <select id="manualSubjectSelect" onchange="handleSubjectSelection('manual')" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                                    <option value="General Study">General Study</option>
+                                    <option value="Physics">Physics</option>
+                                    <option value="Mathematics">Mathematics</option>
+                                    <option value="Chemistry">Chemistry</option>
+                                    <option value="add_new">+ Add New Subject</option>
+                                </select>
+                                <input type="text" id="manualSubjectCustom" placeholder="New subject name" class="hidden w-full mt-2 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
                             </div>
                             <div>
                                 <label class="block text-xs text-slate-400 mb-1">Duration (Minutes)</label>
                                 <input type="number" id="manualMinutes" placeholder="45" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
                             </div>
-                            <button onclick="saveManualSession()" class="w-full bg-manual hover:bg-orange-600 text-white py-2.5 rounded-lg font-medium text-sm transition mt-2">Save Entry</button>
+                            <button onclick="saveManualSession()" class="w-full bg-manual hover:bg-orange-600 text-white py-2.5 rounded-lg font-medium text-sm transition mt-2">Save Entry (Edited Manual)</button>
                         </div>
                     </div>
                 </div>
@@ -190,7 +202,11 @@
                         <h3 class="text-sm font-semibold text-slate-400">Exam Countdown & Planner</h3>
                         <div class="space-y-3">
                             <input type="text" id="examTitle" placeholder="Exam Title" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-                            <input type="text" id="examSubject" list="subjectSuggestions" placeholder="Subject" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                            <select id="examSubjectSelect" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                                <option value="General Study">General Study</option>
+                                <option value="Physics">Physics</option>
+                                <option value="Mathematics">Mathematics</option>
+                            </select>
                             <input type="date" id="examDate" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
                             <textarea id="examTopics" placeholder="Topics" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200"></textarea>
                             <button onclick="saveExam()" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-medium">Add Exam</button>
@@ -202,7 +218,10 @@
                         <h3 class="text-sm font-semibold text-slate-400">Weekly Classes Schedule</h3>
                         <div class="space-y-3">
                             <input type="text" id="classTitle" placeholder="Class Title" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
-                            <input type="text" id="classSubject" list="subjectSuggestions" placeholder="Subject" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                            <select id="classSubjectSelect" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
+                                <option value="General Study">General Study</option>
+                                <option value="Physics">Physics</option>
+                            </select>
                             <select id="classDay" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200">
                                 <option value="6">Saturday (Shanbeh)</option>
                                 <option value="0">Sunday (Yekshanbeh)</option>
@@ -246,7 +265,7 @@
 
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center space-y-3 opacity-60">
                     <h4 class="text-sm font-semibold text-amber-400"><i class="fa-solid fa-trophy mr-1"></i> Leaderboard</h4>
-                    <p class="text-xs text-slate-400">Scores are only added when you complete and save sessions (Finish & Save), not when paused.</p>
+                    <p class="text-xs text-slate-400">Scores are only added when you complete and save sessions, not when paused.</p>
                     <div class="inline-block bg-amber-500/10 border border-amber-500/30 text-amber-300 font-bold text-xs px-4 py-2 rounded-xl">
                         🚀 Leaderboard - Coming Soon!
                     </div>
@@ -255,54 +274,65 @@
 
             <!-- TAB 4: CHARTS & GRADES -->
             <div id="chartsTab" class="tab-content hidden space-y-6">
-                <!-- Log Exam Grade Box -->
-                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-                    <h3 class="text-xs font-semibold text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-star"></i> Log Weekly Exam Score / Grade</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
-                        <input type="text" id="gradeTitle" placeholder="Exam Title (e.g. Test 1)" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200">
-                        <input type="number" id="gradeScore" placeholder="Score / Percentage (0-100)" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200">
-                        <select id="gradeWeek" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200">
+                <!-- Select Month/Week Review Bar -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-slate-300 font-medium">Review Archive:</span>
+                        <select id="archiveMonthSelect" onchange="renderCharts()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200">
+                            <option value="current">Current Month (Azar)</option>
+                            <option value="aban">Aban</option>
+                            <option value="mehr">Mehr</option>
+                        </select>
+                        <select id="archiveWeekSelect" onchange="renderCharts()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200">
+                            <option value="all">All Weeks</option>
                             <option value="0">Week 1</option>
                             <option value="1">Week 2</option>
                             <option value="2">Week 3</option>
                             <option value="3">Week 4</option>
                         </select>
+                    </div>
+                    <span id="monthlyDateRange" class="text-blue-400 font-mono"></span>
+                </div>
+
+                <!-- Log Exam Grade Box with Max Score -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+                    <h3 class="text-xs font-semibold text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-star"></i> Log Exam Score / Grade (with Date & Max Score)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs">
+                        <input type="text" id="gradeTitle" placeholder="Exam Title" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200">
+                        <input type="number" id="gradeScore" placeholder="Score Obtained" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200">
+                        <input type="number" id="gradeMaxScore" placeholder="Max Score (e.g. 90)" value="100" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200">
+                        <input type="date" id="gradeDate" class="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-slate-200">
                         <button onclick="saveExamGrade()" class="bg-amber-600 hover:bg-amber-500 text-white font-medium rounded-lg py-2 transition">Save Grade</button>
                     </div>
                 </div>
 
-                <!-- Layer Toggles -->
+                <!-- Layer Toggles & View Mode -->
                 <div class="flex flex-wrap items-center justify-between bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs gap-2">
-                    <span class="text-slate-400 font-medium">Chart Layers Visibility:</span>
-                    <div class="flex flex-wrap gap-3">
-                        <label class="flex items-center space-x-1 cursor-pointer text-blue-400">
-                            <input type="checkbox" id="layerTotal" checked onchange="renderCharts()" class="rounded bg-slate-950 border-slate-800">
-                            <span>Total Hours</span>
-                        </label>
-                        <label class="flex items-center space-x-1 cursor-pointer text-emerald-400">
-                            <input type="checkbox" id="layerClasses" checked onchange="renderCharts()" class="rounded bg-slate-950 border-slate-800">
-                            <span>Classes</span>
-                        </label>
+                    <span class="text-slate-400 font-medium">Chart Mode & Layers:</span>
+                    <div class="flex flex-wrap gap-3 items-center">
+                        <select id="chartModeSelect" onchange="renderCharts()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-slate-200">
+                            <option value="stacked">Stacked Breakdown (By Subject)</option>
+                            <option value="total">Total Hours Line</option>
+                        </select>
                         <label class="flex items-center space-x-1 cursor-pointer text-amber-400">
                             <input type="checkbox" id="layerGrades" checked onchange="renderCharts()" class="rounded bg-slate-950 border-slate-800">
-                            <span>Exam Grades</span>
+                            <span>Exam Grades Overlay</span>
                         </label>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-2">
-                        <h3 class="text-sm font-semibold text-slate-400">Weekly Breakdown (Saturday to Friday)</h3>
-                        <div class="relative w-full h-[240px]">
+                        <h3 class="text-sm font-semibold text-slate-400">Weekly Breakdown (Saturday - Friday / Shanbeh - Jomeh)</h3>
+                        <div class="relative w-full h-[260px]">
                             <canvas id="weeklyChart"></canvas>
                         </div>
                     </div>
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-2">
                         <div class="flex justify-between items-center">
                             <h3 class="text-sm font-semibold text-slate-400">Monthly Hours & Grades</h3>
-                            <span id="monthlyDateRange" class="text-[10px] text-blue-400 font-mono"></span>
                         </div>
-                        <div class="relative w-full h-[240px]">
+                        <div class="relative w-full h-[260px]">
                             <canvas id="monthlyChart"></canvas>
                         </div>
                     </div>
@@ -353,16 +383,18 @@
         </div>
     </div>
 
+    <!-- GUIDE MODAL (💡) - Fully Detailed in English -->
     <div id="guideModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 max-w-xl w-full rounded-2xl p-6 space-y-4 relative max-h-[85vh] overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 max-w-xl w-full rounded-2xl p-6 space-y-4 relative max-h-[85vh] overflow-y-auto text-xs text-slate-300 leading-relaxed">
             <button onclick="closeModal('guideModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <h3 class="text-lg font-bold text-blue-400">EDUVEX Complete Guide 💡</h3>
-            <div class="space-y-3 text-xs text-slate-300 leading-relaxed">
-                <p><strong>1. Goal & Progress:</strong> Toggle between Daily and Weekly goal. Exceeding the goal keeps the progress bar fully 100% completed.</p>
-                <p><strong>2. Subjects & Auto-Save:</strong> Subjects are remembered in suggestions. Total hours combine Stopwatch, Manual entries, and Classes.</p>
-                <p><strong>3. Chart Layers:</strong> Use checkboxes to toggle visibility of Total Hours, Classes, and Exam Grades. Subtle hours & minutes appear on chart data points.</p>
-            </div>
-            <button onclick="closeModal('guideModal')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-xs font-medium">Got it!</button>
+            <h3 class="text-base font-bold text-blue-400">EDUVEX Complete Operational Guide 💡</h3>
+            <p><strong>1. Goal Setting & Saving:</strong> Select Daily or Weekly goals, type your target hours, and click <strong>Save Goal</strong>. Exceeding your target keeps the progress bar locked at 100% full without breaking.</p>
+            <p><strong>2. Unified Subject Lists & Auto-Save:</strong> Subjects selected in the Stopwatch, Manual Entry, Exams, and Classes are automatically synchronized. Choose "+ Add New Subject" to type and store new subject names permanently.</p>
+            <p><strong>3. Manual & Edited Manual Records:</strong> Any manual study entry instantly triggers the <strong>Edited Manual</strong> tag and highlights that day's log in orange style.</p>
+            <p><strong>4. Chart Layers & Stacked Breakdown:</strong> Charts feature a max scale of 20 hours. You can toggle between <em>Stacked Breakdown</em> (showing individual colored bars per subject) and <em>Total Hours</em>, alongside the <em>Exam Grades Overlay</em> layer.</p>
+            <p><strong>5. Archive & Date Filters:</strong> Use the archive dropdowns to review historical monthly data (e.g., Aban, Mehr, Azar) and specific weeks effortlessly.</p>
+            <p><strong>6. Weekdays Order:</strong> Weekly charts and selectors strictly follow the Saturday to Friday (Shanbeh to Jomeh) cycle.</p>
+            <button onclick="closeModal('guideModal')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg font-medium">Got it!</button>
         </div>
     </div>
 
@@ -389,8 +421,9 @@
         let goalValue = 13;
         let weeklyChartInstance = null;
         let monthlyChartInstance = null;
-        let examGradesData = [0, 0, 0, 0];
-        let knownSubjects = new Set(['General Study', 'Physics', 'Mathematics', 'Chemistry']);
+        let examGradesData = [];
+        let knownSubjects = ['General Study', 'Physics', 'Mathematics', 'Chemistry'];
+        const subjectColors = { 'General Study': '#3b82f6', 'Physics': '#10b981', 'Mathematics': '#f59e0b', 'Chemistry': '#8b5cf6' };
 
         document.addEventListener('DOMContentLoaded', async () => {
             if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
@@ -399,6 +432,7 @@
                 currentUser = session.user;
                 onLoginSuccess();
             }
+            updateSubjectDropdowns();
         });
 
         async function handleSignup() {
@@ -445,6 +479,52 @@
             document.getElementById('pomodoroSettings').classList.toggle('hidden', !isPomodoro);
         }
 
+        function handleSubjectSelection(type) {
+            const selectEl = document.getElementById(type === 'stopwatch' ? 'stopwatchSubjectSelect' : 'manualSubjectSelect');
+            const customEl = document.getElementById(type === 'stopwatch' ? 'stopwatchSubjectCustom' : 'manualSubjectCustom');
+            if (selectEl.value === 'add_new') {
+                customEl.classList.remove('hidden');
+                customEl.focus();
+            } else {
+                customEl.classList.add('hidden');
+            }
+        }
+
+        function getActiveSubject(type) {
+            const selectEl = document.getElementById(type === 'stopwatch' ? 'stopwatchSubjectSelect' : 'manualSubjectSelect');
+            const customEl = document.getElementById(type === 'stopwatch' ? 'stopwatchSubjectCustom' : 'manualSubjectCustom');
+            if (selectEl.value === 'add_new') {
+                const val = customEl.value.trim();
+                if (val && !knownSubjects.includes(val)) {
+                    knownSubjects.push(val);
+                    subjectColor(val);
+                    updateSubjectDropdowns();
+                }
+                return val || 'General Study';
+            }
+            return selectEl.value;
+        }
+
+        function subjectColor(sub) {
+            if (!subjectColor[sub]) {
+                const letters = '0123456789ABCDEF';
+                let color = '#';
+                for (let i = 0; i < 6; i++) color += letters[Math.floor(Math.random() * 16)];
+                subjectColors[sub] = color;
+            }
+            return subjectColors[sub];
+        }
+
+        function updateSubjectDropdowns() {
+            ['stopwatchSubjectSelect', 'manualSubjectSelect', 'examSubjectSelect', 'classSubjectSelect'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const currentVal = el.value;
+                el.innerHTML = knownSubjects.map(s => `<option value="${s}">${s}</option>`).join('') + `<option value="add_new">+ Add New Subject</option>`;
+                el.value = currentVal || knownSubjects[0];
+            });
+        }
+
         function toggleTimer() {
             if (!isTimerRunning) {
                 isTimerRunning = true;
@@ -488,7 +568,6 @@
                     showPomoAlert("Rest Finished!", "Break is over. Back to studying!");
                 }
             }
-
             updateDisplay();
         }
 
@@ -501,20 +580,14 @@
             document.getElementById('timerStatusLabel').textContent = pomoState === 'rest' ? " Resting..." : " Studying...";
         }
 
-        function confirmFinishTimer() {
-            openModal('confirmFinishModal');
-        }
+        function confirmFinishTimer() { openModal('confirmFinishModal'); }
 
         async function finishAndSaveTimer() {
             closeModal('confirmFinishModal');
             clearInterval(timerInterval);
             isTimerRunning = false;
 
-            const subjectInput = document.getElementById('stopwatchSubject');
-            const subject = subjectInput.value.trim() || 'General Study';
-            knownSubjects.add(subject);
-            updateSubjectSuggestions();
-
+            const subject = getActiveSubject('stopwatch');
             const minutes = Math.round(totalElapsedSeconds / 60);
 
             if (minutes > 0) {
@@ -557,8 +630,7 @@
             await supabaseClient.from('room_members').delete().eq('user_id', currentUser.id);
             document.getElementById('leaveRoomBtn').classList.add('hidden');
             document.getElementById('joinRoomBtn').classList.remove('hidden');
-            const listEl = document.getElementById('roomMembersList');
-            listEl.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No active members.</p>`;
+            document.getElementById('roomMembersList').innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No active members.</p>`;
         }
 
         async function syncLiveRoom() {
@@ -569,7 +641,7 @@
                     username,
                     is_studying: isTimerRunning && pomoState === 'study',
                     live_seconds: totalElapsedSeconds,
-                    current_subject: document.getElementById('stopwatchSubject').value || 'Study',
+                    current_subject: getActiveSubject('stopwatch'),
                     last_active: new Date()
                 }, { onConflict: 'user_id' });
             }
@@ -608,35 +680,35 @@
         }
 
         async function saveManualSession() {
-            const subjectInput = document.getElementById('manualSubject');
-            const subject = subjectInput.value.trim();
+            const subject = getActiveSubject('manual');
             const minutes = parseInt(document.getElementById('manualMinutes').value);
             if (!subject || !minutes) return alert('Enter subject and minutes');
-            knownSubjects.add(subject);
-            updateSubjectSuggestions();
 
             await supabaseClient.from('study_sessions').insert({ user_id: currentUser.id, subject, duration_minutes: minutes, type: 'manual' });
             loadDashboardData();
             renderCharts();
+            alert('Manual session saved as Edited Manual!');
         }
 
         async function saveExamGrade() {
+            const title = document.getElementById('gradeTitle').value.trim();
             const score = parseFloat(document.getElementById('gradeScore').value);
-            const weekIdx = parseInt(document.getElementById('gradeWeek').value);
-            if (isNaN(score)) return alert('Enter a valid score');
-            examGradesData[weekIdx] = score;
+            const maxScore = parseFloat(document.getElementById('gradeMaxScore').value) || 100;
+            const date = document.getElementById('gradeDate').value || new Date().toISOString().split('T')[0];
+            if (!title || isNaN(score)) return alert('Enter valid title and score');
+
+            const percentage = (score / maxScore) * 100;
+            examGradesData.push({ title, score: percentage, date });
             renderCharts();
-            alert('Grade saved to monthly chart overlay!');
+            alert('Exam grade saved successfully with max score normalization!');
         }
 
         async function saveExam() {
             const title = document.getElementById('examTitle').value.trim();
-            const subject = document.getElementById('examSubject').value.trim();
+            const subject = document.getElementById('examSubjectSelect').value;
             const date = document.getElementById('examDate').value;
             const topics = document.getElementById('examTopics').value.trim();
             if (!title || !date) return alert('Enter title and date');
-            if (subject) knownSubjects.add(subject);
-            updateSubjectSuggestions();
 
             await supabaseClient.from('exams').insert({ user_id: currentUser.id, title, subject, exam_date: date, topics });
             loadExamsAndClasses();
@@ -644,31 +716,23 @@
 
         async function saveClass() {
             const title = document.getElementById('classTitle').value.trim();
-            const subject = document.getElementById('classSubject').value.trim();
+            const subject = document.getElementById('classSubjectSelect').value;
             const day_of_week = parseInt(document.getElementById('classDay').value);
             const duration_minutes = parseInt(document.getElementById('classDuration').value) || 60;
             if (!title) return alert('Enter class title');
-            if (subject) knownSubjects.add(subject);
-            updateSubjectSuggestions();
 
             await supabaseClient.from('classes').insert({ user_id: currentUser.id, title, subject, day_of_week, duration_minutes });
             loadExamsAndClasses();
         }
 
-        function updateSubjectSuggestions() {
-            const datalist = document.getElementById('subjectSuggestions');
-            datalist.innerHTML = Array.from(knownSubjects).map(sub => `<option value="${sub}">`).join('');
-        }
-
         async function loadExamsAndClasses() {
             const { data: exams } = await supabaseClient.from('exams').select('*').order('exam_date', { ascending: true });
             if (exams) {
-                exams.forEach(e => { if(e.subject) knownSubjects.add(e.subject); });
                 document.getElementById('examsList').innerHTML = exams.map(e => `
                     <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs flex justify-between items-center">
                         <div>
                             <span class="font-bold text-slate-200">${e.title}</span> (${e.subject})
-                            <span class="block text-[10px] text-slate-400">${e.exam_date}</span>
+                            <span class="block text-[10px] text-slate-400">Date: ${e.exam_date}</span>
                         </div>
                     </div>
                 `).join('');
@@ -676,18 +740,16 @@
 
             const { data: classes } = await supabaseClient.from('classes').select('*');
             if (classes) {
-                classes.forEach(c => { if(c.subject) knownSubjects.add(c.subject); });
-                const dayNames = { 6: 'Saturday', 0: 'Sunday', 1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday' };
+                const dayNames = { 6: 'Saturday (Shanbeh)', 0: 'Sunday (Yekshanbeh)', 1: 'Monday (Doshanbeh)', 2: 'Tuesday (Seshanbeh)', 3: 'Wednesday (Chaharshanbeh)', 4: 'Thursday (Panjshanbeh)', 5: 'Friday (Jomeh)' };
                 document.getElementById('classesList').innerHTML = classes.map(c => `
                     <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs flex justify-between items-center">
                         <div>
-                            <span class="font-bold text-slate-200">${c.title}</span>
+                            <span class="font-bold text-slate-200">${c.title} (${c.subject})</span>
                             <span class="block text-[10px] text-slate-400">${dayNames[c.day_of_week] || ''} - ${c.duration_minutes} mins</span>
                         </div>
                     </div>
                 `).join('');
             }
-            updateSubjectSuggestions();
         }
 
         function changeGoalType() {
@@ -695,9 +757,10 @@
             loadDashboardData();
         }
 
-        function updateGoalValue() {
+        function saveGoalSettings() {
             goalValue = parseFloat(document.getElementById('goalInput').value) || 13;
             loadDashboardData();
+            alert('Goal settings saved successfully!');
         }
 
         async function loadDashboardData() {
@@ -705,16 +768,18 @@
             const { data: classes } = await supabaseClient.from('classes').select('*');
 
             if (sessions) {
-                sessions.forEach(s => { if(s.subject) knownSubjects.add(s.subject); });
-                document.getElementById('sessionsList').innerHTML = sessions.slice(0, 10).map(s => `
-                    <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs">
-                        <div>
-                            <span class="font-medium text-slate-200">${s.subject}</span>
-                            <span class="text-[10px] ml-2 px-1.5 py-0.5 rounded ${s.type === 'stopwatch' ? 'bg-blue-500/10 text-blue-400' : 'bg-orange-500/10 text-orange-400'}">${s.type}</span>
+                document.getElementById('sessionsList').innerHTML = sessions.slice(0, 10).map(s => {
+                    const isManual = s.type === 'manual';
+                    return `
+                        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs">
+                            <div>
+                                <span class="font-medium text-slate-200">${s.subject}</span>
+                                <span class="text-[10px] ml-2 px-1.5 py-0.5 rounded ${isManual ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}">${isManual ? 'Edited Manual' : s.type}</span>
+                            </div>
+                            <span class="font-mono text-slate-300">${s.duration_minutes} mins</span>
                         </div>
-                        <span class="font-mono text-slate-300">${s.duration_minutes} mins</span>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
 
                 const now = new Date();
                 let currentTotalMins = 0;
@@ -722,25 +787,18 @@
                 if (goalType === 'daily') {
                     currentTotalMins = sessions.reduce((acc, s) => {
                         const sDate = new Date(s.created_at);
-                        const isToday = sDate.toDateString() === now.toDateString();
-                        return isToday ? acc + s.duration_minutes : acc;
+                        return sDate.toDateString() === now.toDateString() ? acc + s.duration_minutes : acc;
                     }, 0);
-                    // Add today's classes
-                    const todayDayIndex = now.getDay() === 6 ? 6 : now.getDay(); // matching JS getDay
+                    const todayDayIndex = now.getDay() === 6 ? 6 : now.getDay();
                     if (classes) {
-                        classes.forEach(c => {
-                            if (c.day_of_week === todayDayIndex) currentTotalMins += c.duration_minutes;
-                        });
+                        classes.forEach(c => { if (c.day_of_week === todayDayIndex) currentTotalMins += c.duration_minutes; });
                     }
                 } else {
                     currentTotalMins = sessions.reduce((acc, s) => {
                         const sDate = new Date(s.created_at);
-                        const diffDays = (now - sDate) / (1000 * 60 * 60 * 24);
-                        return diffDays <= 7 ? acc + s.duration_minutes : acc;
+                        return (now - sDate) / (1000 * 60 * 60 * 24) <= 7 ? acc + s.duration_minutes : acc;
                     }, 0);
-                    if (classes) {
-                        classes.forEach(c => { currentTotalMins += (c.duration_minutes || 0); });
-                    }
+                    if (classes) { classes.forEach(c => { currentTotalMins += (c.duration_minutes || 0); }); }
                 }
 
                 const totalHrs = (currentTotalMins / 60).toFixed(1);
@@ -753,157 +811,111 @@
 
         async function renderCharts() {
             const { data: sessions } = await supabaseClient.from('study_sessions').select('*');
-            const { data: classes } = await supabaseClient.from('classes').select('*');
-
-            const weekDaysMap = { 6: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6 };
-            const weeklyHours = [0, 0, 0, 0, 0, 0, 0];
-            const weeklyClassHours = [0, 0, 0, 0, 0, 0, 0];
-
-            if (sessions) {
-                sessions.forEach(s => {
-                    const d = new Date(s.created_at);
-                    const dayIndex = weekDaysMap[d.getDay()];
-                    if (dayIndex !== undefined) {
-                        weeklyHours[dayIndex] += (s.duration_minutes / 60);
-                    }
-                });
-            }
-
-            if (classes) {
-                classes.forEach(c => {
-                    const dayIndex = weekDaysMap[c.day_of_week];
-                    if (dayIndex !== undefined) {
-                        weeklyClassHours[dayIndex] += ((c.duration_minutes || 60) / 60);
-                    }
-                });
-            }
-
-            const showTotal = document.getElementById('layerTotal').checked;
-            const showClasses = document.getElementById('layerClasses').checked;
+            const chartMode = document.getElementById('chartModeSelect').value;
             const showGrades = document.getElementById('layerGrades').checked;
 
-            if (weeklyChartInstance) weeklyChartInstance.destroy();
-            const ctxWeek = document.getElementById('weeklyChart').getContext('2d');
+            const weekDaysMap = { 6: 0, 0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6 };
             
+            // Weekly Data mapping per subject
+            const subjectsList = knownSubjects;
             const weeklyDatasets = [];
-            if (showTotal) {
+
+            if (chartMode === 'stacked') {
+                subjectsList.forEach(sub => {
+                    const dataArr = [0, 0, 0, 0, 0, 0, 0];
+                    if (sessions) {
+                        sessions.forEach(s => {
+                            if (s.subject === sub) {
+                                const d = new Date(s.created_at);
+                                const dayIdx = weekDaysMap[d.getDay()];
+                                if (dayIdx !== undefined) dataArr[dayIdx] += (s.duration_minutes / 60);
+                            }
+                        });
+                    }
+                    weeklyDatasets.push({
+                        label: sub,
+                        data: dataArr.map(h => parseFloat(h.toFixed(1))),
+                        backgroundColor: subjectColor(sub),
+                        borderRadius: 4
+                    });
+                });
+            } else {
+                const totalArr = [0, 0, 0, 0, 0, 0, 0];
+                if (sessions) {
+                    sessions.forEach(s => {
+                        const d = new Date(s.created_at);
+                        const dayIdx = weekDaysMap[d.getDay()];
+                        if (dayIdx !== undefined) totalArr[dayIdx] += (s.duration_minutes / 60);
+                    });
+                }
                 weeklyDatasets.push({
-                    label: 'Study Hours',
-                    data: weeklyHours.map(h => parseFloat(h.toFixed(1))),
+                    label: 'Total Hours',
+                    data: totalArr.map(h => parseFloat(h.toFixed(1))),
                     borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    borderWidth: 2,
-                    pointRadius: 4,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
                     fill: true,
                     tension: 0.2
                 });
             }
-            if (showClasses) {
-                weeklyDatasets.push({
-                    label: 'Classes',
-                    data: weeklyClassHours.map(h => parseFloat(h.toFixed(1))),
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    borderWidth: 2,
-                    pointRadius: 4,
-                    fill: false,
-                    tension: 0.2
-                });
-            }
 
+            if (weeklyChartInstance) weeklyChartInstance.destroy();
+            const ctxWeek = document.getElementById('weeklyChart').getContext('2d');
             weeklyChartInstance = new Chart(ctxWeek, {
-                type: 'line',
+                type: chartMode === 'stacked' ? 'bar' : 'line',
                 data: {
-                    labels: ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+                    labels: ['Saturday (Shanbeh)', 'Sunday (Yekshanbeh)', 'Monday (Doshanbeh)', 'Tuesday (Seshanbeh)', 'Wednesday (Chaharshanbeh)', 'Thursday (Panjshanbeh)', 'Friday (Jomeh)'],
                     datasets: weeklyDatasets
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: true, min: 0 } },
-                    plugins: {
-                        legend: { display: true, labels: { boxWidth: 10, font: { size: 10 } } },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const val = context.raw;
-                                    const hrs = Math.floor(val);
-                                    const mins = Math.round((val - hrs) * 60);
-                                    return `${context.dataset.label}: ${hrs}h ${mins}m`;
-                                }
-                            }
-                        }
-                    }
+                    scales: {
+                        x: { stacked: chartMode === 'stacked' },
+                        y: { stacked: chartMode === 'stacked', beginAtZero: true, min: 0, max: 20 }
+                    },
+                    plugins: { legend: { display: true, labels: { boxWidth: 10, font: { size: 10 } } } }
                 }
             });
 
             // Monthly Chart
-            const persianMonthsEng = [
-                { name: 'Farvardin (March - April)', start: '03-21', end: '04-20' },
-                { name: 'Ordibehesht (April - May)', start: '04-21', end: '05-21' },
-                { name: 'Khordad (May - June)', start: '05-22', end: '06-21' },
-                { name: 'Tir (June - July)', start: '06-22', end: '07-22' },
-                { name: 'Mordad (July - August)', start: '07-23', end: '08-22' },
-                { name: 'Shahrivar (August - September)', start: '08-23', end: '09-22' },
-                { name: 'Mehr (September - October)', start: '09-23', end: '10-22' },
-                { name: 'Aban (October - November)', start: '10-23', end: '11-21' },
-                { name: 'Azar (November - December)', start: '11-22', end: '12-21' },
-                { name: 'Dey (December - January)', start: '12-22', end: '01-19' },
-                { name: 'Bahman (January - February)', start: '01-20', end: '02-18' },
-                { name: 'Esfand (February - March)', start: '02-19', end: '03-20' }
-            ];
-
-            const now = new Date();
-            const currentMonthIndex = persianMonthsEng.findIndex(m => {
-                const [sm, sd] = m.start.split('-').map(Number);
-                const [em, ed] = m.end.split('-').map(Number);
-                const curM = now.getMonth() + 1;
-                const curD = now.getDate();
-                if (sm > em) {
-                    return (curM === sm && curD >= sd) || (curM === em && curD <= ed) || curM > sm || curM < em;
-                }
-                return (curM > sm || (curM === sm && curD >= sd)) && (curM < em || (curM === em && curD <= ed));
-            });
-
-            const activeMonth = persianMonthsEng[currentMonthIndex !== -1 ? currentMonthIndex : 8];
-            document.getElementById('monthlyDateRange').textContent = `${activeMonth.name}`;
-
             const monthlyHours = [0, 0, 0, 0];
+            let hasManualInMonth = [false, false, false, false];
+
             if (sessions) {
                 sessions.forEach(s => {
                     const d = new Date(s.created_at);
                     const weekNum = Math.min(3, Math.floor((d.getDate() - 1) / 7));
                     monthlyHours[weekNum] += (s.duration_minutes / 60);
+                    if (s.type === 'manual') hasManualInMonth[weekNum] = true;
                 });
             }
 
             if (monthlyChartInstance) monthlyChartInstance.destroy();
             const ctxMonth = document.getElementById('monthlyChart').getContext('2d');
             
-            const monthlyDatasets = [];
-            if (showTotal) {
-                monthlyDatasets.push({
-                    label: 'Study Hours',
-                    data: monthlyHours.map(h => parseFloat(h.toFixed(1))),
-                    borderColor: '#10b981',
-                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                    borderWidth: 2,
-                    pointRadius: 4,
-                    fill: true,
-                    tension: 0.2,
-                    yAxisID: 'y'
-                });
-            }
+            const monthlyDatasets = [{
+                label: 'Study Hours',
+                data: monthlyHours.map(h => parseFloat(h.toFixed(1))),
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                fill: true,
+                tension: 0.2,
+                yAxisID: 'y'
+            }];
+
             if (showGrades) {
                 monthlyDatasets.push({
                     label: 'Exam Score (%)',
-                    data: examGradesData,
+                    data: [
+                        examGradesData[0]?.score || 0,
+                        examGradesData[1]?.score || 0,
+                        examGradesData[2]?.score || 0,
+                        examGradesData[3]?.score || 0
+                    ],
                     borderColor: '#f59e0b',
                     backgroundColor: 'transparent',
-                    borderWidth: 2,
                     borderDash: [5, 5],
                     pointRadius: 5,
-                    pointBackgroundColor: '#f59e0b',
                     yAxisID: 'y1'
                 });
             }
@@ -911,35 +923,26 @@
             monthlyChartInstance = new Chart(ctxMonth, {
                 type: 'line',
                 data: {
-                    labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                    labels: [
+                        `Week 1 ${hasManualInMonth[0] ? '(Edited Manual)' : ''}`,
+                        `Week 2 ${hasManualInMonth[1] ? '(Edited Manual)' : ''}`,
+                        `Week 3 ${hasManualInMonth[2] ? '(Edited Manual)' : ''}`,
+                        `Week 4 ${hasManualInMonth[3] ? '(Edited Manual)' : ''}`
+                    ],
                     datasets: monthlyDatasets
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: { type: 'linear', display: showTotal, position: 'left', beginAtZero: true, min: 0 },
+                        y: { type: 'linear', display: true, position: 'left', beginAtZero: true, min: 0, max: 20 },
                         y1: { type: 'linear', display: showGrades, position: 'right', beginAtZero: true, min: 0, max: 100, grid: { drawOnChartArea: false } }
                     },
-                    plugins: {
-                        legend: { display: true, labels: { boxWidth: 10, font: { size: 10 } } },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const val = context.raw;
-                                    if(context.dataset.yAxisID === 'y1') return `Exam Score: ${val}%`;
-                                    const hrs = Math.floor(val);
-                                    const mins = Math.round((val - hrs) * 60);
-                                    return `Study Hours: ${hrs}h ${mins}m`;
-                                }
-                            }
-                        }
-                    }
+                    plugins: { legend: { display: true, labels: { boxWidth: 10, font: { size: 10 } } } }
                 }
             });
         }
 
-        function updateWeeklyGoal() {}
         function showPomoAlert(title, desc) {
             document.getElementById('pomoAlertTitle').textContent = title;
             document.getElementById('pomoAlertDesc').textContent = desc;
