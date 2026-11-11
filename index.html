@@ -253,7 +253,7 @@
                           <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                         </span>
                     </h3>
-                    <p class="text-xs text-slate-400">Join to display your live study time with others.</p>
+                    <p class="text-xs text-slate-400">Join to display your live study time with others (Timer must be running).</p>
                     
                     <!-- Anonymous Toggle -->
                     <div class="flex items-center justify-center space-x-2 text-xs text-slate-300 py-1">
@@ -476,7 +476,7 @@
         }
 
         async function logout() {
-            if (isInRoom) await leaveRoom();
+            await leaveRoomClean();
             await supabaseClient.auth.signOut();
             location.reload();
         }
@@ -486,6 +486,7 @@
             document.getElementById('appDashboard').classList.remove('hidden');
             document.getElementById('userProfileArea').classList.remove('hidden');
             loadDashboardData();
+            leaveRoomClean(); // Clear any phantom records on login
             setInterval(syncLiveRoom, 3000);
         }
 
@@ -570,6 +571,8 @@
                 document.getElementById('startStopwatchBtn').textContent = "Resume";
                 document.getElementById('startStopwatchBtn').classList.replace('bg-amber-600', 'bg-stopwatch');
                 document.getElementById('timerStatusLabel').textContent = "Paused";
+                // If paused while in room, immediately update status to resting
+                if (isInRoom) syncLiveRoom();
             }
         }
 
@@ -634,7 +637,8 @@
             document.getElementById('finishBtn').classList.replace('text-white', 'text-slate-500');
             document.getElementById('timerStatusLabel').textContent = "Finished & Saved!";
 
-            if (isInRoom) await leaveRoom();
+            // Automatically and completely leave room on finish
+            await leaveRoomClean();
 
             loadDashboardData();
             renderCharts();
@@ -651,27 +655,39 @@
             await syncLiveRoom();
         }
 
-        async function leaveRoom() {
+        async function leaveRoomClean() {
             isInRoom = false;
-            await supabaseClient.from('room_members').delete().eq('user_id', currentUser.id);
-            document.getElementById('leaveRoomBtn').classList.add('hidden');
-            document.getElementById('joinRoomBtn').classList.remove('hidden');
-            document.getElementById('roomMembersList').innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No active members.</p>`;
+            if (currentUser) {
+                await supabaseClient.from('room_members').delete().eq('user_id', currentUser.id);
+            }
+            const joinBtn = document.getElementById('joinRoomBtn');
+            const leaveBtn = document.getElementById('leaveRoomBtn');
+            if (joinBtn) joinBtn.classList.remove('hidden');
+            if (leaveBtn) leaveBtn.classList.add('hidden');
+            await syncLiveRoom();
+        }
+
+        async function leaveRoom() {
+            await leaveRoomClean();
         }
 
         async function syncLiveRoom() {
-            const rawUsername = currentUser ? currentUser.email.split('@')[0] : 'User';
-            const isAnonymous = document.getElementById('anonymousToggle').checked;
-            const displayName = isAnonymous ? 'Anonymous Member' : rawUsername;
+            if (!currentUser) return;
 
+            // Only upsert to room if user explicitly clicked Join Room
             if (isInRoom) {
+                const rawUsername = currentUser.email.split('@')[0];
+                const isAnonymous = document.getElementById('anonymousToggle').checked;
+                const displayName = isAnonymous ? 'Anonymous Member' : rawUsername;
+                const isStudyingActive = isTimerRunning && pomoState === 'study';
+
                 await supabaseClient.from('room_members').upsert({
                     user_id: currentUser.id,
                     username: displayName,
-                    is_studying: isTimerRunning && pomoState === 'study',
+                    is_studying: isStudyingActive,
                     live_seconds: totalElapsedSeconds,
                     current_subject: getActiveSubject('stopwatch'),
-                    last_active: new Date()
+                    last_active: new Date().toISOString()
                 }, { onConflict: 'user_id' });
             }
 
@@ -683,7 +699,19 @@
                 return;
             }
 
-            listEl.innerHTML = members.map(m => {
+            // Filter out dead/inactive members (older than 20 seconds)
+            const nowTime = new Date();
+            const activeMembers = members.filter(m => {
+                if (!m.last_active) return true;
+                return (nowTime - new Date(m.last_active)) < 20000;
+            });
+
+            if (activeMembers.length === 0) {
+                listEl.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No active members.</p>`;
+                return;
+            }
+
+            listEl.innerHTML = activeMembers.map(m => {
                 const hrs = String(Math.floor(m.live_seconds / 3600)).padStart(2, '0');
                 const mins = String(Math.floor((m.live_seconds % 3600) / 60)).padStart(2, '0');
                 const iconColor = m.is_studying ? 'text-blue-400 opacity-100' : 'text-slate-600 opacity-40';
