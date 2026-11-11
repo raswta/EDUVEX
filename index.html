@@ -32,7 +32,7 @@ body{font-family:Inter,system-ui,sans-serif}
     <button id="conn" onclick="modal('offInfo',1)" class="px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
       <span id="connDot" class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span><span id="connText">Online</span></button>
     <button onclick="modal('install',1)" class="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 px-3 py-1.5 rounded-lg text-xs font-medium"><i class="fa-solid fa-mobile-screen-button mr-1"></i> Add App</button>
-    <button onclick="modal('calModal',1)" class="px-2.5 py-2 rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30 text-xs font-medium" title="Calendar type"><i class="fa-solid fa-calendar-days"></i><span id="calLbl" class="hidden sm:inline ml-1.5"></span></button>
+    <button onclick="modal('calModal',1)" class="px-2.5 py-2 rounded-lg bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600/30 text-xs font-medium" title="Calendar type"><i class="fa-solid fa-calendar-days"></i></button>
     <button onclick="modal('guide',1)" class="p-2 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30"><i class="fa-solid fa-lightbulb"></i></button>
     <button id="logoutBtn" onclick="logout()" class="hidden text-xs text-red-400 bg-red-500/10 px-2.5 py-1.5 rounded-lg">Logout</button>
   </div>
@@ -107,7 +107,7 @@ body{font-family:Inter,system-ui,sans-serif}
           <input id="manCustom" placeholder="New subject name" class="inp hidden mt-2"></div>
         <div><label class="lbl">Duration (minutes)</label><input id="manMin" type="number" placeholder="45" class="inp"></div>
         <div><label class="lbl">Date</label><div id="manDate" class="grid grid-cols-3 gap-2"></div></div>
-        <button onclick="saveManual()" class="btn bg-orange-500 hover:bg-orange-600">Save Entry</button>
+        <button onclick="saveManual()" class="btn bg-indigo-600 hover:bg-indigo-500">Save Entry</button>
       </div>
     </div>
     <div class="card"><h3 class="text-sm font-semibold text-slate-400 mb-3">Saved Study Logs</h3><div id="sessionsList" class="space-y-2 max-h-60 overflow-y-auto"></div></div>
@@ -243,7 +243,7 @@ const LS = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } 
 let user = null, running = false, base = 0, lastTick = 0, tInt = null, roomInt = null;
 let inRoom = false, pomo = false, pState = 'study', pLeft = 0, alerted = {};
 let wChart = null, mChart = null, starts = [];
-let segs = {}, curSub = 'General Study';
+let segs = {}, curSub = 'General Study', runId = null;
 let subjects = LS('ev_subjects', ['General Study','Physics','Mathematics','Chemistry','Biology']);
 let goalType = localStorage.getItem('ev_goal_type') || 'daily';
 let goalVal = parseFloat(localStorage.getItem('ev_goal_val')) || 13;
@@ -290,7 +290,6 @@ const pMonthEnd = s => pMonthStart(new Date(s.getTime() + 33 * DAY));
 const mStart = d => CAL === 'shamsi' ? pMonthStart(d) : new Date(d.getFullYear(), d.getMonth(), 1, 12);
 const mEnd = s => CAL === 'shamsi' ? pMonthEnd(s) : new Date(s.getFullYear(), s.getMonth() + 1, 1, 12);
 function calUI() {
-  $('calLbl').textContent = CAL === 'shamsi' ? 'Shamsi' : 'Gregorian';
   $('calS').className = 'btn ' + (CAL === 'shamsi' ? 'bg-blue-600' : 'bg-slate-800 hover:bg-slate-700');
   $('calG').className = 'btn ' + (CAL === 'gregorian' ? 'bg-blue-600' : 'bg-slate-800 hover:bg-slate-700');
 }
@@ -454,8 +453,13 @@ function renderLists() {
 
 // ---------- Stopwatch ----------
 function persist() {
+  if (runId && localStorage.getItem('ev_timer_done') === runId) return abandon();   // finished in another tab
   if (!running && base === 0) return localStorage.removeItem('ev_timer');
-  localStorage.setItem('ev_timer', JSON.stringify({ running, base, lastTick, subject: curSub, segs }));
+  localStorage.setItem('ev_timer', JSON.stringify({ id: runId, running, base, lastTick, subject: curSub, segs }));
+}
+function abandon() {
+  clearInterval(tInt); running = false; base = 0; segs = {}; runId = null; pLeft = 0; pState = 'study'; alerted = {};
+  localStorage.removeItem('ev_timer'); ui();
 }
 function draw() {
   const s = pomo ? Math.max(0, pLeft) : base;
@@ -468,7 +472,7 @@ function ui() {
   $('startBtn').textContent = running ? 'Pause' : (base ? 'Resume' : 'Start');
   $('startBtn').className = 'btn flex-1 ' + (running ? 'bg-amber-600' : 'bg-blue-500 hover:bg-blue-600');
   $('finishBtn').disabled = base === 0 && !running;
-  $('finishBtn').className = 'btn flex-1 ' + ($('finishBtn').disabled ? 'bg-slate-800 text-slate-500' : 'bg-red-600');
+  $('finishBtn').className = 'btn flex-1 ' + ($('finishBtn').disabled ? 'bg-slate-800 text-slate-500' : 'bg-emerald-600 hover:bg-emerald-500');
   draw();
 }
 function notify(t, b) {
@@ -497,7 +501,7 @@ function tick() {
 }
 function toggleTimer() {
   if (!running) {
-    syncSub(); clearInterval(tInt); running = true; lastTick = Date.now();
+    syncSub(); if (!runId) runId = Date.now() + '-' + Math.random().toString(36).slice(2, 6); clearInterval(tInt); running = true; lastTick = Date.now();
     if (pomo && pLeft <= 0) { pState = 'study'; pLeft = (+$('pomoStudy').value || 50) * 60; }
     tInt = setInterval(tick, 1000);
   } else {
@@ -511,6 +515,8 @@ function togglePomo() { pomo = $('pomoOn').checked; $('pomoSet').classList.toggl
 async function finishTimer() {
   modal('confirm', 0);
   clearInterval(tInt); running = false; localStorage.removeItem('ev_timer');
+  if (runId) localStorage.setItem('ev_timer_done', runId);
+  runId = null;
   const parts = Object.entries(segs);
   base = 0; segs = {}; pLeft = 0; pState = 'study'; alerted = {};
   localStorage.removeItem('ev_timer');
@@ -523,6 +529,8 @@ async function finishTimer() {
 function restoreTimer() {
   const s = LS('ev_timer', null);
   if (!s) return;
+  if (s.id && s.id === localStorage.getItem('ev_timer_done')) { localStorage.removeItem('ev_timer'); return; }
+  runId = s.id || null;
   base = s.base || 0;
   curSub = s.subject || 'General Study';
   segs = s.segs || { [curSub]: base };
@@ -683,6 +691,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initArchive(); fillSubjects(); restoreTimer(); status(); calUI();
   window.addEventListener('online', () => { status(); refresh(); });
   window.addEventListener('offline', status);
+  window.addEventListener('storage', e => { if (e.key === 'ev_timer_done' && runId && e.newValue === runId) abandon(); });
   const { data: { session } } = await sb.auth.getSession();
   if (session) { user = session.user; onLogin(); }
 });
