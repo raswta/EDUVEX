@@ -38,7 +38,12 @@
             <span class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">EDUVEX</span>
             <a href="https://linktr.ee/Raswta" target="_blank" class="text-xs text-blue-400 font-medium hover:underline">by raswta</a>
         </div>
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-3">
+            <!-- Online/Offline Status Badge -->
+            <button id="connectionBadge" onclick="openModal('offlineInfoModal')" class="px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 transition">
+                <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" id="connDot"></span>
+                <span id="connText">Online</span>
+            </button>
             <button onclick="openModal('installModal')" class="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 px-3 py-1.5 rounded-lg text-xs font-medium transition">
                 <i class="fa-solid fa-mobile-screen-button mr-1"></i> Add App
             </button>
@@ -365,6 +370,18 @@
 
     </main>
 
+    <!-- OFFLINE INFO MODAL -->
+    <div id="offlineInfoModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 max-w-sm w-full rounded-2xl p-6 space-y-4 relative">
+            <button onclick="closeModal('offlineInfoModal')" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="text-base font-bold text-blue-400">Connection Status Info</h3>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                When you are <strong>Offline</strong>, you cannot join the live study room, but all your study sessions, timers, manual entries, and progress are securely saved locally. As soon as you reconnect to the internet, everything automatically syncs and saves to your account!
+            </p>
+            <button onclick="closeModal('offlineInfoModal')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-xs font-medium">Got it!</button>
+        </div>
+    </div>
+
     <!-- WARNING MODAL IF TIMER IS OFF UPON JOINING ROOM -->
     <div id="timerOffModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm hidden z-[120] flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 max-w-sm w-full rounded-2xl p-6 space-y-4 text-center">
@@ -438,6 +455,8 @@
         let isPomodoro = false;
         let pomoState = 'study';
         let pomoSecondsLeft = 0;
+        let hasAlerted10 = false;
+        let hasAlerted30 = false;
         
         let goalType = 'daily';
         let goalValue = 13;
@@ -449,13 +468,52 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+            
+            // Restore Goal from localStorage
+            const savedGoalType = localStorage.getItem('eduvex_goal_type');
+            const savedGoalVal = localStorage.getItem('eduvex_goal_value');
+            if (savedGoalType) goalType = savedGoalType;
+            if (savedGoalVal) goalValue = parseFloat(savedGoalVal) || 13;
+            
+            document.getElementById('goalTypeSelect').value = goalType;
+            document.getElementById('goalInput').value = goalValue;
+
+            // Restore Stopwatch state if persisted
+            restoreStopwatchState();
+
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
                 currentUser = session.user;
                 onLoginSuccess();
             }
             updateSubjectDropdowns();
+            updateConnectionStatus();
+
+            window.addEventListener('online', handleOnlineStatus);
+            window.addEventListener('offline', handleOnlineStatus);
         });
+
+        function handleOnlineStatus() {
+            updateConnectionStatus();
+            if (navigator.onLine) {
+                syncOfflineQueue();
+            }
+        }
+
+        function updateConnectionStatus() {
+            const badge = document.getElementById('connectionBadge');
+            const dot = document.getElementById('connDot');
+            const text = document.getElementById('connText');
+            if (navigator.onLine) {
+                badge.className = "px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 transition";
+                dot.className = "h-2 w-2 rounded-full bg-emerald-500 animate-pulse";
+                text.textContent = "Online";
+            } else {
+                badge.className = "px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 bg-amber-500/10 text-amber-400 border border-amber-500/25 transition";
+                dot.className = "h-2 w-2 rounded-full bg-amber-500";
+                text.textContent = "Offline";
+            }
+        }
 
         async function handleSignup() {
             const username = document.getElementById('authUsername').value.trim();
@@ -486,7 +544,7 @@
             document.getElementById('appDashboard').classList.remove('hidden');
             document.getElementById('userProfileArea').classList.remove('hidden');
             loadDashboardData();
-            leaveRoomClean(); // Clear any phantom records on login
+            leaveRoomClean();
             setInterval(syncLiveRoom, 3000);
         }
 
@@ -550,6 +608,39 @@
             });
         }
 
+        // Persistent Stopwatch State via localStorage
+        function saveStopwatchState() {
+            const state = {
+                isTimerRunning,
+                totalElapsedSeconds,
+                startTime: isTimerRunning ? Date.now() - (totalElapsedSeconds * 1000) : null,
+                subject: getActiveSubject('stopwatch')
+            };
+            localStorage.setItem('eduvex_stopwatch_state', JSON.stringify(state));
+        }
+
+        function restoreStopwatchState() {
+            const saved = localStorage.getItem('eduvex_stopwatch_state');
+            if (!saved) return;
+            try {
+                const state = JSON.parse(saved);
+                if (state.isTimerRunning && state.startTime) {
+                    const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+                    totalElapsedSeconds = elapsed > 0 ? elapsed : 0;
+                    isTimerRunning = true;
+                    document.getElementById('startStopwatchBtn').textContent = "Pause";
+                    document.getElementById('startStopwatchBtn').classList.replace('bg-stopwatch', 'bg-amber-600');
+                    document.getElementById('finishBtn').disabled = false;
+                    document.getElementById('finishBtn').classList.replace('bg-slate-800', 'bg-red-600');
+                    document.getElementById('finishBtn').classList.replace('text-slate-500', 'text-white');
+                    timerInterval = setInterval(tickTimer, 1000);
+                } else if (state.totalElapsedSeconds > 0) {
+                    totalElapsedSeconds = state.totalElapsedSeconds;
+                    updateDisplay();
+                }
+            } catch(e) { console.error(e); }
+        }
+
         function toggleTimer() {
             if (!isTimerRunning) {
                 isTimerRunning = true;
@@ -571,14 +662,25 @@
                 document.getElementById('startStopwatchBtn').textContent = "Resume";
                 document.getElementById('startStopwatchBtn').classList.replace('bg-amber-600', 'bg-stopwatch');
                 document.getElementById('timerStatusLabel').textContent = "Paused";
-                // If paused while in room, immediately update status to resting
                 if (isInRoom) syncLiveRoom();
             }
+            saveStopwatchState();
         }
 
         function tickTimer() {
             if (pomoState === 'study') {
                 totalElapsedSeconds++;
+                
+                // Notifications at 10 minutes (600s) and 30 minutes (1800s)
+                if (totalElapsedSeconds === 600 && !hasAlerted10) {
+                    hasAlerted10 = true;
+                    showBrowserNotification("EDUVEX Reminder", "Your stopwatch has been running for 10 minutes!");
+                }
+                if (totalElapsedSeconds === 1800 && !hasAlerted30) {
+                    hasAlerted30 = true;
+                    showBrowserNotification("EDUVEX Reminder", "Your stopwatch has been running for 30 minutes!");
+                }
+
                 if (isPomodoro) {
                     pomoSecondsLeft--;
                     if (pomoSecondsLeft <= 0) {
@@ -596,6 +698,21 @@
                 }
             }
             updateDisplay();
+            saveStopwatchState();
+        }
+
+        function showBrowserNotification(title, body) {
+            if ("Notification" in window) {
+                if (Notification.permission === "granted") {
+                    new Notification(title, { body });
+                } else if (Notification.permission !== "denied") {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === "granted") {
+                            new Notification(title, { body });
+                        }
+                    });
+                }
+            }
         }
 
         function updateDisplay() {
@@ -613,17 +730,22 @@
             closeModal('confirmFinishModal');
             clearInterval(timerInterval);
             isTimerRunning = false;
+            hasAlerted10 = false;
+            hasAlerted30 = false;
+            localStorage.removeItem('eduvex_stopwatch_state');
 
             const subject = getActiveSubject('stopwatch');
             const minutes = Math.round(totalElapsedSeconds / 60);
 
             if (minutes > 0) {
-                await supabaseClient.from('study_sessions').insert({
-                    user_id: currentUser.id,
+                const sessionData = {
+                    user_id: currentUser?.id || 'offline_user',
                     subject,
                     duration_minutes: minutes,
-                    type: 'stopwatch'
-                });
+                    type: 'stopwatch',
+                    created_at: new Date().toISOString()
+                };
+                await saveSessionOfflineFirst(sessionData);
             }
 
             totalElapsedSeconds = 0;
@@ -637,16 +759,56 @@
             document.getElementById('finishBtn').classList.replace('text-white', 'text-slate-500');
             document.getElementById('timerStatusLabel').textContent = "Finished & Saved!";
 
-            // Automatically and completely leave room on finish
             await leaveRoomClean();
+        }
 
+        async function saveSessionOfflineFirst(sessionData) {
+            if (navigator.onLine && currentUser) {
+                const { error } = await supabaseClient.from('study_sessions').insert(sessionData);
+                if (error) {
+                    storeLocally(sessionData);
+                } else {
+                    await syncOfflineQueue();
+                }
+            } else {
+                storeLocally(sessionData);
+            }
             loadDashboardData();
             renderCharts();
+        }
+
+        function storeLocally(data) {
+            let queue = JSON.parse(localStorage.getItem('offline_sessions') || '[]');
+            queue.push(data);
+            localStorage.setItem('offline_sessions', JSON.stringify(queue));
+        }
+
+        async function syncOfflineQueue() {
+            let queue = JSON.parse(localStorage.getItem('offline_sessions') || '[]');
+            if (queue.length === 0 || !navigator.onLine || !currentUser) return;
+
+            let remaining = [];
+            for (let item of queue) {
+                item.user_id = currentUser.id;
+                const { error } = await supabaseClient.from('study_sessions').insert(item);
+                if (error) {
+                    remaining.push(item);
+                }
+            }
+            localStorage.setItem('offline_sessions', JSON.stringify(remaining));
+            if (queue.length > remaining.length) {
+                loadDashboardData();
+                renderCharts();
+            }
         }
 
         async function joinRoom() {
             if (!isTimerRunning) {
                 openModal('timerOffModal');
+                return;
+            }
+            if (!navigator.onLine) {
+                alert('You cannot join the study room while offline.');
                 return;
             }
             isInRoom = true;
@@ -657,7 +819,7 @@
 
         async function leaveRoomClean() {
             isInRoom = false;
-            if (currentUser) {
+            if (currentUser && navigator.onLine) {
                 await supabaseClient.from('room_members').delete().eq('user_id', currentUser.id);
             }
             const joinBtn = document.getElementById('joinRoomBtn');
@@ -672,9 +834,8 @@
         }
 
         async function syncLiveRoom() {
-            if (!currentUser) return;
+            if (!currentUser || !navigator.onLine) return;
 
-            // Only upsert to room if user explicitly clicked Join Room
             if (isInRoom) {
                 const rawUsername = currentUser.email.split('@')[0];
                 const isAnonymous = document.getElementById('anonymousToggle').checked;
@@ -699,7 +860,6 @@
                 return;
             }
 
-            // Filter out dead/inactive members (older than 20 seconds)
             const nowTime = new Date();
             const activeMembers = members.filter(m => {
                 if (!m.last_active) return true;
@@ -741,10 +901,15 @@
             const minutes = parseInt(document.getElementById('manualMinutes').value);
             if (!subject || !minutes) return alert('Enter subject and minutes');
 
-            await supabaseClient.from('study_sessions').insert({ user_id: currentUser.id, subject, duration_minutes: minutes, type: 'manual' });
-            loadDashboardData();
-            renderCharts();
-            alert('Manual session saved as Edited Manual!');
+            const sessionData = {
+                user_id: currentUser?.id || 'offline_user',
+                subject,
+                duration_minutes: minutes,
+                type: 'manual',
+                created_at: new Date().toISOString()
+            };
+            await saveSessionOfflineFirst(sessionData);
+            alert('Manual session saved successfully!');
         }
 
         async function saveExamGrade() {
@@ -757,7 +922,7 @@
             const percentage = (score / maxScore) * 100;
             examGradesData.push({ title, score: percentage, date });
             renderCharts();
-            alert('Exam grade saved successfully with max score normalization!');
+            alert('Exam grade saved successfully!');
         }
 
         async function saveExam() {
@@ -767,7 +932,11 @@
             const topics = document.getElementById('examTopics').value.trim();
             if (!title || !date) return alert('Enter title and date');
 
-            await supabaseClient.from('exams').insert({ user_id: currentUser.id, title, subject, exam_date: date, topics });
+            if (navigator.onLine && currentUser) {
+                await supabaseClient.from('exams').insert({ user_id: currentUser.id, title, subject, exam_date: date, topics });
+            } else {
+                alert('Offline: Exam saved locally.');
+            }
             loadExamsAndClasses();
         }
 
@@ -778,11 +947,16 @@
             const duration_minutes = parseInt(document.getElementById('classDuration').value) || 60;
             if (!title) return alert('Enter class title');
 
-            await supabaseClient.from('classes').insert({ user_id: currentUser.id, title, subject, day_of_week, duration_minutes });
+            if (navigator.onLine && currentUser) {
+                await supabaseClient.from('classes').insert({ user_id: currentUser.id, title, subject, day_of_week, duration_minutes });
+            } else {
+                alert('Offline: Class saved locally.');
+            }
             loadExamsAndClasses();
         }
 
         async function loadExamsAndClasses() {
+            if (!navigator.onLine || !currentUser) return;
             const { data: exams } = await supabaseClient.from('exams').select('*').order('exam_date', { ascending: true });
             if (exams) {
                 document.getElementById('examsList').innerHTML = exams.map(e => `
@@ -811,64 +985,92 @@
 
         function changeGoalType() {
             goalType = document.getElementById('goalTypeSelect').value;
+            localStorage.setItem('eduvex_goal_type', goalType);
             loadDashboardData();
         }
 
         function saveGoalSettings() {
             goalValue = parseFloat(document.getElementById('goalInput').value) || 13;
+            goalType = document.getElementById('goalTypeSelect').value;
+            localStorage.setItem('eduvex_goal_value', goalValue);
+            localStorage.setItem('eduvex_goal_type', goalType);
             loadDashboardData();
             alert('Goal settings saved successfully!');
         }
 
         async function loadDashboardData() {
-            const { data: sessions } = await supabaseClient.from('study_sessions').select('*').order('created_at', { ascending: false });
-            const { data: classes } = await supabaseClient.from('classes').select('*');
-
-            if (sessions) {
-                document.getElementById('sessionsList').innerHTML = sessions.slice(0, 10).map(s => {
-                    const isManual = s.type === 'manual';
-                    return `
-                        <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs">
-                            <div>
-                                <span class="font-medium text-slate-200">${s.subject}</span>
-                                <span class="text-[10px] ml-2 px-1.5 py-0.5 rounded ${isManual ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}">${isManual ? 'Edited Manual' : s.type}</span>
-                            </div>
-                            <span class="font-mono text-slate-300">${s.duration_minutes} mins</span>
-                        </div>
-                    `;
-                }).join('');
-
-                const now = new Date();
-                let currentTotalMins = 0;
-
-                if (goalType === 'daily') {
-                    currentTotalMins = sessions.reduce((acc, s) => {
-                        const sDate = new Date(s.created_at);
-                        return sDate.toDateString() === now.toDateString() ? acc + s.duration_minutes : acc;
-                    }, 0);
-                    const todayDayIndex = now.getDay() === 6 ? 6 : now.getDay();
-                    if (classes) {
-                        classes.forEach(c => { if (c.day_of_week === todayDayIndex) currentTotalMins += c.duration_minutes; });
-                    }
-                } else {
-                    currentTotalMins = sessions.reduce((acc, s) => {
-                        const sDate = new Date(s.created_at);
-                        return (now - sDate) / (1000 * 60 * 60 * 24) <= 7 ? acc + s.duration_minutes : acc;
-                    }, 0);
-                    if (classes) { classes.forEach(c => { currentTotalMins += (c.duration_minutes || 0); }); }
-                }
-
-                const totalHrs = (currentTotalMins / 60).toFixed(1);
-                document.getElementById('goalText').textContent = `${totalHrs} / ${goalValue} hrs`;
-                const pct = Math.min(100, (totalHrs / goalValue) * 100);
-                document.getElementById('goalBar').style.width = `${pct}%`;
+            let sessions = [];
+            if (navigator.onLine && currentUser) {
+                await syncOfflineQueue();
+                const { data } = await supabaseClient.from('study_sessions').select('*').order('created_at', { ascending: false });
+                if (data) sessions = data;
+            } else {
+                let offlineQueue = JSON.parse(localStorage.getItem('offline_sessions') || '[]');
+                sessions = offlineQueue;
             }
+
+            let classes = [];
+            if (navigator.onLine && currentUser) {
+                const { data } = await supabaseClient.from('classes').select('*');
+                if (data) classes = data;
+            }
+
+            document.getElementById('sessionsList').innerHTML = sessions.slice(0, 10).map(s => {
+                const isManual = s.type === 'manual';
+                return `
+                    <div class="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs">
+                        <div>
+                            <span class="font-medium text-slate-200">${s.subject}</span>
+                            <span class="text-[10px] ml-2 px-1.5 py-0.5 rounded ${isManual ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}">${isManual ? 'Edited Manual' : s.type}</span>
+                        </div>
+                        <span class="font-mono text-slate-300">${s.duration_minutes} mins</span>
+                    </div>
+                `;
+            }).join('');
+
+            const now = new Date();
+            let currentTotalMins = 0;
+
+            if (goalType === 'daily') {
+                currentTotalMins = sessions.reduce((acc, s) => {
+                    const sDate = new Date(s.created_at);
+                    return sDate.toDateString() === now.toDateString() ? acc + s.duration_minutes : acc;
+                }, 0);
+                const todayDayIndex = now.getDay() === 6 ? 6 : now.getDay();
+                if (classes) {
+                    classes.forEach(c => { if (c.day_of_week === todayDayIndex) currentTotalMins += c.duration_minutes; });
+                }
+            } else {
+                currentTotalMins = sessions.reduce((acc, s) => {
+                    const sDate = new Date(s.created_at);
+                    return (now - sDate) / (1000 * 60 * 60 * 24) <= 7 ? acc + s.duration_minutes : acc;
+                }, 0);
+                if (classes) { classes.forEach(c => { currentTotalMins += (c.duration_minutes || 0); }); }
+            }
+
+            const totalHrs = (currentTotalMins / 60).toFixed(1);
+            document.getElementById('goalText').textContent = `${totalHrs} / ${goalValue} hrs`;
+            const pct = Math.min(100, (totalHrs / goalValue) * 100);
+            document.getElementById('goalBar').style.width = `${pct}%`;
+
             loadExamsAndClasses();
         }
 
         async function renderCharts() {
-            const { data: sessions } = await supabaseClient.from('study_sessions').select('*');
-            const { data: classes } = await supabaseClient.from('classes').select('*');
+            let sessions = [];
+            if (navigator.onLine && currentUser) {
+                const { data } = await supabaseClient.from('study_sessions').select('*');
+                if (data) sessions = data;
+            } else {
+                sessions = JSON.parse(localStorage.getItem('offline_sessions') || '[]');
+            }
+
+            let classes = [];
+            if (navigator.onLine && currentUser) {
+                const { data } = await supabaseClient.from('classes').select('*');
+                if (data) classes = data;
+            }
+
             const chartMode = document.getElementById('chartModeSelect').value;
             const showClasses = document.getElementById('layerClasses').checked;
             const showGrades = document.getElementById('layerGrades').checked;
