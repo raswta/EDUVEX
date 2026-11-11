@@ -484,7 +484,6 @@
                 currentUser = session.user;
                 onLoginSuccess();
             } else {
-                // For local/offline testing if not signed in yet
                 loadDashboardData();
             }
             updateSubjectDropdowns();
@@ -610,6 +609,10 @@
         }
 
         function saveStopwatchState() {
+            if (!isTimerRunning && totalElapsedSeconds === 0) {
+                localStorage.removeItem('eduvex_stopwatch_state');
+                return;
+            }
             const state = {
                 isTimerRunning,
                 totalElapsedSeconds,
@@ -624,6 +627,10 @@
             if (!saved) return;
             try {
                 const state = JSON.parse(saved);
+                if (!state.isTimerRunning) {
+                    localStorage.removeItem('eduvex_stopwatch_state');
+                    return;
+                }
                 if (state.isTimerRunning && state.startTime) {
                     const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
                     totalElapsedSeconds = elapsed > 0 ? elapsed : 0;
@@ -634,9 +641,6 @@
                     document.getElementById('finishBtn').classList.replace('bg-slate-800', 'bg-red-600');
                     document.getElementById('finishBtn').classList.replace('text-slate-500', 'text-white');
                     timerInterval = setInterval(tickTimer, 1000);
-                } else if (state.totalElapsedSeconds > 0) {
-                    totalElapsedSeconds = state.totalElapsedSeconds;
-                    updateDisplay();
                 }
             } catch(e) { console.error(e); }
         }
@@ -731,6 +735,7 @@
             isTimerRunning = false;
             hasAlerted10 = false;
             hasAlerted30 = false;
+            
             localStorage.removeItem('eduvex_stopwatch_state');
 
             const subject = getActiveSubject('stopwatch');
@@ -780,7 +785,6 @@
             let queue = JSON.parse(localStorage.getItem('offline_sessions') || '[]');
             queue.push(data);
             localStorage.setItem('offline_sessions', JSON.stringify(queue));
-            // Immediate local sync for instant graph updates even if offline
             loadDashboardData();
             renderCharts();
         }
