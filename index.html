@@ -30,7 +30,7 @@ body{font-family:Inter,system-ui,sans-serif}
     <span class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">EDUVEX</span>
     <a href="https://linktr.ee/Raswta" target="_blank" class="text-xs text-blue-400 hover:underline">by raswta</a>
   </div>
-  <div class="flex items-center gap-2">
+  <div id="hdrTools" class="hidden flex items-center gap-2">
     <button id="conn" onclick="modal('offInfo',1)" class="px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
       <span id="connDot" class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span><span id="connText">Online</span></button>
     <button onclick="modal('install',1)" class="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 px-3 py-1.5 rounded-lg text-xs font-medium"><i class="fa-solid fa-mobile-screen-button mr-1"></i> Add App</button>
@@ -205,6 +205,11 @@ body{font-family:Inter,system-ui,sans-serif}
     <div class="flex gap-2"><input id="newSubj" class="inp" placeholder="Add a new subject" onkeydown="if(event.key==='Enter')addSubj()">
       <button onclick="addSubj()" class="bg-blue-600 hover:bg-blue-500 px-4 rounded-lg" title="Add"><i class="fa-solid fa-plus"></i></button></div>
   </div>
+  <div>
+    <p class="lbl"><i class="fa-solid fa-bell mr-1"></i> Stopwatch reminders</p>
+    <button id="pushBtn" onclick="pushToggle()" class="btn"></button>
+    <p class="text-[11px] text-slate-500 mt-2">If you forget the stopwatch is running, you get a message after 10 minutes and again after 30 minutes. Nothing more after that.</p>
+  </div>
   <button id="logoutBtn" onclick="logout()" class="hidden btn bg-slate-800 hover:bg-slate-700 !text-red-400"><i class="fa-solid fa-right-from-bracket mr-1"></i> Logout</button>
 </div></div>
 <div id="offInfo" class="modal"><div class="card max-w-sm w-full space-y-4 relative">
@@ -231,19 +236,34 @@ body{font-family:Inter,system-ui,sans-serif}
   <h3 id="pomoTitle" class="text-2xl font-bold"></h3><p id="pomoDesc" class="text-sm text-slate-300"></p>
   <button onclick="modal('pomoAlert',0)" class="btn bg-blue-600">Continue</button>
 </div></div>
-<div id="guide" class="modal"><div class="card max-w-xl w-full space-y-3 text-xs text-slate-300 max-h-[85vh] overflow-y-auto">
-  <h3 class="text-base font-bold text-blue-400">EDUVEX Guide <i class="fa-solid fa-lightbulb"></i></h3>
-  <p><b>Goal:</b> choose Daily or Weekly, type hours (12.5 = 12h30m) and press Save Goal.</p>
-  <p><b>Timer:</b> Finish &amp; Save records the session in your logs, goal bar and charts. The stopwatch survives refresh.</p>
-  <p><b>Classes &amp; manual entries</b> are added to goal and charts immediately.</p>
-  <p><b>Archive:</b> pick any previous week or month in the Charts tab.</p>
-  <p><b>Calendar:</b> open Settings (gear icon) to switch all dates between Shamsi and Gregorian, edit subjects, or log out.</p>
-  <p><b>Yellow border:</b> in the charts, hours added with Manual Entry keep their subject color but have a thick yellow border.</p>
+<div id="notif" class="modal"><div class="card max-w-sm w-full text-center space-y-4">
+  <div class="text-emerald-400 text-5xl"><i class="fa-solid fa-bell"></i></div>
+  <h3 class="text-xl font-bold">Turn on reminders?</h3>
+  <p class="text-sm text-slate-300 leading-relaxed">If you forget that the stopwatch is running, EDUVEX will send you a message after <b>10 minutes</b> and again after <b>30 minutes</b> to tell you it is still on. After that, no more messages. It works even when the app is closed.</p>
+  <p class="text-[11px] text-slate-500">iPhone / iPad: this only works if you added EDUVEX to your Home Screen and opened it from that icon.</p>
+  <div class="flex gap-3"><button onclick="notifAnswer(false)" class="btn bg-slate-800 hover:bg-slate-700">No, thanks</button><button onclick="notifAnswer(true)" class="btn bg-emerald-600 hover:bg-emerald-500">Turn on</button></div>
+</div></div>
+<div id="guide" class="modal"><div class="card max-w-xl w-full space-y-3 text-xs text-slate-300 leading-relaxed max-h-[85vh] overflow-y-auto relative">
+  <button onclick="modal('guide',0)" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+  <h3 class="text-base font-bold text-blue-400"><i class="fa-solid fa-lightbulb mr-1"></i> EDUVEX Complete Guide</h3>
+  <p><b><i class="fa-solid fa-bullseye text-blue-400 mr-1"></i> Goal bar:</b> choose Daily or Weekly, type your target hours (12.5 means 12 hours 30 minutes) and press Save Goal. The bar counts your study sessions plus your weekly classes.</p>
+  <p><b><i class="fa-solid fa-stopwatch text-blue-400 mr-1"></i> Timer:</b> pick a subject and press Start. To study another subject, press Pause, choose the new subject and press Resume. The big clock keeps the total, and each subject is saved with its own time when you press Finish &amp; Save. Sessions shorter than 15 seconds are not saved. The stopwatch keeps going if you refresh the page.</p>
+  <p><b><i class="fa-solid fa-hourglass-half text-blue-400 mr-1"></i> Pomodoro:</b> tick the box, set study and rest minutes, and the clock counts down. Rest time is not added to your study time.</p>
+  <p><b><i class="fa-solid fa-pen-to-square text-blue-400 mr-1"></i> Manual entry:</b> add minutes you studied without the stopwatch, for any date. In the charts these keep their subject color with a thick yellow border.</p>
+  <p><b><i class="fa-solid fa-trash text-blue-400 mr-1"></i> Logs:</b> every saved session appears in Saved Study Logs. Use the trash icon to delete one. Items that say pending sync were saved offline and will upload automatically.</p>
+  <p><b><i class="fa-solid fa-calendar-check text-blue-400 mr-1"></i> Exams &amp; Classes:</b> add exams to see the days left. Weekly classes repeat every week and count toward your goal and the Classes layer in the charts.</p>
+  <p><b><i class="fa-solid fa-users text-blue-400 mr-1"></i> Study Room:</b> start your timer, then press Join Room to show your live study time to others. You can join as Anonymous. Rooms need internet.</p>
+  <p><b><i class="fa-solid fa-chart-column text-blue-400 mr-1"></i> Charts:</b> the weekly chart runs Saturday to Friday and the monthly chart shows every day of the month. Use Review Archive to open previous weeks and months. Stacked shows hours per subject, Total shows one line. Log exam scores to see them on the monthly chart.</p>
+  <p><b><i class="fa-solid fa-gear text-blue-400 mr-1"></i> Settings (gear icon):</b> switch all dates between Shamsi and Gregorian, rename or delete subjects, add new subjects, turn reminders on or off, and log out. If you delete a subject, its name disappears but the time you already studied stays in the charts under Other.</p>
+  <p><b><i class="fa-solid fa-bell text-blue-400 mr-1"></i> Reminders:</b> if you forget the stopwatch is running, you get a message after 10 minutes and again after 30 minutes, even when the app is closed. After that, nothing more. Pausing or finishing cancels them.</p>
+  <p><b><i class="fa-solid fa-wifi text-blue-400 mr-1"></i> Offline:</b> everything you add without internet is saved on your device and uploads when you are back online. Subject changes and the study room need internet.</p>
+  <p><b><i class="fa-solid fa-mobile-screen-button text-blue-400 mr-1"></i> Home Screen app:</b> after you add EDUVEX to your Home Screen, updates arrive by themselves the next time you open it. You do not need to add it again.</p>
   <button onclick="modal('guide',0)" class="btn bg-blue-600">Got it!</button>
 </div></div>
 
 <script>
 const sb = supabase.createClient("https://kuescglkkpvsqqxnubww.supabase.co", "sb_publishable_su-MHh5kE2EuainNOAGuJA_EP0p7Mrb");
+const VAPID_PUBLIC = 'BMrEAnSHAO645NCUWQheW_MQM9EmLPcNkRFuFxi3T02KjkAo_ZO56qbpvPDWWVCngfIDtjUz3UpnRwV78vJ9Tvg';
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const DAY = 864e5;
@@ -372,7 +392,7 @@ async function del(table, id) {
 }
 async function refresh() {
   if (!user) return;
-  await sync();
+  await sync(); pushFlush();
   [D.sessions, D.classes, D.exams, D.grades] = await Promise.all(['study_sessions','classes','exams','exam_grades'].map(rows));
   D.sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   D.sessions.forEach(s => { if (s.subject && !subjects.includes(s.subject)) subjects.push(s.subject); });
@@ -397,7 +417,7 @@ async function login() {
 }
 async function logout() { await leaveRoom(); await sb.auth.signOut(); location.reload(); }
 function onLogin() {
-  $('auth').classList.add('hidden'); $('app').classList.remove('hidden'); $('logoutBtn').classList.remove('hidden');
+  $('auth').classList.add('hidden'); $('app').classList.remove('hidden'); $('logoutBtn').classList.remove('hidden'); $('hdrTools').classList.remove('hidden');
   leaveRoom(); refresh();
   if (!roomInt) roomInt = setInterval(() => { if (inRoom || !$('roomTab').classList.contains('hidden')) syncRoom(); }, 3000);
 }
@@ -528,12 +548,12 @@ function ui() {
   draw();
 }
 function askNotif() { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); }
-async function notify(t, b) {
+async function notify(t, b, tag) {
   try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
   try {
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
     const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
-    if (reg && reg.showNotification) await reg.showNotification(t, { body: b, tag: 'ev-' + b, renotify: true, icon: 'icon.png', badge: 'icon.png' });
+    if (reg && reg.showNotification) await reg.showNotification(t, { body: b, tag: tag || ('ev-' + b), renotify: true, icon: 'icon.png', badge: 'icon.png' });
     else new Notification(t, { body: b, icon: 'icon.png' });
   } catch (e) { console.error('notify', e); }
 }
@@ -553,16 +573,19 @@ function tick() {
       modal('pomoAlert', 1); notify($('pomoTitle').textContent, $('pomoDesc').textContent);
     }
   }
-  [[600, '10'], [1800, '30']].forEach(([s, m]) => { if (base >= s && !alerted[m]) { alerted[m] = 1; notify('EDUVEX', `Your stopwatch has been running for ${m} minutes!`); } });
+  [[600, '10'], [1800, '30']].forEach(([s, m]) => { if (base >= s && !alerted[m]) { alerted[m] = 1; notify('EDUVEX', `Your stopwatch has been running for ${m} minutes!`, 'ev-alert-' + m); } });
   draw(); persist();
 }
 function toggleTimer() {
   if (!running) {
-    askNotif(); syncSub(); if (!runId) runId = Date.now() + '-' + Math.random().toString(36).slice(2, 6); clearInterval(tInt); running = true; lastTick = Date.now();
+    if (!localStorage.getItem('ev_push') && 'Notification' in window) modal('notif', 1);
+    syncSub(); if (!runId) runId = Date.now() + '-' + Math.random().toString(36).slice(2, 6); clearInterval(tInt); running = true; lastTick = Date.now();
     if (pomo && pLeft <= 0) { pState = 'study'; pLeft = (+$('pomoStudy').value || 50) * 60; }
     tInt = setInterval(tick, 1000);
+    pushSchedule();
   } else {
     running = false; clearInterval(tInt);
+    pushClear();
     if (inRoom) syncRoom();
   }
   ui(); persist();
@@ -575,6 +598,7 @@ async function finishTimer() {
   if (runId) localStorage.setItem('ev_timer_done', runId);
   localStorage.setItem('ev_timer_finished_at', Date.now());
   runId = null;
+  pushClear();
   const parts = Object.entries(segs);
   base = 0; segs = {}; pLeft = 0; pState = 'study'; alerted = {};
   localStorage.removeItem('ev_timer');
@@ -596,6 +620,66 @@ function restoreTimer() {
   if (s.running) { const gap = Math.max(0, Math.floor((Date.now() - s.lastTick) / 1000)); base += gap; segs[curSub] = (segs[curSub] || 0) + gap; running = true; lastTick = Date.now(); clearInterval(tInt); tInt = setInterval(tick, 1000); }
   setTimeout(() => { if ([...$('swSubject').options].some(o => o.value === s.subject)) $('swSubject').value = s.subject; }, 600);
   ui();
+}
+
+// ---------- Reminders (push notifications, work even when the app is closed) ----------
+const b64u = s => Uint8Array.from(atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+const pushSupported = () => 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+const pushOn = () => localStorage.getItem('ev_push') === 'on' && pushSupported() && Notification.permission === 'granted';
+async function pushEnsure() {
+  const reg = await Promise.race([navigator.serviceWorker.ready, new Promise((_, no) => setTimeout(() => no(new Error('service worker not ready')), 6000))]);
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUBLIC) });
+  if (user && navigator.onLine) {
+    const { error } = await sb.from('push_subs').upsert({ endpoint: sub.endpoint, user_id: user.id, sub: sub.toJSON() }, { onConflict: 'endpoint' });
+    if (error) throw error;
+  }
+}
+async function pushEnable() {
+  if (!pushSupported()) return false;
+  try {
+    if (await Notification.requestPermission() !== 'granted') return false;
+    try { await pushEnsure(); } catch (e) { console.error('push subscribe', e); }   // in-app reminders still work if this fails
+    return true;
+  } catch (e) { console.error('push', e); return false; }
+}
+async function pushClear() {
+  localStorage.setItem('ev_push_clear', '1');
+  try {
+    if (!user || !navigator.onLine) return;
+    const { error } = await sb.from('push_jobs').delete().eq('user_id', user.id).eq('sent', false);
+    if (!error) localStorage.removeItem('ev_push_clear');
+  } catch (e) { console.error('push clear', e); }
+}
+async function pushSchedule() {
+  try {
+    if (!pushOn() || !user || !navigator.onLine) return;
+    await pushEnsure();
+    const { error: e1 } = await sb.from('push_jobs').delete().eq('user_id', user.id).eq('sent', false);
+    if (e1) throw e1;
+    localStorage.removeItem('ev_push_clear');
+    const jobs = [[600, 10], [1800, 30]].filter(([sec]) => base < sec)
+      .map(([sec, m]) => ({ user_id: user.id, minutes: m, fire_at: new Date(Date.now() + (sec - base) * 1000).toISOString() }));
+    if (jobs.length) { const { error } = await sb.from('push_jobs').insert(jobs); if (error) throw error; }
+  } catch (e) { console.error('push schedule', e); }
+}
+function pushFlush() { if (localStorage.getItem('ev_push_clear') && !running) pushClear(); }
+function pushUI() {
+  const on = localStorage.getItem('ev_push') === 'on';
+  $('pushBtn').textContent = on ? 'Reminders: ON (tap to turn off)' : 'Reminders: OFF (tap to turn on)';
+  $('pushBtn').className = 'btn ' + (on ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-slate-800 hover:bg-slate-700');
+}
+async function notifAnswer(yes) {
+  modal('notif', 0);
+  if (!yes) { localStorage.setItem('ev_push', 'off'); pushUI(); return; }
+  const ok = await pushEnable();
+  localStorage.setItem('ev_push', ok ? 'on' : 'off'); pushUI();
+  if (!ok) alert('Reminders could not be turned on. Please allow notifications for this site in your device settings. On iPhone/iPad, open EDUVEX from the Home Screen icon.');
+  else if (running) pushSchedule();
+}
+function pushToggle() {
+  if (localStorage.getItem('ev_push') === 'on') { localStorage.setItem('ev_push', 'off'); pushClear(); pushUI(); }
+  else notifAnswer(true);
 }
 
 // ---------- Manual / classes / exams / grades ----------
@@ -741,7 +825,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('goalType').value = goalType; $('goalIn').value = goalVal;
   $('goalType').onchange = () => { goalType = $('goalType').value; localStorage.setItem('ev_goal_type', goalType); renderGoal(); };
   ['manDate', 'exDate', 'gDate'].forEach(id => mkPicker(id));
-  initArchive(); fillSubjects(); restoreTimer(); status(); calUI();
+  initArchive(); fillSubjects(); restoreTimer(); status(); calUI(); pushUI();
   window.addEventListener('online', () => { status(); refresh(); });
   window.addEventListener('offline', status);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && running) tick(); });
