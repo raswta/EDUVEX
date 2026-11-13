@@ -21,6 +21,14 @@ body{font-family:Inter,system-ui,sans-serif}
 .lbl{@apply block text-xs text-slate-400 mb-1}
 .modal{display:none;@apply fixed inset-0 bg-slate-950/80 z-50 items-center justify-center p-4}
 .modal.show{display:flex}
+.rep{background:#fff;color:#0f172a;font-family:Inter,system-ui,sans-serif;width:794px;padding:32px}
+.rep h1{font-size:22px;font-weight:700}
+.rep h2{font-size:14px;font-weight:700;margin:16px 0 4px}
+.rep table{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0 14px}
+.rep th{background:#eef2ff;text-align:left;padding:6px 8px;font-weight:600}
+.rep td{border-bottom:1px solid #e2e8f0;padding:6px 8px;vertical-align:top}
+.rep .box{flex:1;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px}
+.rep .box b{display:block;font-size:20px}
 </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
@@ -74,8 +82,10 @@ body{font-family:Inter,system-ui,sans-serif}
   <div class="flex overflow-x-auto gap-2 border-b border-slate-800 pb-2">
     <button class="tab-btn on" data-t="timerTab" onclick="tab('timerTab')">Timer &amp; Study</button>
     <button class="tab-btn" data-t="plannerTab" onclick="tab('plannerTab')">Exams &amp; Classes</button>
+    <button class="tab-btn" data-t="testsTab" onclick="tab('testsTab')">Tests</button>
     <button class="tab-btn" data-t="roomTab" onclick="tab('roomTab')"><span class="flex items-center gap-1.5">Study Room <span class="flex h-2 w-2 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span></span></button>
     <button class="tab-btn" data-t="chartsTab" onclick="tab('chartsTab')">Charts &amp; Grades</button>
+    <button class="tab-btn" data-t="moreTab" onclick="tab('moreTab')">More</button>
   </div>
 
   <!-- TIMER -->
@@ -93,6 +103,7 @@ body{font-family:Inter,system-ui,sans-serif}
         <label class="lbl">Subject</label>
         <select id="swSubject" class="inp" onchange="pickSubj('swSubject','swCustom');if(this.value!=='__new')syncSub()"></select>
         <input id="swCustom" placeholder="New subject name" class="inp hidden mt-2" onchange="syncSub()">
+        <input id="swTopic" placeholder="Topic (optional)" class="inp mt-2" oninput="setTopic()">
         <div id="swDisplay" class="text-4xl font-bold font-mono text-center my-4">00:00:00</div>
         <div id="swStatus" class="text-center text-xs text-blue-400 mb-2 h-4">Ready</div>
         <div id="swBreak" class="text-xs text-slate-400 space-y-1 mb-3"></div>
@@ -123,7 +134,7 @@ body{font-family:Inter,system-ui,sans-serif}
       <div id="exDate" class="grid grid-cols-3 gap-2"></div>
       <textarea id="exTopics" placeholder="Topics" class="inp"></textarea>
       <button onclick="saveExam()" class="btn bg-blue-600 hover:bg-blue-500">Add Exam</button>
-      <div id="examsList" class="space-y-2 max-h-56 overflow-y-auto"></div>
+      <div id="examsList" class="space-y-3 max-h-96 overflow-y-auto"></div>
     </div>
     <div class="card space-y-3">
       <h3 class="text-sm font-semibold text-slate-400">Weekly Classes</h3>
@@ -133,6 +144,29 @@ body{font-family:Inter,system-ui,sans-serif}
       <input id="clDur" type="number" placeholder="Duration in minutes" class="inp">
       <button onclick="saveClass()" class="btn bg-emerald-500 hover:bg-emerald-600">Add Class</button>
       <div id="classesList" class="space-y-2 max-h-56 overflow-y-auto"></div>
+    </div>
+  </div>
+
+  <!-- TESTS -->
+  <div id="testsTab" class="tab hidden space-y-6">
+    <div class="card space-y-3">
+      <h3 class="text-sm font-semibold text-slate-400"><i class="fa-solid fa-list-check text-blue-500 mr-1"></i> Practice Tests</h3>
+      <p class="text-xs text-slate-400">Optional. Enter how many tests you solved for each subject on a day. Study time from your stopwatch is shown next to each subject.</p>
+      <div><label class="lbl">Day</label><div id="tDate" class="grid grid-cols-3 gap-2"></div></div>
+      <div id="testsList" class="space-y-2"></div>
+      <div class="flex items-center justify-between gap-3 text-xs">
+        <span id="testsTotal" class="text-slate-300"></span>
+        <button onclick="saveTests()" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg font-medium text-white">Save tests</button>
+      </div>
+    </div>
+    <div class="card space-y-3">
+      <div class="flex flex-wrap gap-2 items-center justify-between">
+        <h3 class="text-sm font-semibold text-slate-400">Tests chart</h3>
+        <select id="testView" onchange="renderTestsChart()" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs">
+          <option value="daily">Daily (by subject)</option><option value="weekly">Weekly (day by day)</option></select>
+      </div>
+      <div id="testsSum" class="text-xs text-blue-400 font-mono"></div>
+      <div class="relative h-[260px]"><canvas id="testsChart"></canvas></div>
     </div>
   </div>
 
@@ -180,6 +214,20 @@ body{font-family:Inter,system-ui,sans-serif}
     <div class="grid md:grid-cols-2 gap-6">
       <div class="card"><h3 class="text-sm font-semibold text-slate-400 mb-2">Weekly (Saturday to Friday)</h3><div class="relative h-[260px]"><canvas id="weeklyChart"></canvas></div></div>
       <div class="card"><h3 class="text-sm font-semibold text-slate-400 mb-2">Monthly (day by day) &amp; grades</h3><div class="relative h-[260px]"><canvas id="monthlyChart"></canvas></div></div>
+    </div>
+  </div>
+
+  <!-- MORE -->
+  <div id="moreTab" class="tab hidden space-y-6">
+    <div class="card space-y-4">
+      <h3 class="text-sm font-semibold text-slate-400"><i class="fa-solid fa-file-pdf text-red-400 mr-1"></i> Download summary (PDF)</h3>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="lbl">Summary type</label>
+          <select id="repKind" onchange="fillPeriods()" class="inp"><option value="daily">Daily</option><option value="weekly" selected>Weekly</option><option value="monthly">Monthly</option></select></div>
+        <div><label class="lbl">Period</label><select id="repPeriod" class="inp"></select></div>
+      </div>
+      <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="repClasses" checked> Include classes in hours and charts</label>
+      <button onclick="openReport()" class="btn bg-blue-600 hover:bg-blue-500"><i class="fa-solid fa-eye mr-1"></i> Preview summary</button>
     </div>
   </div>
 </div>
@@ -236,6 +284,11 @@ body{font-family:Inter,system-ui,sans-serif}
   <h3 id="pomoTitle" class="text-2xl font-bold"></h3><p id="pomoDesc" class="text-sm text-slate-300"></p>
   <button onclick="modal('pomoAlert',0)" class="btn bg-blue-600">Continue</button>
 </div></div>
+<div id="repModal" class="modal"><div class="w-full max-w-3xl max-h-[92vh] flex flex-col gap-3">
+  <div class="flex gap-3"><button id="repDl" onclick="downloadPdf()" class="btn bg-blue-600 hover:bg-blue-500"><i class="fa-solid fa-download mr-1"></i> Download PDF</button>
+    <button onclick="modal('repModal',0)" class="btn bg-slate-800 hover:bg-slate-700">Close</button></div>
+  <div class="overflow-auto rounded-xl bg-white"><div id="rep" class="rep"></div></div>
+</div></div>
 <div id="notif" class="modal"><div class="card max-w-sm w-full text-center space-y-4">
   <div class="text-emerald-400 text-5xl"><i class="fa-solid fa-bell"></i></div>
   <h3 class="text-xl font-bold">Turn on reminders?</h3>
@@ -252,8 +305,10 @@ body{font-family:Inter,system-ui,sans-serif}
   <p><b><i class="fa-solid fa-pen-to-square text-blue-400 mr-1"></i> Manual entry:</b> add minutes you studied without the stopwatch, for any date. In the charts these keep their subject color with a thick yellow border.</p>
   <p><b><i class="fa-solid fa-trash text-blue-400 mr-1"></i> Logs:</b> every saved session appears in Saved Study Logs. Use the trash icon to delete one. Items that say pending sync were saved offline and will upload automatically.</p>
   <p><b><i class="fa-solid fa-calendar-check text-blue-400 mr-1"></i> Exams &amp; Classes:</b> add exams to see the days left. Weekly classes repeat every week and count toward your goal and the Classes layer in the charts.</p>
+  <p><b><i class="fa-solid fa-list-check text-blue-400 mr-1"></i> Tests:</b> in the Tests tab pick a day, type how many practice tests you solved for each subject (optional) and press Save tests. The study time of that day is shown next to each subject, and you can edit the numbers any time. The chart shows tests by subject for one day, or day by day for the whole week. Subjects keep their colors. You can also write a Topic (optional) in the Timer card; it is saved with the session and shown in the PDF summary.</p>
   <p><b><i class="fa-solid fa-users text-blue-400 mr-1"></i> Study Room:</b> start your timer, then press Join Room to show your live study time to others. You can join as Anonymous. Rooms need internet.</p>
   <p><b><i class="fa-solid fa-chart-column text-blue-400 mr-1"></i> Charts:</b> the weekly chart runs Saturday to Friday and the monthly chart shows every day of the month. Use Review Archive to open previous weeks and months. Stacked shows hours per subject, Total shows one line. Log exam scores to see them on the monthly chart.</p>
+  <p><b><i class="fa-solid fa-file-pdf text-blue-400 mr-1"></i> Summary PDF:</b> open the More tab, choose Daily, Weekly or Monthly, pick the period (This week, Last month, a date...) and tick Include classes if you want class hours added. Press Preview summary, then Download PDF. It shows study time, tests, hours per subject with topics, and charts. You need internet the first time you download.</p>
   <p><b><i class="fa-solid fa-gear text-blue-400 mr-1"></i> Settings (gear icon):</b> switch all dates between Shamsi and Gregorian, rename or delete subjects, add new subjects, turn reminders on or off, and log out. If you delete a subject, its name disappears but the time you already studied stays in the charts under Other.</p>
   <p><b><i class="fa-solid fa-bell text-blue-400 mr-1"></i> Reminders:</b> if you forget the stopwatch is running, you get a message after 10 minutes and again after 30 minutes, even when the app is closed. After that, nothing more. Pausing or finishing cancels them.</p>
   <p><b><i class="fa-solid fa-wifi text-blue-400 mr-1"></i> Offline:</b> everything you add without internet is saved on your device and uploads when you are back online. Subject changes and the study room need internet.</p>
@@ -276,11 +331,11 @@ const LS = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } 
 let user = null, running = false, base = 0, lastTick = 0, tInt = null, roomInt = null;
 let inRoom = false, pomo = false, pState = 'study', pLeft = 0, alerted = {};
 let wChart = null, mChart = null, starts = [];
-let segs = {}, curSub = 'General Study', runId = null;
+let segs = {}, tops = {}, curSub = 'General Study', runId = null;
 let subjects = LS('ev_subjects', ['General Study','Physics','Mathematics','Chemistry','Biology']);
 let goalType = localStorage.getItem('ev_goal_type') || 'daily';
 let goalVal = parseFloat(localStorage.getItem('ev_goal_val')) || 13;
-let D = { sessions: [], classes: [], exams: [], grades: [] };
+let D = { sessions: [], classes: [], exams: [], grades: [], tests: [] };
 
 const color = s => COLORS[subjects.indexOf(s) % COLORS.length] || '#64748b';
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
@@ -327,11 +382,11 @@ function calUI() {
   $('calG').className = 'btn ' + (CAL === 'gregorian' ? 'bg-blue-600' : 'bg-slate-800 hover:bg-slate-700');
 }
 function setCal(k) {
-  const ids = ['manDate', 'exDate', 'gDate'], keep = ids.map(id => ymd(pickGet(id)));
+  const ids = ['manDate', 'exDate', 'gDate', 'tDate'], keep = ids.map(id => ymd(pickGet(id)));
   CAL = k; localStorage.setItem('ev_cal', k);
   ids.forEach((id, i) => mkPicker(id, keep[i]));
   const w = $('weekSel').value; initArchive(); $('weekSel').value = w;
-  calUI(); renderLists(); renderCharts();
+  calUI(); renderLists(); renderCharts(); fillPeriods(); renderTests();
 }
 
 // ---------- UI helpers ----------
@@ -342,6 +397,8 @@ function tab(id) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('on', b.dataset.t === id));
   if (id === 'chartsTab') renderCharts();
   if (id === 'roomTab') syncRoom();
+  if (id === 'testsTab') renderTests();
+  if (id === 'moreTab') fillPeriods();
 }
 function status() {
   const on = navigator.onLine;
@@ -354,15 +411,15 @@ function status() {
 const Q = () => LS('ev_queue', []);
 const setQ = q => localStorage.setItem('ev_queue', JSON.stringify(q));
 
-async function save(table, row) {
+async function save(table, row, conflict) {
   row.user_id = user.id;
   if (navigator.onLine) {
-    const { error } = await sb.from(table).insert(row);
+    const { error } = await (conflict ? sb.from(table).upsert(row, { onConflict: conflict }) : sb.from(table).insert(row));
     if (!error) return true;
     console.error(table, error);
     alert('Server save failed: ' + error.message + '\nSaved on this device for now.');
   }
-  setQ([...Q(), { table, row }]);
+  setQ([...Q(), { table, row, conflict }]);
   return false;
 }
 async function sync() {
@@ -370,7 +427,7 @@ async function sync() {
   const rest = [];
   for (const it of Q()) {
     if (it.row.user_id !== user.id) { rest.push(it); continue; }
-    const { error } = await sb.from(it.table).insert(it.row);
+    const { error } = await (it.conflict ? sb.from(it.table).upsert(it.row, { onConflict: it.conflict }) : sb.from(it.table).insert(it.row));
     if (error) { console.error('sync', error); rest.push(it); }
   }
   setQ(rest);
@@ -382,23 +439,27 @@ async function rows(table) {
     const { data, error } = await sb.from(table).select('*').eq('user_id', user.id);
     if (error) console.error('load ' + table, error); else { r = data || []; localStorage.setItem(key, JSON.stringify(r)); }
   }
-  return [...r, ...Q().filter(i => i.table === table && i.row.user_id === user.id).map(i => ({ ...i.row, _local: 1 }))];
+  const all = [...r, ...Q().filter(i => i.table === table && i.row.user_id === user.id).map(i => ({ ...i.row, _local: 1 }))];
+  if (table !== 'study_tests') return all;
+  const m = {}; all.forEach(t => { m[t.test_date + '|' + t.subject] = t; });   // a saved or edited test replaces the older one
+  return Object.values(m);
 }
 async function del(table, id) {
   if (!confirm('Delete this item?')) return;
-  const { error } = await sb.from(table).delete().eq('id', id).eq('user_id', user.id);
+  const { data, error } = await sb.from(table).delete().eq('id', id).eq('user_id', user.id).select();
   if (error) return alert('Error: ' + error.message);
+  if (!data || !data.length) return alert('Could not delete this item.');
   refresh();
 }
 async function refresh() {
   if (!user) return;
   await sync(); pushFlush();
-  [D.sessions, D.classes, D.exams, D.grades] = await Promise.all(['study_sessions','classes','exams','exam_grades'].map(rows));
+  [D.sessions, D.classes, D.exams, D.grades, D.tests] = await Promise.all(['study_sessions','classes','exams','exam_grades','study_tests'].map(rows));
   D.sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   D.sessions.forEach(s => { if (s.subject && !subjects.includes(s.subject)) subjects.push(s.subject); });
   D.classes.forEach(c => { if (c.subject && !subjects.includes(c.subject)) subjects.push(c.subject); });
   localStorage.setItem('ev_subjects', JSON.stringify(subjects));
-  fillSubjects(); renderGoal(); renderLists(); renderSubjects(); renderCharts();
+  fillSubjects(); renderGoal(); renderLists(); renderSubjects(); renderCharts(); renderTests();
 }
 
 // ---------- Auth ----------
@@ -465,7 +526,7 @@ async function remap(oldN, newN) {
   setQ(Q().map(i => i.row.subject === oldN ? { ...i, row: { ...i.row, subject: newN } } : i));
   return true;
 }
-function moveSeg(from, to) { if (segs[from]) { segs[to] = (segs[to] || 0) + segs[from]; delete segs[from]; } if (curSub === from) curSub = to; }
+function moveSeg(from, to) { if (segs[from]) { segs[to] = (segs[to] || 0) + segs[from]; delete segs[from]; } if (tops[from]) { tops[to] = tops[from]; delete tops[from]; } if (curSub === from) curSub = to; }
 async function renSubject(i) {
   const old = subjects[i], n = (prompt('Rename subject', old) || '').trim();
   if (!n || n === old) return;
@@ -507,17 +568,28 @@ function renderGoal() {
 // ---------- Lists ----------
 function renderLists() {
   const trash = (t, x) => x.id
-    ? `<button onclick="del('${t}',${x.id})" class="text-red-400 hover:text-red-300 ml-3" title="Delete"><i class="fa-solid fa-trash"></i></button>`
+    ? `<button onclick="del('${t}','${x.id}')" class="text-red-400 hover:text-red-300 ml-3" title="Delete"><i class="fa-solid fa-trash"></i></button>`
     : '<span class="text-[10px] text-amber-400 ml-3">pending sync</span>';
   $('sessionsList').innerHTML = D.sessions.slice(0, 40).map(s => `
     <div class="row"><div><span class="font-medium">${esc(s.subject)}</span>
     <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] ${s.type === 'manual' ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}">${s.type === 'manual' ? 'Manual' : 'Stopwatch'}</span></div>
     <div class="flex items-center"><span class="font-mono text-slate-300">${s.duration_minutes} min · ${fmt(new Date(s.created_at))}</span>${trash('study_sessions', s)}</div></div>`).join('') || '<p class="text-xs text-slate-500">No sessions yet.</p>';
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  $('examsList').innerHTML = [...D.exams].sort((a, b) => (a.exam_date > b.exam_date ? 1 : -1)).map(e => {
-    const left = Math.ceil((new Date(e.exam_date + 'T00:00:00') - today) / DAY);
-    return `<div class="row"><div><b>${esc(e.title)}</b> (${esc(e.subject)})<span class="block text-[10px] text-slate-400">${fmt(ymd(e.exam_date))} · ${left >= 0 ? left + ' days left' : 'passed'}</span></div>${trash('exams', e)}</div>`;
-  }).join('');
+  const exams = D.exams.map(e => ({ e, left: Math.ceil((new Date(e.exam_date + 'T00:00:00') - today) / DAY) }))
+    .sort((a, b) => ((a.left < 0) - (b.left < 0)) || (a.e.exam_date > b.e.exam_date ? 1 : -1));
+  $('examsList').innerHTML = exams.map(({ e, left }) => {
+    const tone = left < 0 ? 'bg-slate-800 text-slate-400' : left <= 3 ? 'bg-red-500/15 text-red-300' : left <= 7 ? 'bg-amber-500/15 text-amber-300' : 'bg-blue-500/15 text-blue-300';
+    const c = color(e.subject);
+    return `<div class="flex items-stretch bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+      <div class="w-24 shrink-0 flex flex-col items-center justify-center py-3 ${tone}">
+        ${left < 0 ? '<i class="fa-solid fa-check text-3xl"></i>' : `<span class="text-4xl font-bold leading-none">${left}</span>`}
+        <span class="text-[10px] uppercase tracking-wider mt-1">${left < 0 ? 'passed' : left === 0 ? 'today' : left === 1 ? 'day left' : 'days left'}</span></div>
+      <div class="flex-1 min-w-0 p-3"><div class="font-semibold text-sm truncate">${esc(e.title)}</div>
+        <div class="flex flex-wrap items-center gap-2 mt-1 text-[11px]"><span class="px-2 py-0.5 rounded-full" style="background:${c}22;color:${c}">${esc(e.subject)}</span>
+          <span class="text-slate-400"><i class="fa-solid fa-calendar-day mr-1"></i>${fmt(ymd(e.exam_date))}</span></div>
+        ${e.topics ? `<div class="text-[11px] text-slate-500 mt-1.5 line-clamp-2">${esc(e.topics)}</div>` : ''}</div>
+      <div class="flex items-center pr-3">${trash('exams', e)}</div></div>`;
+  }).join('') || '<p class="text-xs text-slate-500">No exams yet.</p>';
   $('classesList').innerHTML = D.classes.map(c => `
     <div class="row"><div><b>${esc(c.title)}</b> (${esc(c.subject)})<span class="block text-[10px] text-slate-400">${DAYS[(+c.day_of_week + 1) % 7]} · ${c.duration_minutes} min</span></div>${trash('classes', c)}</div>`).join('');
 }
@@ -527,10 +599,11 @@ const isStale = id => !!id && parseInt(id) <= (+localStorage.getItem('ev_timer_f
 function persist() {
   if (runId && (isStale(runId) || localStorage.getItem('ev_timer_done') === runId)) return abandon();   // finished in another tab
   if (!running && base === 0) return localStorage.removeItem('ev_timer');
-  localStorage.setItem('ev_timer', JSON.stringify({ id: runId, running, base, lastTick, subject: curSub, segs }));
+  localStorage.setItem('ev_timer', JSON.stringify({ id: runId, running, base, lastTick, subject: curSub, segs, tops }));
 }
 function abandon() {
-  clearInterval(tInt); running = false; base = 0; segs = {}; runId = null; pLeft = 0; pState = 'study'; alerted = {};
+  clearInterval(tInt); running = false; base = 0; segs = {}; tops = {}; runId = null; pLeft = 0; pState = 'study'; alerted = {};
+  $('swTopic').value = '';
   localStorage.removeItem('ev_timer'); ui();
 }
 function draw() {
@@ -590,7 +663,8 @@ function toggleTimer() {
   }
   ui(); persist();
 }
-function syncSub() { curSub = getSubject('swSubject', 'swCustom'); }
+function syncSub() { curSub = getSubject('swSubject', 'swCustom'); $('swTopic').value = tops[curSub] || ''; }
+function setTopic() { const v = $('swTopic').value.trim(); if (v) tops[curSub] = v; else delete tops[curSub]; persist(); }
 function togglePomo() { pomo = $('pomoOn').checked; $('pomoSet').classList.toggle('hidden', !pomo); pLeft = 0; pState = 'study'; draw(); }
 async function finishTimer() {
   modal('confirm', 0);
@@ -599,12 +673,12 @@ async function finishTimer() {
   localStorage.setItem('ev_timer_finished_at', Date.now());
   runId = null;
   pushClear();
-  const parts = Object.entries(segs);
-  base = 0; segs = {}; pLeft = 0; pState = 'study'; alerted = {};
+  const parts = Object.entries(segs), topics = tops;
+  base = 0; segs = {}; tops = {}; $('swTopic').value = ''; pLeft = 0; pState = 'study'; alerted = {};
   localStorage.removeItem('ev_timer');
   ui(); $('swStatus').textContent = 'Finished & Saved!';
   for (const [subject, secs] of parts)
-    if (secs >= 15) await save('study_sessions', { subject, duration_minutes: Math.max(1, Math.round(secs / 60)), type: 'stopwatch', created_at: new Date().toISOString() });
+    if (secs >= 15) await save('study_sessions', { subject, duration_minutes: Math.max(1, Math.round(secs / 60)), type: 'stopwatch', created_at: new Date().toISOString(), ...(topics[subject] ? { topic: topics[subject] } : {}) });
   localStorage.removeItem('ev_timer');
   await leaveRoom(); refresh();
 }
@@ -617,6 +691,7 @@ function restoreTimer() {
   [[600, '10'], [1800, '30']].forEach(([sec, m]) => { if (base >= sec) alerted[m] = 1; });
   curSub = s.subject || 'General Study';
   segs = s.segs || { [curSub]: base };
+  tops = s.tops || {}; $('swTopic').value = tops[curSub] || '';
   if (s.running) { const gap = Math.max(0, Math.floor((Date.now() - s.lastTick) / 1000)); base += gap; segs[curSub] = (segs[curSub] || 0) + gap; running = true; lastTick = Date.now(); clearInterval(tInt); tInt = setInterval(tick, 1000); }
   setTimeout(() => { if ([...$('swSubject').options].some(o => o.value === s.subject)) $('swSubject').value = s.subject; }, 600);
   ui();
@@ -707,6 +782,135 @@ async function saveGrade() {
   if (!title || isNaN(score)) return alert('Enter a valid title and score');
   await save('exam_grades', { title, score, max_score: max, grade_date: pickGet('gDate') });
   $('gTitle').value = ''; $('gScore').value = ''; refresh();
+}
+
+// ---------- Practice tests ----------
+let tChart = null;
+const hm = m => { m = Math.round(m || 0); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
+const fmtY = d => `${fmt(d)} ${pc(d).y}`;
+async function saveTests() {
+  const key = pickGet('tDate');
+  for (const i of document.querySelectorAll('#testsList input')) {
+    const sub = i.dataset.sub, old = D.tests.find(t => t.test_date === key && t.subject === sub);
+    const n = i.value === '' ? 0 : Math.max(0, parseInt(i.value) || 0), cur = old ? +old.count : 0;
+    if (n === cur) continue;
+    await save('study_tests', { test_date: key, subject: sub, count: n }, 'user_id,test_date,subject');
+  }
+  refresh();
+}
+function renderTests() {
+  if ($('testsTab').classList.contains('hidden')) return;
+  const day = ymd(pickGet('tDate')), key = toYMD(day), mins = {}, cnt = {};
+  D.sessions.forEach(s => { if (toYMD(new Date(s.created_at)) === key) mins[s.subject] = (mins[s.subject] || 0) + (+s.duration_minutes || 0); });
+  D.tests.forEach(t => { if (t.test_date === key) cnt[t.subject] = +t.count; });
+  const order = [...new Set([...subjects, ...Object.keys(cnt)])].sort((a, b) => (mins[b] || 0) - (mins[a] || 0));
+  $('testsList').innerHTML = order.map(s => `<div class="row"><div><b>${esc(s)}</b><span class="block text-[10px] text-slate-400">${mins[s] ? hm(mins[s]) + ' studied' : 'no study time'}</span></div>
+    <input type="number" min="0" inputmode="numeric" data-sub="${esc(s)}" value="${cnt[s] ? cnt[s] : ''}" placeholder="0" class="inp !w-24 text-center"></div>`).join('');
+  $('testsTotal').textContent = `Total for this day: ${Object.values(cnt).reduce((a, b) => a + b, 0)} tests`;
+  renderTestsChart();
+}
+function renderTestsChart() {
+  if ($('testsTab').classList.contains('hidden')) return;
+  const day = ymd(pickGet('tDate')), view = $('testView').value, wk = view === 'weekly';
+  const days = wk ? Array.from({ length: 7 }, (_, i) => addDays(weekStart(day), i)) : [day], keys = days.map(toYMD), per = {};
+  D.tests.forEach(t => { const i = keys.indexOf(t.test_date); if (i >= 0 && +t.count > 0) (per[t.subject] = per[t.subject] || Array(days.length).fill(0))[i] += +t.count; });
+  const total = Object.values(per).flat().reduce((a, b) => a + b, 0), names = Object.keys(per);
+  $('testsSum').textContent = `${wk ? fmt(days[0]) + ' - ' + fmt(days[6]) : fmt(day)}: ${total} tests`;
+  const labels = wk ? days.map(d => [(CAL === 'shamsi' ? DAYSF : DAYSE)[dayIdx(d)], fmt(d)]) : names;
+  const datasets = wk ? names.map(n => ({ label: n, data: per[n], backgroundColor: color(n), borderRadius: 4 }))
+                      : [{ label: 'Tests', data: names.map(n => per[n][0]), backgroundColor: names.map(color), borderRadius: 6 }];
+  if (tChart) tChart.destroy();
+  tChart = new Chart($('testsChart'), { type: 'bar', data: { labels, datasets },
+    options: { responsive: true, maintainAspectRatio: false,
+      scales: { x: { stacked: wk }, y: { stacked: wk, beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: 'tests' } } },
+      plugins: { legend: { display: wk, labels: { boxWidth: 12, font: { size: 10 } } } } } });
+}
+
+// ---------- Summary report (PDF) ----------
+const H2C = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+const JSPDF = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+const _ls = {};
+const loadScript = src => _ls[src] || (_ls[src] = new Promise((ok, no) => {
+  const el = document.createElement('script'); el.src = src; el.onload = ok;
+  el.onerror = () => { delete _ls[src]; no(new Error('Could not load a library. Please check your internet.')); };
+  document.head.appendChild(el);
+}));
+let repC1 = null, repC2 = null, repName = 'EDUVEX-summary';
+function fillPeriods() {
+  const kind = $('repKind').value, now = new Date(); let h = '';
+  if (kind === 'daily') for (let i = 0; i < 31; i++) { const d = addDays(now, -i); h += `<option value="${toYMD(d)}">${i === 0 ? 'Today' : i === 1 ? 'Yesterday' : fmtY(d)}${i < 2 ? ' · ' + fmtY(d) : ''}</option>`; }
+  else if (kind === 'weekly') for (let i = 0; i < 16; i++) { const a = addDays(weekStart(now), -7 * i); h += `<option value="${toYMD(a)}">${i === 0 ? 'This week' : i === 1 ? 'Last week' : 'Week of ' + fmt(a)} · ${fmt(a)} to ${fmt(addDays(a, 6))}</option>`; }
+  else starts.forEach((m, i) => { const p = pc(m), nm = MN()[p.m - 1] + ' ' + p.y; h += `<option value="${i}">${i === 0 ? 'This month' : i === 1 ? 'Last month' : nm}${i < 2 ? ' · ' + nm : ''}</option>`; });
+  $('repPeriod').innerHTML = h;
+}
+function repCollect() {
+  const kind = $('repKind').value, val = $('repPeriod').value, label = $('repPeriod').selectedOptions[0].textContent;
+  let days;
+  if (kind === 'daily') days = [ymd(val)];
+  else if (kind === 'weekly') { const a = ymd(val); days = Array.from({ length: 7 }, (_, i) => addDays(a, i)); }
+  else { const ms = starts[+val], me = mEnd(ms); days = []; for (let d = new Date(ms); d < me; d = addDays(d, 1)) days.push(d); }
+  return { kind, days, label };
+}
+function openReport() {
+  const { kind, days, label } = repCollect(), withCl = $('repClasses').checked;
+  const keys = days.map(toYMD), set = new Set(keys), endT = new Date(); endT.setHours(23, 59, 59, 999);
+  const ses = D.sessions.filter(s => set.has(toYMD(new Date(s.created_at)))).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  const tst = D.tests.filter(t => set.has(t.test_date) && +t.count > 0), sub = {};
+  const row = n => sub[n] || (sub[n] = { study: 0, cls: 0, tests: 0, topics: new Set() });
+  ses.forEach(s => { const r = row(s.subject); r.study += +s.duration_minutes || 0; if (s.topic) r.topics.add(s.topic); });
+  const clsDay = days.map(d => withCl && d <= endT ? D.classes.filter(c => +c.day_of_week === d.getDay()) : []);
+  clsDay.forEach(cs => cs.forEach(c => { row(c.subject).cls += +c.duration_minutes || 0; }));
+  tst.forEach(t => { row(t.subject).tests += +t.count; });
+  const names = Object.keys(sub).sort((a, b) => (sub[b].study + sub[b].cls) - (sub[a].study + sub[a].cls));
+  const sum = k => names.reduce((a, n) => a + sub[n][k], 0), study = sum('study'), cls = sum('cls'), tests = sum('tests');
+  const box = (t, v) => `<div class="box"><span style="font-size:11px;color:#64748b">${t}</span><b>${v}</b></div>`;
+  const range = days.length > 1 ? `${fmtY(days[0])} - ${fmtY(days[days.length - 1])}` : fmtY(days[0]);
+  let h = `<h1>EDUVEX Study Summary</h1><div style="color:#475569;font-size:13px;margin:4px 0 14px">${esc(label.split(' · ')[0])} · ${esc(range)} · ${esc(user.email.split('@')[0])}</div>`;
+  h += `<div style="display:flex;gap:10px">${box('Study time', hm(study))}${withCl ? box('Class time', hm(cls)) + box('Total with classes', hm(study + cls)) : ''}${box('Tests solved', tests)}</div>`;
+  h += '<h2>By subject</h2>';
+  if (!names.length) h += '<p style="font-size:12px;color:#64748b">No study time or tests recorded in this period.</p>';
+  else {
+    const anyTopic = names.some(n => sub[n].topics.size);
+    h += `<table><tr><th>Subject</th><th>Study</th>${withCl ? '<th>Classes</th><th>Total</th>' : ''}<th>Tests</th>${anyTopic ? '<th>Topics</th>' : ''}</tr>` +
+      names.map(n => { const r = sub[n]; return `<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${color(n)};margin-right:6px"></span>${esc(n)}</td><td>${hm(r.study)}</td>${withCl ? `<td>${hm(r.cls)}</td><td>${hm(r.study + r.cls)}</td>` : ''}<td>${r.tests || '-'}</td>${anyTopic ? `<td>${esc([...r.topics].join(', ')) || '-'}</td>` : ''}</tr>`; }).join('') + '</table>';
+  }
+  if (kind === 'daily' && ses.length) h += '<h2>Sessions</h2><table><tr><th>Subject</th><th>Time</th><th>Type</th><th>Topic</th></tr>' +
+    ses.map(s => `<tr><td>${esc(s.subject)}</td><td>${hm(s.duration_minutes)}</td><td>${s.type === 'manual' ? 'Manual' : 'Stopwatch'}</td><td>${esc(s.topic) || '-'}</td></tr>`).join('') + '</table>';
+  if (kind === 'daily' && clsDay[0].length) h += '<h2>Classes</h2><table><tr><th>Class</th><th>Subject</th><th>Time</th></tr>' +
+    clsDay[0].map(c => `<tr><td>${esc(c.title)}</td><td>${esc(c.subject)}</td><td>${hm(c.duration_minutes)}</td></tr>`).join('') + '</table>';
+  if (kind !== 'daily') {
+    h += '<h2>Study hours per day</h2><canvas id="repC1" width="730" height="260"></canvas>';
+    if (tests) h += '<h2>Tests per day</h2><canvas id="repC2" width="730" height="260"></canvas>';
+  }
+  $('rep').innerHTML = h; modal('repModal', 1); repName = `EDUVEX-${kind}-${keys[0]}`;
+  if (repC1) repC1.destroy(); if (repC2) repC2.destroy(); repC1 = repC2 = null;
+  if (kind === 'daily') return;
+  const labels = days.map(d => kind === 'weekly' ? [(CAL === 'shamsi' ? DAYSF : DAYSE)[dayIdx(d)], fmt(d)] : pc(d).d);
+  const opt = (t, tk) => ({ responsive: false, animation: false, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: tk, title: { display: true, text: t } } }, plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } });
+  const hrs = n => keys.map(k => +(ses.filter(s => s.subject === n && toYMD(new Date(s.created_at)) === k).reduce((a, s) => a + s.duration_minutes, 0) / 60).toFixed(2));
+  const sets = names.filter(n => sub[n].study).map(n => ({ label: n, data: hrs(n), backgroundColor: color(n) }));
+  if (withCl) sets.push({ label: 'Classes', backgroundColor: '#94a3b8', data: clsDay.map(cs => +(cs.reduce((a, c) => a + (+c.duration_minutes || 0), 0) / 60).toFixed(2)) });
+  repC1 = new Chart($('repC1'), { type: 'bar', data: { labels, datasets: sets }, options: opt('hours', {}) });
+  if (tests) repC2 = new Chart($('repC2'), { type: 'bar', options: opt('tests', { precision: 0 }),
+    data: { labels, datasets: names.filter(n => sub[n].tests).map(n => ({ label: n, backgroundColor: color(n), data: keys.map(k => tst.filter(t => t.subject === n && t.test_date === k).reduce((a, t) => a + +t.count, 0)) })) } });
+}
+async function downloadPdf() {
+  const btn = $('repDl'), old = btn.innerHTML;
+  btn.disabled = true; btn.textContent = 'Preparing...';
+  try {
+    await Promise.all([loadScript(H2C), loadScript(JSPDF)]);
+    const canvas = await html2canvas($('rep'), { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    const pdf = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4' });
+    const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), pagePx = Math.floor(canvas.width * ph / pw);
+    for (let y = 0, p = 0; y < canvas.height; y += pagePx, p++) {
+      const part = document.createElement('canvas'); part.width = canvas.width; part.height = Math.min(pagePx, canvas.height - y);
+      part.getContext('2d').drawImage(canvas, 0, y, canvas.width, part.height, 0, 0, canvas.width, part.height);
+      if (p) pdf.addPage();
+      pdf.addImage(part.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, pw, part.height * pw / canvas.width);
+    }
+    pdf.save(repName + '.pdf');
+  } catch (e) { console.error(e); alert('Could not create the PDF: ' + e.message); }
+  btn.disabled = false; btn.innerHTML = old;
 }
 
 // ---------- Room ----------
@@ -824,8 +1028,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('clDay').innerHTML = DAYS.map((n, i) => `<option value="${(i + 6) % 7}">${n}</option>`).join('');
   $('goalType').value = goalType; $('goalIn').value = goalVal;
   $('goalType').onchange = () => { goalType = $('goalType').value; localStorage.setItem('ev_goal_type', goalType); renderGoal(); };
-  ['manDate', 'exDate', 'gDate'].forEach(id => mkPicker(id));
-  initArchive(); fillSubjects(); restoreTimer(); status(); calUI(); pushUI();
+  ['manDate', 'exDate', 'gDate', 'tDate'].forEach(id => mkPicker(id));
+  $('tDate').addEventListener('change', renderTests);
+  initArchive(); fillPeriods(); fillSubjects(); restoreTimer(); status(); calUI(); pushUI();
   window.addEventListener('online', () => { status(); refresh(); });
   window.addEventListener('offline', status);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && running) tick(); });
