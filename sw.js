@@ -31,6 +31,18 @@ self.addEventListener('notificationclick', (event) => {
     .then(l => l.length ? l[0].focus() : clients.openWindow('./')));
 });
 
+// Reminders sent from the server (work even when the app is closed)
+self.addEventListener('push', (event) => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch (e) {}
+  event.waitUntil(self.registration.showNotification(d.title || 'EDUVEX', {
+    body: d.body || 'Your stopwatch is still running.',
+    icon: 'icon.png',
+    badge: 'icon.png',
+    tag: d.tag || 'eduvex-alert'
+  }));
+});
+
 // Handle incoming notification requests from index.html
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'START_STOPWATCH_NOTIFICATION') {
