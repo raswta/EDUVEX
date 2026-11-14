@@ -4,8 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
+<meta name="build" content="20261114-3">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f172a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EDUVEX">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -29,19 +36,29 @@ body{font-family:Inter,system-ui,sans-serif}
 .rep td{border-bottom:1px solid #e2e8f0;padding:6px 8px;vertical-align:top}
 .rep .box{flex:1;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px}
 .rep .box b{display:block;font-size:20px}
+.fire-off{color:#475569}
+.fire-on{color:#f59e0b;filter:drop-shadow(0 0 4px rgba(245,158,11,.55))}
+.fire-blaze{color:#f97316;animation:blaze .8s ease-in-out infinite alternate}
+@keyframes blaze{0%{transform:scale(1) rotate(-3deg);filter:drop-shadow(0 0 6px #f97316) drop-shadow(0 0 14px #ef4444)}100%{transform:scale(1.28) rotate(3deg);filter:drop-shadow(0 0 14px #fbbf24) drop-shadow(0 0 30px #ef4444)}}
+.fire-glow{animation:glowbox 1.2s ease-in-out infinite alternate}
+@keyframes glowbox{from{box-shadow:0 0 6px rgba(249,115,22,.35)}to{box-shadow:0 0 22px rgba(239,68,68,.65)}}
 </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
 
+<div id="updBar" class="hidden flex fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] bg-blue-600 text-white text-sm rounded-xl shadow-lg px-4 py-3 items-center gap-3">
+  <span>A new version is ready</span><button onclick="applyUpdate()" class="bg-white text-blue-700 font-semibold px-3 py-1 rounded-lg">Update</button>
+</div>
+
 <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 px-4 py-3 flex justify-between items-center">
   <div class="flex items-center gap-3">
     <span class="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">EDUVEX</span>
-    <a href="https://linktr.ee/Raswta" target="_blank" class="text-xs text-blue-400 hover:underline">by raswta</a>
   </div>
   <div id="hdrTools" class="hidden flex items-center gap-2">
     <button id="conn" onclick="modal('offInfo',1)" class="px-2.5 py-1 rounded-full text-[11px] font-medium flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
       <span id="connDot" class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span><span id="connText">Online</span></button>
     <button onclick="modal('install',1)" class="bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30 px-3 py-1.5 rounded-lg text-xs font-medium"><i class="fa-solid fa-mobile-screen-button mr-1"></i> Add App</button>
+    <button onclick="focusOn()" class="p-2 rounded-lg bg-violet-600/20 text-violet-300 hover:bg-violet-600/30" title="Focus mode"><i class="fa-solid fa-expand"></i></button>
     <button onclick="modal('guide',1)" class="p-2 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30"><i class="fa-solid fa-lightbulb"></i></button>
     <button onclick="modal('settings',1);renderSubjects()" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700" title="Settings"><i class="fa-solid fa-gear"></i></button>
   </div>
@@ -64,7 +81,8 @@ body{font-family:Inter,system-ui,sans-serif}
 
 <div id="app" class="hidden space-y-6">
 
-  <div class="card !p-4 space-y-3">
+  <div class="flex gap-3 items-stretch">
+  <div class="card !p-3 space-y-2 flex-1 min-w-0">
     <div class="flex flex-wrap justify-between items-center gap-2 text-xs">
       <div class="flex items-center gap-2">
         <select id="goalType" class="bg-slate-950 border border-slate-800 rounded px-2 py-1">
@@ -77,6 +95,12 @@ body{font-family:Inter,system-ui,sans-serif}
       <span id="goalText" class="text-blue-400 font-semibold font-mono"></span>
     </div>
     <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden"><div id="goalBar" class="bg-blue-500 h-full w-0 transition-all duration-500"></div></div>
+  </div>
+  <button id="streakBtn" onclick="openStreak()" class="w-24 shrink-0 rounded-2xl border border-slate-800 bg-slate-900 flex flex-col items-center justify-center py-2 transition" title="Streak">
+    <i id="fireIcon" class="fa-solid fa-fire text-3xl fire-off"></i>
+    <span id="streakNum" class="text-lg font-bold leading-tight mt-1">0</span>
+    <span class="text-[10px] text-slate-400 -mt-0.5">days</span>
+  </button>
   </div>
 
   <div class="flex overflow-x-auto gap-2 border-b border-slate-800 pb-2">
@@ -229,6 +253,22 @@ body{font-family:Inter,system-ui,sans-serif}
       <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="repClasses" checked> Include classes in hours and charts</label>
       <button onclick="openReport()" class="btn bg-blue-600 hover:bg-blue-500"><i class="fa-solid fa-eye mr-1"></i> Preview summary</button>
     </div>
+
+    <div class="rounded-2xl p-[1px] bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-500">
+      <div class="rounded-2xl bg-slate-900 p-5 space-y-4 text-center">
+        <div class="mx-auto w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30"><i class="fa-solid fa-comment-dots text-2xl text-white"></i></div>
+        <div>
+          <h3 class="text-base font-bold text-slate-100">Contact me</h3>
+          <p class="text-xs text-slate-400 mt-1">for rating / recommendations / troubles (bugs)</p>
+        </div>
+        <div class="flex flex-wrap justify-center gap-2 text-[11px]">
+          <span class="px-3 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/25"><i class="fa-solid fa-star mr-1"></i> Rating</span>
+          <span class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/25"><i class="fa-solid fa-lightbulb mr-1"></i> Recommendations</span>
+          <span class="px-3 py-1 rounded-full bg-red-500/10 text-red-300 border border-red-500/25"><i class="fa-solid fa-bug mr-1"></i> Bugs</span>
+        </div>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSf-Lr5hlPesAjzwdNtDLYZ86TLvm9zhnC80moeNW99FeX4GZA/viewform" target="_blank" rel="noopener" class="btn block text-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500">Open the form <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i></a>
+      </div>
+    </div>
   </div>
 </div>
 </main>
@@ -237,6 +277,29 @@ body{font-family:Inter,system-ui,sans-serif}
   Made by <a href="https://linktr.ee/Raswta" target="_blank" class="text-blue-400 font-semibold">raswta</a> · v6
 </footer>
 
+<div id="focus" class="hidden fixed inset-0 z-[45] bg-slate-950 flex flex-col items-center justify-center p-6 gap-8">
+  <div class="flex flex-wrap items-center justify-center gap-8 w-full">
+    <div id="focusClock" class="font-mono font-bold tracking-wider text-slate-100 text-[17vw] sm:text-8xl leading-none">00:00:00</div>
+    <div class="w-56 max-w-full bg-slate-900/70 border border-slate-800 rounded-2xl p-3">
+      <div class="text-[11px] text-slate-400 mb-2 flex items-center gap-1.5"><i class="fa-solid fa-users"></i> Study Room</div>
+      <div id="focusRoom" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
+    </div>
+  </div>
+  <button onclick="focusOff()" class="absolute bottom-8 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium"><i class="fa-solid fa-compress mr-1"></i> Exit focus mode</button>
+</div>
+<div id="streakModal" class="modal"><div class="card max-w-sm w-full space-y-4 text-center relative">
+  <button onclick="modal('streakModal',0)" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+  <div class="py-2"><i id="streakBig" class="fa-solid fa-fire text-6xl fire-off"></i></div>
+  <div><span id="streakCount" class="text-4xl font-bold">0</span> <span class="text-slate-400">day streak</span></div>
+  <p id="streakNote" class="text-xs text-slate-300"></p>
+  <div class="text-xs text-slate-400">Best streak: <b id="streakBest" class="text-slate-200">0</b> days</div>
+  <div class="text-left">
+    <label class="lbl">Day off (rest day)</label>
+    <select id="restDay" onchange="setRestDay()" class="inp"></select>
+    <p class="text-[11px] text-slate-500 mt-2">On your day off, not studying (or not reaching your goal) will not break the streak. If you study that day it still counts. When you reach your daily goal, the flame blazes.</p>
+  </div>
+  <button onclick="modal('streakModal',0)" class="btn bg-blue-600 hover:bg-blue-500">Got it!</button>
+</div></div>
 <div id="settings" class="modal"><div class="card max-w-md w-full space-y-5 max-h-[85vh] overflow-y-auto relative">
   <button onclick="modal('settings',0)" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
   <h3 class="text-base font-bold text-slate-200"><i class="fa-solid fa-gear mr-1"></i> Settings</h3>
@@ -257,6 +320,16 @@ body{font-family:Inter,system-ui,sans-serif}
     <p class="lbl"><i class="fa-solid fa-bell mr-1"></i> Stopwatch reminders</p>
     <button id="pushBtn" onclick="pushToggle()" class="btn"></button>
     <p class="text-[11px] text-slate-500 mt-2">If you forget the stopwatch is running, you get a message after 10 minutes and again after 30 minutes. Nothing more after that.</p>
+    <p id="pushInfo" class="text-[11px] text-slate-400 mt-2"></p>
+    <button onclick="pushTest()" class="btn bg-slate-800 hover:bg-slate-700 mt-2"><i class="fa-solid fa-paper-plane mr-1"></i> Send test notification</button>
+  </div>
+  <div>
+    <p class="lbl"><i class="fa-solid fa-key mr-1"></i> Change password</p>
+    <div class="space-y-2">
+      <input id="cpOld" type="password" class="inp" placeholder="Current password" autocomplete="current-password">
+      <input id="cpNew" type="password" class="inp" placeholder="New password (min 6 characters)" autocomplete="new-password">
+      <button onclick="changePassword()" class="btn bg-slate-800 hover:bg-slate-700">Change password</button>
+    </div>
   </div>
   <button id="logoutBtn" onclick="logout()" class="hidden btn bg-slate-800 hover:bg-slate-700 !text-red-400"><i class="fa-solid fa-right-from-bracket mr-1"></i> Logout</button>
 </div></div>
@@ -289,6 +362,18 @@ body{font-family:Inter,system-ui,sans-serif}
     <button onclick="modal('repModal',0)" class="btn bg-slate-800 hover:bg-slate-700">Close</button></div>
   <div class="overflow-auto rounded-xl bg-white"><div id="rep" class="rep"></div></div>
 </div></div>
+<div id="presence" class="modal"><div class="card max-w-sm w-full text-center space-y-4">
+  <div class="text-amber-400 text-5xl"><i class="fa-solid fa-user-clock"></i></div>
+  <h3 class="text-xl font-bold">Are you still studying?</h3>
+  <p class="text-sm text-slate-300 leading-relaxed">Your stopwatch has been running for a long time without any activity. Tap the button within <b id="presLeft" class="text-amber-300 font-mono">10:00</b> to keep it going. If you do not, it will pause and the waiting time will not be counted.</p>
+  <button onclick="presenceYes()" class="btn bg-emerald-600 hover:bg-emerald-500">Yes, I am still studying</button>
+</div></div>
+<div id="presStop" class="modal"><div class="card max-w-sm w-full text-center space-y-4">
+  <div class="text-slate-300 text-5xl"><i class="fa-solid fa-circle-pause"></i></div>
+  <h3 class="text-lg font-bold">Stopwatch paused</h3>
+  <p id="presStopMsg" class="text-xs text-slate-300 leading-relaxed"></p>
+  <button onclick="modal('presStop',0)" class="btn bg-blue-600 hover:bg-blue-500">OK</button>
+</div></div>
 <div id="notif" class="modal"><div class="card max-w-sm w-full text-center space-y-4">
   <div class="text-emerald-400 text-5xl"><i class="fa-solid fa-bell"></i></div>
   <h3 class="text-xl font-bold">Turn on reminders?</h3>
@@ -300,7 +385,10 @@ body{font-family:Inter,system-ui,sans-serif}
   <button onclick="modal('guide',0)" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
   <h3 class="text-base font-bold text-blue-400"><i class="fa-solid fa-lightbulb mr-1"></i> EDUVEX Complete Guide</h3>
   <p><b><i class="fa-solid fa-bullseye text-blue-400 mr-1"></i> Goal bar:</b> choose Daily or Weekly, type your target hours (12.5 means 12 hours 30 minutes) and press Save Goal. The bar counts your study sessions plus your weekly classes.</p>
+  <p><b><i class="fa-solid fa-fire text-orange-400 mr-1"></i> Streak:</b> the flame next to the goal bar counts your days in a row. It is gray until you start studying today, then it lights up, and it blazes when you reach your daily goal. Tap it to choose a weekly day off that never breaks your streak.</p>
   <p><b><i class="fa-solid fa-stopwatch text-blue-400 mr-1"></i> Timer:</b> pick a subject and press Start. To study another subject, press Pause, choose the new subject and press Resume. The big clock keeps the total, and each subject is saved with its own time when you press Finish &amp; Save. Sessions shorter than 15 seconds are not saved. The stopwatch keeps going if you refresh the page.</p>
+  <p><b><i class="fa-solid fa-user-clock text-blue-400 mr-1"></i> Still studying? check:</b> if the stopwatch runs for 3 hours without you touching the app, a popup asks whether you are still studying. Tap Yes within 10 minutes to keep going. If you do not, the stopwatch pauses and the waiting time is not counted. For very long sessions, use Focus mode so the screen stays on and you can answer.</p>
+  <p><b><i class="fa-solid fa-expand text-blue-400 mr-1"></i> Focus mode:</b> tap the expand icon at the top to show only a big study clock and a small Study Room window. Nothing is locked, so you can leave the app any time. Press Exit focus mode at the bottom to come back.</p>
   <p><b><i class="fa-solid fa-hourglass-half text-blue-400 mr-1"></i> Pomodoro:</b> tick the box, set study and rest minutes, and the clock counts down. Rest time is not added to your study time.</p>
   <p><b><i class="fa-solid fa-pen-to-square text-blue-400 mr-1"></i> Manual entry:</b> add minutes you studied without the stopwatch, for any date. In the charts these keep their subject color with a thick yellow border.</p>
   <p><b><i class="fa-solid fa-trash text-blue-400 mr-1"></i> Logs:</b> every saved session appears in Saved Study Logs. Use the trash icon to delete one. Items that say pending sync were saved offline and will upload automatically.</p>
@@ -309,7 +397,7 @@ body{font-family:Inter,system-ui,sans-serif}
   <p><b><i class="fa-solid fa-users text-blue-400 mr-1"></i> Study Room:</b> start your timer, then press Join Room to show your live study time to others. You can join as Anonymous. Rooms need internet.</p>
   <p><b><i class="fa-solid fa-chart-column text-blue-400 mr-1"></i> Charts:</b> the weekly chart runs Saturday to Friday and the monthly chart shows every day of the month. Use Review Archive to open previous weeks and months. Stacked shows hours per subject, Total shows one line. Log exam scores to see them on the monthly chart.</p>
   <p><b><i class="fa-solid fa-file-pdf text-blue-400 mr-1"></i> Summary PDF:</b> open the More tab, choose Daily, Weekly or Monthly, pick the period (This week, Last month, a date...) and tick Include classes if you want class hours added. Press Preview summary, then Download PDF. It shows study time, tests, hours per subject with topics, and charts. You need internet the first time you download.</p>
-  <p><b><i class="fa-solid fa-gear text-blue-400 mr-1"></i> Settings (gear icon):</b> switch all dates between Shamsi and Gregorian, rename or delete subjects, add new subjects, turn reminders on or off, and log out. If you delete a subject, its name disappears but the time you already studied stays in the charts under Other.</p>
+  <p><b><i class="fa-solid fa-gear text-blue-400 mr-1"></i> Settings (gear icon):</b> switch all dates between Shamsi and Gregorian, rename or delete subjects, add new subjects, turn reminders on or off, send a test notification, change your password, and log out. If you delete a subject, its name disappears but the time you already studied stays in the charts under Other.</p>
   <p><b><i class="fa-solid fa-bell text-blue-400 mr-1"></i> Reminders:</b> if you forget the stopwatch is running, you get a message after 10 minutes and again after 30 minutes, even when the app is closed. After that, nothing more. Pausing or finishing cancels them.</p>
   <p><b><i class="fa-solid fa-wifi text-blue-400 mr-1"></i> Offline:</b> everything you add without internet is saved on your device and uploads when you are back online. Subject changes and the study room need internet.</p>
   <p><b><i class="fa-solid fa-mobile-screen-button text-blue-400 mr-1"></i> Home Screen app:</b> after you add EDUVEX to your Home Screen, updates arrive by themselves the next time you open it. You do not need to add it again.</p>
@@ -318,6 +406,7 @@ body{font-family:Inter,system-ui,sans-serif}
 
 <script>
 const sb = supabase.createClient("https://kuescglkkpvsqqxnubww.supabase.co", "sb_publishable_su-MHh5kE2EuainNOAGuJA_EP0p7Mrb");
+const BUILD = (document.querySelector('meta[name="build"]') || {}).content;
 const VAPID_PUBLIC = 'BMrEAnSHAO645NCUWQheW_MQM9EmLPcNkRFuFxi3T02KjkAo_ZO56qbpvPDWWVCngfIDtjUz3UpnRwV78vJ9Tvg';
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -332,9 +421,11 @@ let user = null, running = false, base = 0, lastTick = 0, tInt = null, roomInt =
 let inRoom = false, pomo = false, pState = 'study', pLeft = 0, alerted = {};
 let wChart = null, mChart = null, starts = [];
 let segs = {}, tops = {}, curSub = 'General Study', runId = null;
+let focusActive = false, wakeLock = null, roomRows = [], roomAt = 0, pushErr = '', presenceSecs = 0, askOpen = false;
+const PRES_EVERY = 3 * 3600, PRES_GRACE = 10 * 60;   // ask every 3 hours without activity, 10 minutes to answer
 let subjects = LS('ev_subjects', ['General Study','Physics','Mathematics','Chemistry','Biology']);
 let goalType = localStorage.getItem('ev_goal_type') || 'daily';
-let goalVal = parseFloat(localStorage.getItem('ev_goal_val')) || 13;
+let goalVal = parseFloat(localStorage.getItem('ev_goal_val')) || (goalType === 'weekly' ? 70 : 10);
 let D = { sessions: [], classes: [], exams: [], grades: [], tests: [] };
 
 const color = s => COLORS[subjects.indexOf(s) % COLORS.length] || '#64748b';
@@ -480,7 +571,22 @@ async function logout() { await leaveRoom(); await sb.auth.signOut(); location.r
 function onLogin() {
   $('auth').classList.add('hidden'); $('app').classList.remove('hidden'); $('logoutBtn').classList.remove('hidden'); $('hdrTools').classList.remove('hidden');
   leaveRoom(); refresh();
-  if (!roomInt) roomInt = setInterval(() => { if (inRoom || !$('roomTab').classList.contains('hidden')) syncRoom(); }, 3000);
+  if (!roomInt) {
+    roomInt = setInterval(() => { if (inRoom || focusActive || !$('roomTab').classList.contains('hidden')) syncRoom(); }, 3000);
+    setInterval(() => { if (focusActive || !$('roomTab').classList.contains('hidden')) renderRoom(); }, 1000);
+  }
+}
+
+async function changePassword() {
+  const o = $('cpOld').value, n = $('cpNew').value;
+  if (!o || n.length < 6) return alert('Enter your current password and a new password of at least 6 characters.');
+  if (!navigator.onLine) return alert('You need to be online to change your password.');
+  const { error: e1 } = await sb.auth.signInWithPassword({ email: user.email, password: o });
+  if (e1) return alert('Your current password is not correct.');
+  const { error } = await sb.auth.updateUser({ password: n });
+  if (error) return alert('Error: ' + error.message);
+  $('cpOld').value = ''; $('cpNew').value = '';
+  alert('Password changed. Use the new password next time you sign in.');
 }
 
 // ---------- Subjects ----------
@@ -563,7 +669,56 @@ function renderGoal() {
   const h = mins / 60, pct = Math.min(100, Math.round(h / goalVal * 100));
   $('goalText').textContent = `${h.toFixed(1)} / ${goalVal} hrs (${pct}%)`;
   $('goalBar').style.width = pct + '%';
+  renderStreak();
 }
+
+// ---------- Streak ----------
+const restDay = () => { const v = localStorage.getItem('ev_restday'); return v === null || v === '' ? -1 : +v; };
+function fireState() {
+  const days = {}, todayKey = toYMD(new Date()), rest = restDay();
+  D.sessions.forEach(s => { if ((+s.duration_minutes || 0) > 0) days[toYMD(new Date(s.created_at))] = 1; });
+  if (running || base > 0) days[todayKey] = 1;                 // lit as soon as you start studying today
+  let cur = 0;
+  for (let i = 0; i < 800; i++) {
+    const d = addDays(new Date(), -i);
+    if (days[toYMD(d)]) cur++;
+    else if (i === 0 || d.getDay() === rest) continue;         // today not studied yet, or a day off: does not break the streak
+    else break;
+  }
+  let best = 0, run = 0; const keys = Object.keys(days).sort();
+  if (keys.length) for (let d = ymd(keys[0]); toYMD(d) <= todayKey; d = addDays(d, 1)) {
+    const k = toYMD(d);
+    if (days[k]) { run++; best = Math.max(best, run); } else if (d.getDay() !== rest && k !== todayKey) run = 0;
+  }
+  const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+  const mins = D.sessions.filter(s => new Date(s.created_at) >= t0).reduce((a, s) => a + (+s.duration_minutes || 0), 0)
+    + D.classes.filter(c => +c.day_of_week === new Date().getDay()).reduce((a, c) => a + (+c.duration_minutes || 0), 0) + (running || base ? base / 60 : 0);
+  const studiedToday = !!days[todayKey], blaze = studiedToday && mins / 60 >= (goalType === 'daily' ? goalVal : goalVal / 7);
+  return { cur, best: Math.max(best, cur), studiedToday, blaze, cls: !studiedToday ? 'fire-off' : blaze ? 'fire-blaze' : 'fire-on' };
+}
+function renderStreak() {
+  const f = fireState();
+  $('fireIcon').className = 'fa-solid fa-fire text-3xl ' + f.cls;
+  $('streakNum').textContent = f.cur;
+  $('streakBtn').className = 'w-24 shrink-0 rounded-2xl border bg-slate-900 flex flex-col items-center justify-center py-2 transition ' + (f.blaze ? 'border-orange-500/60 fire-glow' : f.studiedToday ? 'border-amber-500/40' : 'border-slate-800');
+}
+function openStreak() {
+  const f = fireState(), names = CAL === 'shamsi' ? DAYSF : DAYSE;
+  $('streakBig').className = 'fa-solid fa-fire text-6xl ' + f.cls;
+  $('streakCount').textContent = f.cur; $('streakBest').textContent = f.best;
+  $('streakNote').textContent = f.blaze ? 'You reached your goal today. The flame is blazing!'
+    : f.studiedToday ? 'You studied today. Reach your daily goal to make the flame blaze.'
+    : restDay() === new Date().getDay() ? 'Today is your day off. Your streak is safe.' : 'Start studying to light the flame again.';
+  $('restDay').innerHTML = '<option value="-1">No day off</option>' + names.map((n, i) => `<option value="${(i + 6) % 7}">${n}</option>`).join('');
+  $('restDay').value = String(restDay());
+  modal('streakModal', 1);
+}
+function setRestDay() { localStorage.setItem('ev_restday', $('restDay').value); renderStreak(); openStreak(); }
+
+// ---------- Focus mode ----------
+async function wakeOn() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {} }
+function focusOn() { focusActive = true; $('focus').classList.remove('hidden'); draw(); renderRoom(); wakeOn(); if (user) syncRoom(); }
+function focusOff() { focusActive = false; $('focus').classList.add('hidden'); try { if (wakeLock) wakeLock.release(); } catch (e) {} wakeLock = null; }
 
 // ---------- Lists ----------
 function renderLists() {
@@ -599,17 +754,18 @@ const isStale = id => !!id && parseInt(id) <= (+localStorage.getItem('ev_timer_f
 function persist() {
   if (runId && (isStale(runId) || localStorage.getItem('ev_timer_done') === runId)) return abandon();   // finished in another tab
   if (!running && base === 0) return localStorage.removeItem('ev_timer');
-  localStorage.setItem('ev_timer', JSON.stringify({ id: runId, running, base, lastTick, subject: curSub, segs, tops }));
+  localStorage.setItem('ev_timer', JSON.stringify({ id: runId, running, base, lastTick, subject: curSub, segs, tops, pres: presenceSecs }));
 }
 function abandon() {
-  clearInterval(tInt); running = false; base = 0; segs = {}; tops = {}; runId = null; pLeft = 0; pState = 'study'; alerted = {};
+  clearInterval(tInt); running = false; askOpen = false; presenceSecs = 0; modal('presence', 0); base = 0; segs = {}; tops = {}; runId = null; pLeft = 0; pState = 'study'; alerted = {};
   $('swTopic').value = '';
   localStorage.removeItem('ev_timer'); ui();
 }
 function draw() {
   const s = pomo ? Math.max(0, pLeft) : base;
   const p = n => String(n).padStart(2, '0');
-  $('swDisplay').textContent = `${p(Math.floor(s / 3600))}:${p(Math.floor(s % 3600 / 60))}:${p(s % 60)}`;
+  const clk = `${p(Math.floor(s / 3600))}:${p(Math.floor(s % 3600 / 60))}:${p(s % 60)}`;
+  $('swDisplay').textContent = clk; $('focusClock').textContent = clk;
   $('swStatus').textContent = !running ? (base ? 'Paused' : 'Ready') : (pState === 'rest' ? 'Resting...' : 'Studying...');
   $('swBreak').innerHTML = Object.entries(segs).map(([n, v]) => `<div class="flex justify-between"><span>${esc(n)}</span><span class="font-mono">${Math.floor(v / 60)} min</span></div>`).join('');
 }
@@ -634,7 +790,7 @@ function tick() {
   if (!running) { clearInterval(tInt); return; }
   const d = Math.floor((Date.now() - lastTick) / 1000);
   if (d < 1) return;
-  lastTick += d * 1000;
+  lastTick += d * 1000; presenceSecs += d;
   if (pState === 'study') { base += d; segs[curSub] = (segs[curSub] || 0) + d; }
   if (pomo) {
     pLeft -= d;
@@ -647,28 +803,30 @@ function tick() {
     }
   }
   [[600, '10'], [1800, '30']].forEach(([s, m]) => { if (base >= s && !alerted[m]) { alerted[m] = 1; notify('EDUVEX', `Your stopwatch has been running for ${m} minutes!`, 'ev-alert-' + m); } });
+  presenceStep();
+  if (base % 30 === 0) renderStreak();
   draw(); persist();
 }
 function toggleTimer() {
   if (!running) {
     if (!localStorage.getItem('ev_push') && 'Notification' in window) modal('notif', 1);
-    syncSub(); if (!runId) runId = Date.now() + '-' + Math.random().toString(36).slice(2, 6); clearInterval(tInt); running = true; lastTick = Date.now();
+    presenceSecs = 0; askOpen = false; syncSub(); if (!runId) runId = Date.now() + '-' + Math.random().toString(36).slice(2, 6); clearInterval(tInt); running = true; lastTick = Date.now();
     if (pomo && pLeft <= 0) { pState = 'study'; pLeft = (+$('pomoStudy').value || 50) * 60; }
     tInt = setInterval(tick, 1000);
     pushSchedule();
   } else {
-    running = false; clearInterval(tInt);
+    running = false; clearInterval(tInt); askOpen = false; modal('presence', 0);
     pushClear();
     if (inRoom) syncRoom();
   }
-  ui(); persist();
+  ui(); persist(); renderStreak();
 }
 function syncSub() { curSub = getSubject('swSubject', 'swCustom'); $('swTopic').value = tops[curSub] || ''; }
 function setTopic() { const v = $('swTopic').value.trim(); if (v) tops[curSub] = v; else delete tops[curSub]; persist(); }
 function togglePomo() { pomo = $('pomoOn').checked; $('pomoSet').classList.toggle('hidden', !pomo); pLeft = 0; pState = 'study'; draw(); }
 async function finishTimer() {
   modal('confirm', 0);
-  clearInterval(tInt); running = false; localStorage.removeItem('ev_timer');
+  clearInterval(tInt); running = false; askOpen = false; presenceSecs = 0; modal('presence', 0); localStorage.removeItem('ev_timer');
   if (runId) localStorage.setItem('ev_timer_done', runId);
   localStorage.setItem('ev_timer_finished_at', Date.now());
   runId = null;
@@ -687,15 +845,52 @@ function restoreTimer() {
   if (!s) return;
   if (s.id && (s.id === localStorage.getItem('ev_timer_done') || isStale(s.id))) { localStorage.removeItem('ev_timer'); return; }
   runId = s.id || null;
-  base = s.base || 0;
+  base = s.base || 0; presenceSecs = s.pres || 0;
   [[600, '10'], [1800, '30']].forEach(([sec, m]) => { if (base >= sec) alerted[m] = 1; });
   curSub = s.subject || 'General Study';
   segs = s.segs || { [curSub]: base };
   tops = s.tops || {}; $('swTopic').value = tops[curSub] || '';
-  if (s.running) { const gap = Math.max(0, Math.floor((Date.now() - s.lastTick) / 1000)); base += gap; segs[curSub] = (segs[curSub] || 0) + gap; running = true; lastTick = Date.now(); clearInterval(tInt); tInt = setInterval(tick, 1000); }
+  if (s.running) { const gap = Math.max(0, Math.floor((Date.now() - s.lastTick) / 1000)); base += gap; presenceSecs += gap; segs[curSub] = (segs[curSub] || 0) + gap; running = true; lastTick = Date.now(); clearInterval(tInt); tInt = setInterval(tick, 1000); }
   setTimeout(() => { if ([...$('swSubject').options].some(o => o.value === s.subject)) $('swSubject').value = s.subject; }, 600);
-  ui();
+  ui(); presenceStep();
 }
+
+// ---------- Still-studying check ----------
+function presenceStep() {
+  if (!running) return;
+  if (presenceSecs >= PRES_EVERY + PRES_GRACE) return presenceExpire();
+  if (presenceSecs >= PRES_EVERY && !askOpen) {
+    askOpen = true; modal('presence', 1);
+    notify('EDUVEX', 'Are you still studying? Open the app and tap Yes to keep the stopwatch going.', 'ev-presence');
+  }
+  if (askOpen) { const left = Math.max(0, PRES_EVERY + PRES_GRACE - presenceSecs); $('presLeft').textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; }
+}
+function presenceExpire() {
+  const lost = Math.min(Math.max(0, Math.round(presenceSecs - PRES_EVERY)), base);   // time after the question was asked is not counted
+  let cut = lost;
+  base -= cut;
+  for (const k of [curSub, ...Object.keys(segs)]) { if (cut <= 0) break; const t = Math.min(segs[k] || 0, cut); if (t) { segs[k] -= t; cut -= t; } }
+  clearInterval(tInt); running = false; askOpen = false; presenceSecs = 0; modal('presence', 0);
+  pushClear();
+  $('presStopMsg').textContent = `It was paused because you did not confirm that you were still studying. The last ${hm(lost / 60)} of waiting time was not counted. Press Resume to continue, or Finish & Save to keep your time.`;
+  modal('presStop', 1);
+  ui(); persist(); renderStreak(); if (inRoom) syncRoom();
+}
+function presenceYes() { presenceSecs = 0; askOpen = false; modal('presence', 0); persist(); }
+function presenceTouch() { if (running && !askOpen) presenceSecs = 0; }
+
+// ---------- Auto-update (also for apps added to the Home Screen) ----------
+async function checkUpdate(auto) {
+  if (!navigator.onLine) return;
+  try {
+    const r = await fetch(location.pathname + location.search, { cache: 'reload' });   // forces a fresh copy from the server
+    const m = (await r.text()).match(/<meta name="build" content="([^"]+)"/);
+    if (!m || m[1] === BUILD) return;
+    if (auto && sessionStorage.getItem('ev_upd') !== m[1]) { sessionStorage.setItem('ev_upd', m[1]); location.reload(); return; }
+    $('updBar').classList.remove('hidden');
+  } catch (e) { console.error('update check', e); }
+}
+function applyUpdate() { location.reload(); }
 
 // ---------- Reminders (push notifications, work even when the app is closed) ----------
 const b64u = s => Uint8Array.from(atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
@@ -714,7 +909,8 @@ async function pushEnable() {
   if (!pushSupported()) return false;
   try {
     if (await Notification.requestPermission() !== 'granted') return false;
-    try { await pushEnsure(); } catch (e) { console.error('push subscribe', e); }   // in-app reminders still work if this fails
+    pushErr = '';
+    try { await pushEnsure(); } catch (e) { console.error('push subscribe', e); pushErr = (e && e.message) || String(e); }   // in-app reminders still work if this fails
     return true;
   } catch (e) { console.error('push', e); return false; }
 }
@@ -743,6 +939,29 @@ function pushUI() {
   const on = localStorage.getItem('ev_push') === 'on';
   $('pushBtn').textContent = on ? 'Reminders: ON (tap to turn off)' : 'Reminders: OFF (tap to turn on)';
   $('pushBtn').className = 'btn ' + (on ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-slate-800 hover:bg-slate-700');
+  pushInfo();
+}
+async function pushInfo() {
+  const el = $('pushInfo');
+  if (!pushSupported()) { el.textContent = 'Background reminders are not available here. On iPhone/iPad, open EDUVEX from the Home Screen icon (iOS 16.4 or newer).'; return; }
+  let sub = null;
+  try {
+    const reg = await Promise.race([navigator.serviceWorker.getRegistration(), new Promise(r => setTimeout(() => r(null), 3000))]);
+    sub = reg ? await reg.pushManager.getSubscription() : null;
+  } catch (e) {}
+  el.textContent = `Permission: ${Notification.permission} · This device registered: ${sub ? 'yes' : 'no'}`;
+}
+async function pushTest() {
+  if (!pushSupported()) return alert('Background reminders are not available here. On iPhone/iPad, open EDUVEX from the Home Screen icon (iOS 16.4 or newer).');
+  if (!user || !navigator.onLine) return alert('You need to be online to send a test.');
+  if (Notification.permission !== 'granted' && !await pushEnable()) return alert('Please allow notifications for this site first.');
+  try {
+    await pushEnsure();
+    const { error } = await sb.from('push_jobs').insert({ user_id: user.id, minutes: 0, fire_at: new Date().toISOString() });
+    if (error) throw error;
+    alert('Test sent. It should arrive within a minute, even if you close the app.');
+  } catch (e) { alert('Test failed: ' + ((e && e.message) || e)); }
+  pushInfo();
 }
 async function notifAnswer(yes) {
   modal('notif', 0);
@@ -750,7 +969,7 @@ async function notifAnswer(yes) {
   const ok = await pushEnable();
   localStorage.setItem('ev_push', ok ? 'on' : 'off'); pushUI();
   if (!ok) alert('Reminders could not be turned on. Please allow notifications for this site in your device settings. On iPhone/iPad, open EDUVEX from the Home Screen icon.');
-  else if (running) pushSchedule();
+  else { if (pushErr) alert('Reminders are on, but this device could not be registered for background messages (' + pushErr + '). They will only appear while the app is open.'); if (running) pushSchedule(); }
 }
 function pushToggle() {
   if (localStorage.getItem('ev_push') === 'on') { localStorage.setItem('ev_push', 'off'); pushClear(); pushUI(); }
@@ -940,12 +1159,17 @@ async function syncRoom() {
     if (error) console.error('room', error);
   }
   const { data } = await sb.from('room_members').select('*');
-  const live = (data || []).filter(m => !m.last_active || Date.now() - new Date(m.last_active) < 20000);
-  $('roomList').innerHTML = live.map(m => {
-    const h = String(Math.floor(m.live_seconds / 3600)).padStart(2, '0'), mm = String(Math.floor(m.live_seconds % 3600 / 60)).padStart(2, '0');
-    return `<div class="row"><div><i class="fa-solid fa-user-graduate text-blue-400 mr-1"></i> <b>${esc(m.username)}</b>${m.user_id === user.id ? ' (You)' : ''}<span class="block text-[10px] text-slate-400">${esc(m.current_subject)}</span></div>
-    <div class="flex items-center gap-3"><span class="text-[10px] px-1.5 py-0.5 rounded ${m.is_studying ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}">${m.is_studying ? 'Studying' : 'Resting'}</span><span class="font-mono text-sm">${h}:${mm}</span></div></div>`;
-  }).join('') || '<p class="text-xs text-slate-500 text-center py-4">No active members.</p>';
+  roomRows = (data || []).filter(m => !m.last_active || Date.now() - new Date(m.last_active) < 20000); roomAt = Date.now();
+  renderRoom();
+}
+const hms = s => { s = Math.max(0, Math.floor(s)); const p = n => String(n).padStart(2, '0'); return `${p(Math.floor(s / 3600))}:${p(Math.floor(s % 3600 / 60))}:${p(s % 60)}`; };
+function renderRoom() {
+  if (!user) return;
+  const el = Math.max(0, Math.min(10, (Date.now() - roomAt) / 1000));          // seconds since the last refresh
+  const secs = m => m.user_id === user.id ? base : (m.live_seconds || 0) + (m.is_studying ? el : 0);
+  if (!$('roomTab').classList.contains('hidden')) $('roomList').innerHTML = roomRows.map(m => `<div class="row"><div><i class="fa-solid fa-user-graduate text-blue-400 mr-1"></i> <b>${esc(m.username)}</b>${m.user_id === user.id ? ' (You)' : ''}<span class="block text-[10px] text-slate-400">${esc(m.current_subject)}</span></div>
+    <div class="flex items-center gap-3"><span class="text-[10px] px-1.5 py-0.5 rounded ${m.is_studying ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}">${m.is_studying ? 'Studying' : 'Resting'}</span><span class="font-mono text-sm">${hms(secs(m))}</span></div></div>`).join('') || '<p class="text-xs text-slate-500 text-center py-4">No active members.</p>';
+  if (focusActive) $('focusRoom').innerHTML = roomRows.map(m => `<div class="flex justify-between items-center text-xs"><span class="truncate mr-2 text-slate-300">${esc(m.username)}${m.user_id === user.id ? ' (You)' : ''}</span><span class="font-mono ${m.is_studying ? 'text-emerald-400' : 'text-slate-500'}">${hms(secs(m))}</span></div>`).join('') || '<p class="text-[11px] text-slate-500">No active members.</p>';
 }
 
 // ---------- Charts ----------
@@ -1033,8 +1257,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   initArchive(); fillPeriods(); fillSubjects(); restoreTimer(); status(); calUI(); pushUI();
   window.addEventListener('online', () => { status(); refresh(); });
   window.addEventListener('offline', status);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && running) tick(); });
+  ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, presenceTouch, { passive: true }));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (running) tick(); checkUpdate(false); if (focusActive) wakeOn(); } });
   window.addEventListener('storage', e => { if ((e.key === 'ev_timer_done' || e.key === 'ev_timer_finished_at') && runId && (e.newValue === runId || isStale(runId))) abandon(); });
+  checkUpdate(true);
   let { data: { session } } = await sb.auth.getSession();
   if (!session && !navigator.onLine) {                   // opened offline: reuse the saved login
     const saved = LS('sb-kuescglkkpvsqqxnubww-auth-token', null);
