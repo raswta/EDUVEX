@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "EDUVEX - Live Study Planner",
+  "short_name": "EDUVEX",
+  "description": "Study timer, planner, charts and live study room.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
