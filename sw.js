@@ -1,5 +1,5 @@
 // sw.js - EDUVEX: notifications, offline support
-const CACHE = 'eduvex-v8';
+const CACHE = 'eduvex-v9';
 
 self.addEventListener('install', () => self.skipWaiting());
 
