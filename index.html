@@ -142,6 +142,7 @@ body{font-family:Inter,system-ui,sans-serif}
           <select id="manSubject" class="inp" onchange="pickSubj('manSubject','manCustom')"></select>
           <input id="manCustom" placeholder="New subject name" class="inp hidden mt-2"></div>
         <div><label class="lbl">Duration (minutes)</label><input id="manMin" type="number" placeholder="45" class="inp"></div>
+        <div><label class="lbl">Short explanation / Reason</label><input id="manReason" type="text" placeholder="e.g. studied offline at library" class="inp"></div>
         <div><label class="lbl">Date</label><div id="manDate" class="grid grid-cols-3 gap-2"></div></div>
         <button onclick="saveManual()" class="btn bg-indigo-600 hover:bg-indigo-500">Save Entry</button>
       </div>
@@ -280,7 +281,7 @@ body{font-family:Inter,system-ui,sans-serif}
           <span class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/25"><i class="fa-solid fa-lightbulb mr-1"></i> Recommendations</span>
           <span class="px-3 py-1 rounded-full bg-red-500/10 text-red-300 border border-red-500/25"><i class="fa-solid fa-bug mr-1"></i> Bugs</span>
         </div>
-        <a href="https://docs.google.com/forms/d/e/1FAIpQLSf-Lr5hlPesAjzwdNtDLYZ86TLvm9zhnC80moeNW99FeX4GZA/viewform" target="_blank" rel="noopener" class="btn block text-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500">Open the form <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i></a>
+        <a href="https://raswta.carrd.co" target="_blank" rel="noopener" class="btn block text-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500">Open the form <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i></a>
       </div>
     </div>
   </div>
@@ -288,7 +289,7 @@ body{font-family:Inter,system-ui,sans-serif}
 </main>
 
 <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs text-slate-400">
-  Made by <a href="https://linktr.ee/Raswta" target="_blank" class="text-blue-400 font-semibold">raswta</a> · v7
+  Made by <a href="https://raswta.carrd.co" target="_blank" class="text-blue-400 font-semibold">raswta</a> · v7
 </footer>
 
 <div id="focus" class="hidden fixed inset-0 z-[45] bg-slate-950 flex flex-col items-center justify-center p-6 gap-8">
@@ -410,13 +411,13 @@ body{font-family:Inter,system-ui,sans-serif}
   <p><b><i class="fa-solid fa-user-clock text-blue-400 mr-1"></i> Still studying? check:</b> if the stopwatch runs for 3 hours without you touching the app, a popup asks whether you are still studying. Tap Yes within 10 minutes to keep going. If you do not, the stopwatch pauses and the waiting time is not counted. For very long sessions, use Focus mode so the screen stays on and you can answer.</p>
   <p><b><i class="fa-solid fa-expand text-blue-400 mr-1"></i> Focus mode:</b> tap the expand icon at the top to show only a big study clock and a small Study Room window. Nothing is locked, so you can leave the app any time. Press Exit focus mode at the bottom to come back.</p>
   <p><b><i class="fa-solid fa-hourglass-half text-blue-400 mr-1"></i> Pomodoro:</b> tick the box, set study and rest minutes, and the clock counts down. Rest time is not added to your study time.</p>
-  <p><b><i class="fa-solid fa-pen-to-square text-blue-400 mr-1"></i> Manual entry:</b> add minutes you studied without the stopwatch, for any date. In the charts these keep their subject color with a thick yellow border.</p>
+  <p><b><i class="fa-solid fa-pen-to-square text-blue-400 mr-1"></i> Manual entry:</b> add minutes you studied without the stopwatch, for any date (including a reason/explanation). In the charts these keep their subject color with a thick yellow border.</p>
   <p><b><i class="fa-solid fa-trash text-blue-400 mr-1"></i> Logs:</b> every saved session appears in Saved Study Logs. Use the trash icon to delete one. Items that say pending sync were saved offline and will upload automatically.</p>
   <p><b><i class="fa-solid fa-calendar-check text-blue-400 mr-1"></i> Exams &amp; Classes:</b> add exams to see the days left. Weekly classes repeat every week and count toward your goal and the Classes layer in the charts.</p>
   <p><b><i class="fa-solid fa-list-check text-blue-400 mr-1"></i> Tests:</b> in the Tests tab pick a day, type how many practice tests you solved for each subject (optional) and press Save tests. The study time of that day is shown next to each subject, and you can edit the numbers any time. The chart shows tests by subject for one day, or day by day for the whole week. Subjects keep their colors. You can also write a Topic (optional) in the Timer card; it is saved with the session and shown in the PDF summary.</p>
   <p><b><i class="fa-solid fa-users text-blue-400 mr-1"></i> Study Room:</b> automatically joins when your timer starts and leaves when you finish. Users with 30+ day streaks unlock manual join/leave controls.</p>
   <p><b><i class="fa-solid fa-chart-column text-blue-400 mr-1"></i> Charts:</b> the weekly chart runs Saturday to Friday and the monthly chart shows every day of the month. Use Review Archive to open previous weeks and months. Stacked shows hours per subject, Total shows one line. Log exam scores to see them on the monthly chart.</p>
-  <p><b><i class="fa-solid fa-file-pdf text-blue-400 mr-1"></i> Summary PDF:</b> open the More tab, choose Daily, Weekly or Monthly, pick the period (This week, Last month, a date...) and tick Include classes if you want class hours added. Press Preview summary, then Download PDF. It shows study time, tests, hours per subject with topics, and charts. You need internet the first time you download.</p>
+  <p><b><i class="fa-solid fa-file-pdf text-red-400 mr-1"></i> Summary PDF:</b> open the More tab, choose Daily, Weekly or Monthly, pick the period (This week, Last month, a date...) and tick Include classes if you want class hours added. Press Preview summary, then Download PDF. It shows manual reasons under each manual entry, study time, tests, hours per subject with topics, and charts. You need internet the first time you download.</p>
   <p><b><i class="fa-solid fa-gear text-blue-400 mr-1"></i> Settings (gear icon):</b> switch all dates between Shamsi and Gregorian, rename or delete subjects, add new subjects, turn reminders on or off, send a test notification, change your password, and log out. If you delete a subject, its name disappears but the time you already studied stays in the charts under Other.</p>
   <p><b><i class="fa-solid fa-bell text-blue-400 mr-1"></i> Reminders:</b> if you forget the stopwatch is running, you get a message after 10 minutes and again after 30 minutes, even when the app is closed. After that, nothing more. Pausing or finishing cancels them.</p>
   <p><b><i class="fa-solid fa-wifi text-blue-400 mr-1"></i> Offline:</b> everything you add without internet is saved on your device and uploads when you are back online. Subject changes and the study room need internet.</p>
@@ -734,7 +735,6 @@ let lastLB = -1;
 function checkStreakPerks() {
   const f = fireState();
   const hasPerk = f.cur >= 30;
-  if ($('manualRoomBox')) $('manualRoomBox.classList.toggle') // handled below
   const box = $('manualRoomBox');
   if (box) box.classList.toggle('hidden', !hasPerk);
 }
@@ -774,7 +774,8 @@ function renderLists() {
     : '<span class="text-[10px] text-amber-400 ml-3">pending sync</span>';
   $('sessionsList').innerHTML = D.sessions.slice(0, 40).map(s => `
     <div class="row"><div><span class="font-medium">${esc(s.subject)}</span>
-    <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] ${s.type === 'manual' ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}">${s.type === 'manual' ? 'Manual' : 'Stopwatch'}</span></div>
+    <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] ${s.type === 'manual' ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}">${s.type === 'manual' ? 'Manual entry ( not by stop watch )' : 'Stopwatch'}</span>
+    ${s.reason ? `<span class="block text-[10px] text-slate-400 mt-0.5">Reason: ${esc(s.reason)}</span>` : ''}</div>
     <div class="flex items-center"><span class="font-mono text-slate-300">${s.duration_minutes} min · ${fmt(new Date(s.created_at))}</span>${trash('study_sessions', s)}</div></div>`).join('') || '<p class="text-xs text-slate-500">No sessions yet.</p>';
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const exams = D.exams.map(e => ({ e, left: Math.ceil((new Date(e.exam_date + 'T00:00:00') - today) / DAY) }))
@@ -1032,8 +1033,9 @@ async function saveManual() {
   const mins = parseInt($('manMin').value);
   if (!(mins > 0)) return alert('Enter the minutes');
   const subject = getSubject('manSubject', 'manCustom');
-  await save('study_sessions', { subject, duration_minutes: mins, type: 'manual', created_at: ymd(pickGet('manDate')).toISOString() });
-  $('manMin').value = ''; refresh();
+  const reason = $('manReason').value.trim();
+  await save('study_sessions', { subject, duration_minutes: mins, type: 'manual', reason, created_at: ymd(pickGet('manDate')).toISOString() });
+  $('manMin').value = ''; $('manReason').value = ''; refresh();
 }
 async function saveClass() {
   const title = $('clTitle').value.trim();
@@ -1144,8 +1146,20 @@ function openReport() {
     h += `<table><tr><th>Subject</th><th>Study</th>${withCl ? '<th>Classes</th><th>Total</th>' : ''}<th>Tests</th>${anyTopic ? '<th>Topics</th>' : ''}</tr>` +
       names.map(n => { const r = sub[n]; return `<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${color(n)};margin-right:6px"></span>${esc(n)}</td><td>${hm(r.study)}</td>${withCl ? `<td>${hm(r.cls)}</td><td>${hm(r.study + r.cls)}</td>` : ''}<td>${r.tests || '-'}</td>${anyTopic ? `<td>${esc([...r.topics].join(', ')) || '-'}</td>` : ''}</tr>`; }).join('') + '</table>';
   }
-  if (kind === 'daily' && ses.length) h += '<h2>Sessions</h2><table><tr><th>Subject</th><th>Time</th><th>Type</th><th>Topic</th></tr>' +
-    ses.map(s => `<tr><td>${esc(s.subject)}</td><td>${hm(s.duration_minutes)}</td><td>${s.type === 'manual' ? 'Manual' : 'Stopwatch'}</td><td>${esc(s.topic) || '-'}</td></tr>`).join('') + '</table>';
+  
+  const manualSessions = ses.filter(s => s.type === 'manual');
+  if (manualSessions.length) {
+    h += '<h2>Manual Entries & Reasons</h2>';
+    h += manualSessions.map(s => {
+      const dStr = fmt(new Date(s.created_at));
+      const durStr = `${Math.floor(s.duration_minutes / 60)}h ${s.duration_minutes % 60}m`;
+      const reasonStr = s.reason ? ` -> ${esc(s.reason)}` : '';
+      return `<div style="font-size:12px;margin-bottom:4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">${dStr} | ${esc(s.subject)} | ${durStr} | Manual entry ( not by stop watch )${reasonStr}</div>`;
+    }).join('');
+  }
+
+  if (kind === 'daily' && ses.length) h += '<h2>Sessions</h2><table><tr><th>Subject</th><th>Time</th><th>Type</th><th>Topic / Reason</th></tr>' +
+    ses.map(s => `<tr><td>${esc(s.subject)}</td><td>${hm(s.duration_minutes)}</td><td>${s.type === 'manual' ? 'Manual entry ( not by stop watch )' : 'Stopwatch'}</td><td>${esc(s.topic || s.reason) || '-'}</td></tr>`).join('') + '</table>';
   if (kind === 'daily' && clsDay[0].length) h += '<h2>Classes</h2><table><tr><th>Class</th><th>Subject</th><th>Time</th></tr>' +
     clsDay[0].map(c => `<tr><td>${esc(c.title)}</td><td>${esc(c.subject)}</td><td>${hm(c.duration_minutes)}</td></tr>`).join('') + '</table>';
   if (kind !== 'daily') {
