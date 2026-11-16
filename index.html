@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261116-3">
+<meta name="build" content="20261116-2">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
@@ -198,14 +198,17 @@ body{font-family:Inter,system-ui,sans-serif}
   <div id="roomTab" class="tab hidden space-y-6">
     <div class="card text-center space-y-3">
       <h3 class="text-lg font-bold">Shared Live Study Room <span class="inline-flex h-3 w-3 relative align-middle ml-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span></h3>
-      <p class="text-xs text-slate-400">You join automatically as anonymous when you start your timer.</p>
+      <p class="text-xs text-slate-400">You automatically join the room when starting your timer.</p>
       <div class="flex flex-wrap items-center justify-center gap-4 text-xs">
         <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="anon" checked onchange="saveRoomPrefs()"> Anonymous Name</label>
         <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="anonSub" checked onchange="saveRoomPrefs()"> Hide Subject</label>
         <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="anonCls" checked onchange="saveRoomPrefs()"> Hide Class Time</label>
       </div>
-      <button id="joinBtn" onclick="joinRoom()" class="bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-lg text-sm font-medium">Join Room</button>
-      <button id="leaveBtn" onclick="leaveRoom()" class="hidden bg-red-600 hover:bg-red-500 px-6 py-2 rounded-lg text-sm font-medium">Leave Room</button>
+      <p class="text-[11px] text-slate-500">Active automatically on timer start. Manual join/leave available at 30+ streak 🎖️</p>
+      <div id="manualRoomBox" class="hidden flex justify-center gap-2 pt-1">
+        <button id="joinBtn" onclick="manualJoin()" class="bg-emerald-600 hover:bg-emerald-500 px-4 py-1.5 rounded-lg text-xs font-medium">Join Room</button>
+        <button id="leaveBtn" onclick="manualLeave()" class="bg-red-600 hover:bg-red-500 px-4 py-1.5 rounded-lg text-xs font-medium">Leave Room</button>
+      </div>
     </div>
     <div class="card">
       <div class="flex justify-between items-center mb-3"><h4 class="text-sm font-semibold text-slate-400">Active Members</h4>
@@ -303,6 +306,9 @@ body{font-family:Inter,system-ui,sans-serif}
   <div class="py-2 flex justify-center"><img id="streakBig" src="streak/angry.png" class="w-24 h-24 object-contain" alt=""></div>
   <div><span id="streakCount" class="text-4xl font-bold">0</span> <span class="text-slate-400">day streak</span></div>
   <p id="streakNote" class="text-xs text-slate-300"></p>
+  <div class="bg-emerald-500/10 border border-emerald-500/25 rounded-xl p-2.5 text-[11px] text-emerald-300">
+    <i class="fa-solid fa-medal mr-1"></i> <b>30 Days Perk:</b> Unlocks manual join/leave room controls!
+  </div>
   <div id="streakLevels" class="flex justify-between gap-1"></div>
   <div class="text-xs text-slate-400">Best streak: <b id="streakBest" class="text-slate-200">0</b> days</div>
   <div class="text-left">
@@ -408,7 +414,7 @@ body{font-family:Inter,system-ui,sans-serif}
   <p><b><i class="fa-solid fa-trash text-blue-400 mr-1"></i> Logs:</b> every saved session appears in Saved Study Logs. Use the trash icon to delete one. Items that say pending sync were saved offline and will upload automatically.</p>
   <p><b><i class="fa-solid fa-calendar-check text-blue-400 mr-1"></i> Exams &amp; Classes:</b> add exams to see the days left. Weekly classes repeat every week and count toward your goal and the Classes layer in the charts.</p>
   <p><b><i class="fa-solid fa-list-check text-blue-400 mr-1"></i> Tests:</b> in the Tests tab pick a day, type how many practice tests you solved for each subject (optional) and press Save tests. The study time of that day is shown next to each subject, and you can edit the numbers any time. The chart shows tests by subject for one day, or day by day for the whole week. Subjects keep their colors. You can also write a Topic (optional) in the Timer card; it is saved with the session and shown in the PDF summary.</p>
-  <p><b><i class="fa-solid fa-users text-blue-400 mr-1"></i> Study Room:</b> start your timer, then press Join Room to show your live study time to others. You can join as Anonymous. Rooms need internet.</p>
+  <p><b><i class="fa-solid fa-users text-blue-400 mr-1"></i> Study Room:</b> automatically joins when your timer starts and leaves when you finish. Users with 30+ day streaks unlock manual join/leave controls.</p>
   <p><b><i class="fa-solid fa-chart-column text-blue-400 mr-1"></i> Charts:</b> the weekly chart runs Saturday to Friday and the monthly chart shows every day of the month. Use Review Archive to open previous weeks and months. Stacked shows hours per subject, Total shows one line. Log exam scores to see them on the monthly chart.</p>
   <p><b><i class="fa-solid fa-file-pdf text-blue-400 mr-1"></i> Summary PDF:</b> open the More tab, choose Daily, Weekly or Monthly, pick the period (This week, Last month, a date...) and tick Include classes if you want class hours added. Press Preview summary, then Download PDF. It shows study time, tests, hours per subject with topics, and charts. You need internet the first time you download.</p>
   <p><b><i class="fa-solid fa-gear text-blue-400 mr-1"></i> Settings (gear icon):</b> switch all dates between Shamsi and Gregorian, rename or delete subjects, add new subjects, turn reminders on or off, send a test notification, change your password, and log out. If you delete a subject, its name disappears but the time you already studied stays in the charts under Other.</p>
@@ -501,7 +507,7 @@ function tab(id) {
   $(id).classList.remove('hidden');
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('on', b.dataset.t === id));
   if (id === 'chartsTab') renderCharts();
-  if (id === 'roomTab') { syncRoom(); loadLB(); }
+  if (id === 'roomTab') { checkStreakPerks(); syncRoom(); loadLB(); }
   if (id === 'testsTab') renderTests();
   if (id === 'moreTab') fillPeriods();
 }
@@ -586,7 +592,7 @@ function onLogin() {
   $('auth').classList.add('hidden'); $('app').classList.remove('hidden'); $('logoutBtn').classList.remove('hidden'); $('hdrTools').classList.remove('hidden');
   loadRoomPrefs();
   if (running || base > 0) {
-    inRoom = true; $('joinBtn').classList.add('hidden'); $('leaveBtn').classList.remove('hidden');
+    inRoom = true;
     syncRoom();
   } else {
     leaveRoom();
@@ -725,12 +731,21 @@ const streakImg = f => SIMG[f.studiedToday ? levelOf(Math.max(1, f.cur)) : 'angr
 const LVLS = [['angry', 'Not started today'], ['calm', '1-9 days'], ['spark', '10 days'], ['black', '30 days'], ['red', '60 days']];
 let lastLB = -1;
 
+function checkStreakPerks() {
+  const f = fireState();
+  const hasPerk = f.cur >= 30;
+  if ($('manualRoomBox')) $('manualRoomBox.classList.toggle') // handled below
+  const box = $('manualRoomBox');
+  if (box) box.classList.toggle('hidden', !hasPerk);
+}
+
 function renderStreak() {
   const f = fireState();
   $('fireIcon').src = streakImg(f);
   $('fireIcon').className = 'w-12 h-12 object-contain ' + (f.blaze ? 'fire-blaze' : '');
   $('streakNum').textContent = f.cur;
   $('streakBtn').className = 'w-24 shrink-0 rounded-2xl border bg-slate-900 flex flex-col items-center justify-center py-2 transition ' + (f.blaze ? 'border-orange-500/60 fire-glow' : f.studiedToday ? 'border-amber-500/40' : 'border-slate-800');
+  checkStreakPerks();
   if (f.cur !== lastLB) { lastLB = f.cur; pushStreak(f.cur); }
 }
 function openStreak() {
@@ -847,7 +862,7 @@ function toggleTimer() {
     tInt = setInterval(tick, 1000);
     pushSchedule();
     if (user && navigator.onLine && !inRoom) {
-      inRoom = true; $('joinBtn').classList.add('hidden'); $('leaveBtn').classList.remove('hidden');
+      inRoom = true;
       syncRoom();
     } else if (inRoom) syncRoom();
   } else {
@@ -1225,16 +1240,20 @@ function unpackSubject(raw) {
   const [sub, cls] = String(raw || '').split('\x1f');
   return { sub: sub || '', cls: cls || '' };
 }
-async function joinRoom() {
+async function manualJoin() {
   if (!running) return modal('timerOff', 1);
   if (!navigator.onLine) return alert('You cannot join the study room while offline.');
-  inRoom = true; $('joinBtn').classList.add('hidden'); $('leaveBtn').classList.remove('hidden');
+  inRoom = true;
+  syncRoom();
+}
+async function manualLeave() {
+  inRoom = false;
+  if (user && navigator.onLine) await sb.from('room_members').delete().eq('user_id', user.id);
   syncRoom();
 }
 async function leaveRoom() {
   inRoom = false;
   if (user && navigator.onLine) await sb.from('room_members').delete().eq('user_id', user.id);
-  $('joinBtn').classList.remove('hidden'); $('leaveBtn').classList.add('hidden');
   syncRoom();
 }
 async function syncRoom() {
