@@ -1,5 +1,5 @@
 // sw.js - EDUVEX: notifications, offline support
-const CACHE = 'eduvex-v9';
+const CACHE = 'eduvex-v10';
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -20,9 +20,23 @@ self.addEventListener('fetch', (event) => {
     })));
     return;
   }
-  event.respondWith(fetch(r, { cache: 'no-cache' }).then(res => {
+  // Images: show the saved copy instantly, refresh it in the background
+  if (/\.(png|jpe?g|webp|svg)$/i.test(u.pathname)) {
+    event.respondWith(caches.open(CACHE).then(cache => cache.match(r).then(hit => {
+      const net = fetch(r).then(res => { if (res.ok) cache.put(r, res.clone()); return res; }).catch(() => hit);
+      return hit || net;
+    })));
+    return;
+  }
+  // Pages and scripts: network first, but use the saved copy if the network takes more than 4 seconds
+  const net = fetch(r, { cache: 'no-cache' }).then(res => {
     const c = res.clone(); caches.open(CACHE).then(x => x.put(r, c)); return res;
-  }).catch(() => caches.match(r)));
+  });
+  event.waitUntil(net.catch(() => {}));
+  event.respondWith(caches.match(r).then(hit => {
+    if (!hit) return net.catch(() => caches.match(r));
+    return Promise.race([net.catch(() => hit), new Promise(ok => setTimeout(() => ok(hit), 4000))]);
+  }));
 });
 
 self.addEventListener('notificationclick', (event) => {
