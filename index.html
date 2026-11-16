@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261116-2">
+<meta name="build" content="20261116-3">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
@@ -198,8 +198,12 @@ body{font-family:Inter,system-ui,sans-serif}
   <div id="roomTab" class="tab hidden space-y-6">
     <div class="card text-center space-y-3">
       <h3 class="text-lg font-bold">Shared Live Study Room <span class="inline-flex h-3 w-3 relative align-middle ml-1"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span></span></h3>
-      <p class="text-xs text-slate-400">Start your timer, then join to show your live study time.</p>
-      <label class="flex items-center justify-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="anon"> Join as Anonymous</label>
+      <p class="text-xs text-slate-400">You join automatically as anonymous when you start your timer.</p>
+      <div class="flex flex-wrap items-center justify-center gap-4 text-xs">
+        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="anon" checked onchange="saveRoomPrefs()"> Anonymous Name</label>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="anonSub" checked onchange="saveRoomPrefs()"> Hide Subject</label>
+        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="anonCls" checked onchange="saveRoomPrefs()"> Hide Class Time</label>
+      </div>
       <button id="joinBtn" onclick="joinRoom()" class="bg-emerald-600 hover:bg-emerald-500 px-6 py-2 rounded-lg text-sm font-medium">Join Room</button>
       <button id="leaveBtn" onclick="leaveRoom()" class="hidden bg-red-600 hover:bg-red-500 px-6 py-2 rounded-lg text-sm font-medium">Leave Room</button>
     </div>
@@ -580,7 +584,14 @@ async function login() {
 async function logout() { await leaveRoom(); await sb.auth.signOut(); location.reload(); }
 function onLogin() {
   $('auth').classList.add('hidden'); $('app').classList.remove('hidden'); $('logoutBtn').classList.remove('hidden'); $('hdrTools').classList.remove('hidden');
-  leaveRoom(); refresh();
+  loadRoomPrefs();
+  if (running || base > 0) {
+    inRoom = true; $('joinBtn').classList.add('hidden'); $('leaveBtn').classList.remove('hidden');
+    syncRoom();
+  } else {
+    leaveRoom();
+  }
+  refresh();
   if (!roomInt) {
     roomInt = setInterval(() => { if (inRoom || focusActive || !$('roomTab').classList.contains('hidden')) syncRoom(); }, 3000);
     setInterval(() => { if (focusActive || !$('roomTab').classList.contains('hidden')) renderRoom(); }, 1000);
@@ -835,6 +846,10 @@ function toggleTimer() {
     if (pomo && pLeft <= 0) { pState = 'study'; pLeft = (+$('pomoStudy').value || 50) * 60; }
     tInt = setInterval(tick, 1000);
     pushSchedule();
+    if (user && navigator.onLine && !inRoom) {
+      inRoom = true; $('joinBtn').classList.add('hidden'); $('leaveBtn').classList.remove('hidden');
+      syncRoom();
+    } else if (inRoom) syncRoom();
   } else {
     running = false; clearInterval(tInt); askOpen = false; modal('presence', 0);
     pushClear();
@@ -1184,6 +1199,32 @@ async function toggleHide() {
 }
 
 // ---------- Room ----------
+function loadRoomPrefs() {
+  $('anon').checked = localStorage.getItem('ev_room_anon') !== '0';
+  $('anonSub').checked = localStorage.getItem('ev_room_anon_sub') !== '0';
+  $('anonCls').checked = localStorage.getItem('ev_room_anon_cls') !== '0';
+}
+function saveRoomPrefs() {
+  localStorage.setItem('ev_room_anon', $('anon').checked ? '1' : '0');
+  localStorage.setItem('ev_room_anon_sub', $('anonSub').checked ? '1' : '0');
+  localStorage.setItem('ev_room_anon_cls', $('anonCls').checked ? '1' : '0');
+  if (inRoom) syncRoom();
+}
+function todayClassText() {
+  if ($('anonCls').checked) return '';
+  const m = D.classes.filter(c => +c.day_of_week === new Date().getDay()).reduce((a, c) => a + (+c.duration_minutes || 0), 0);
+  if (!m) return '';
+  return `+ ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}’ class`;
+}
+function packSubject() {
+  const sub = $('anonSub').checked ? '' : ($('swSubject').value === '__new' ? 'General Study' : $('swSubject').value);
+  const cls = todayClassText();
+  return cls ? `${sub}\x1f${cls}` : sub;
+}
+function unpackSubject(raw) {
+  const [sub, cls] = String(raw || '').split('\x1f');
+  return { sub: sub || '', cls: cls || '' };
+}
 async function joinRoom() {
   if (!running) return modal('timerOff', 1);
   if (!navigator.onLine) return alert('You cannot join the study room while offline.');
@@ -1204,7 +1245,7 @@ async function syncRoom() {
       username: $('anon').checked ? 'Anonymous Member' : user.email.split('@')[0],
       is_studying: running && pState === 'study',
       live_seconds: base,
-      current_subject: $('swSubject').value === '__new' ? 'General Study' : $('swSubject').value,
+      current_subject: packSubject(),
       last_active: new Date().toISOString()
     }, { onConflict: 'user_id' });
     if (error) console.error('room', error);
@@ -1218,8 +1259,12 @@ function renderRoom() {
   if (!user) return;
   const el = Math.max(0, Math.min(10, (Date.now() - roomAt) / 1000));          // seconds since the last refresh
   const secs = m => m.user_id === user.id ? base : (m.live_seconds || 0) + (m.is_studying ? el : 0);
-  if (!$('roomTab').classList.contains('hidden')) $('roomList').innerHTML = roomRows.map(m => `<div class="row"><div><i class="fa-solid fa-user-graduate text-blue-400 mr-1"></i> <b>${esc(m.username)}</b>${m.user_id === user.id ? ' (You)' : ''}<span class="block text-[10px] text-slate-400">${esc(m.current_subject)}</span></div>
-    <div class="flex items-center gap-3"><span class="text-[10px] px-1.5 py-0.5 rounded ${m.is_studying ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}">${m.is_studying ? 'Studying' : 'Resting'}</span><span class="font-mono text-sm">${hms(secs(m))}</span></div></div>`).join('') || '<p class="text-xs text-slate-500 text-center py-4">No active members.</p>';
+  if (!$('roomTab').classList.contains('hidden')) $('roomList').innerHTML = roomRows.map(m => {
+    const { sub, cls } = unpackSubject(m.current_subject);
+    return `<div class="row"><div><i class="fa-solid fa-user-graduate text-blue-400 mr-1"></i> <b>${esc(m.username)}</b>${m.user_id === user.id ? ' (You)' : ''}${sub ? `<span class="block text-[10px] text-slate-400">${esc(sub)}</span>` : ''}</div>
+    <div class="text-right"><div class="font-mono text-sm">${hms(secs(m))}</div>
+    <div class="text-[10px]"><span class="px-1.5 py-0.5 rounded ${m.is_studying ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}">${m.is_studying ? 'Studying' : 'Resting'}</span>${cls ? ` <span class="text-emerald-400 font-mono">${esc(cls)}</span>` : ''}</div></div></div>`;
+  }).join('') || '<p class="text-xs text-slate-500 text-center py-4">No active members.</p>';
   if (focusActive) $('focusRoom').innerHTML = roomRows.map(m => `<div class="flex justify-between items-center text-xs"><span class="truncate mr-2 text-slate-300">${esc(m.username)}${m.user_id === user.id ? ' (You)' : ''}</span><span class="font-mono ${m.is_studying ? 'text-emerald-400' : 'text-slate-500'}">${hms(secs(m))}</span></div>`).join('') || '<p class="text-[11px] text-slate-500">No active members.</p>';
 }
 
