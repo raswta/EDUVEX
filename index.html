@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261117-11">
+<meta name="build" content="20261117-12">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
@@ -356,7 +356,7 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
   <div class="py-2 flex justify-center"><img id="streakBig" src="streak/angry.png" class="w-24 h-24 object-contain" alt=""></div>
   <div><span id="streakCount" class="text-4xl font-bold">0</span> <span class="text-slate-400">day streak</span></div>
   <p id="streakNote" class="text-xs text-slate-300"></p>
-  <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 text-[11px] text-amber-300 text-left"><i class="fa-solid fa-triangle-exclamation mr-1"></i> <b>Warning:</b> a day counts for your streak only if you study <b>more than 3 hours</b> (stopwatch time). After a 15-day streak you need <b>more than 5 hours</b> a day. Your weekly classes are added to that time, but manual entries never count.</div>
+  <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 text-[11px] text-amber-300 text-left"><i class="fa-solid fa-triangle-exclamation mr-1"></i> <b>Warning:</b> the first <b>2 days</b> of a streak count with any stopwatch time. Days <b>3 to 7</b> need <b>more than 3 hours</b>. From day <b>8</b> on you need <b>more than 5 hours</b> a day (stopwatch time). Your weekly classes are added to that time, but manual entries never count.</div>
   <div class="bg-emerald-500/10 border border-emerald-500/25 rounded-xl p-2.5 text-[11px] text-emerald-300">
     <i class="fa-solid fa-medal mr-1"></i> <b>30 Days Perk:</b> Unlocks manual join/leave room controls!
   </div>
@@ -494,7 +494,7 @@ const LS = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } 
 let user = null, running = false, base = 0, lastTick = 0, tInt = null, roomInt = null;
 let inRoom = false, pomo = false, pState = 'study', pLeft = 0, alerted = {};
 let wChart = null, mChart = null, starts = [];
-let segs = {}, tops = {}, curSub = 'General Study', runId = null;
+let segs = {}, tops = {}, tseg = {}, curSub = 'General Study', runId = null;
 let focusActive = false, wakeLock = null, roomRows = [], roomAt = 0, pushErr = '', presenceSecs = 0, askOpen = false;
 const PRES_EVERY = 3 * 3600, PRES_GRACE = 10 * 60;   // ask every 3 hours without activity, 10 minutes to answer
 let subjects = LS('ev_subjects', ['General Study','Physics','Mathematics','Chemistry','Biology']);
@@ -747,7 +747,7 @@ async function remap(oldN, newN) {
   setQ(Q().map(i => i.row.subject === oldN ? { ...i, row: { ...i.row, subject: newN } } : i));
   return true;
 }
-function moveSeg(from, to) { if (segs[from]) { segs[to] = (segs[to] || 0) + segs[from]; delete segs[from]; } if (tops[from]) { tops[to] = tops[from]; delete tops[from]; } if (curSub === from) curSub = to; }
+function moveSeg(from, to) { if (segs[from]) { segs[to] = (segs[to] || 0) + segs[from]; delete segs[from]; } if (tops[from]) { tops[to] = tops[from]; delete tops[from]; } if (tseg[from]) { tseg[to] = tseg[from]; delete tseg[from]; } if (curSub === from) curSub = to; }
 async function renSubject(i) {
   const old = subjects[i], n = (prompt('Rename subject', old) || '').trim();
   if (!n || n === old) return;
@@ -800,7 +800,8 @@ function fireState() {
   let cur = 0, best = 0;
   if (keys.length) for (let d = ymd(keys[0]); toYMD(d) <= todayKey; d = addDays(d, 1)) {
     const k = toYMD(d), st = m[k] || 0, mins = st > 0 ? st + (cl[d.getDay()] || 0) : 0;   // classes add to study time, manual time never counts
-    if (mins > (cur >= 15 ? 300 : 180)) { cur++; best = Math.max(best, cur); }          // days 1-15 need over 3 h, after 15 days over 5 h
+    const need = cur >= 7 ? 300 : cur >= 2 ? 180 : 0;                                      // days 1-2: any stopwatch time | days 3-7: over 3 h | from day 8: over 5 h
+    if (mins > need) { cur++; best = Math.max(best, cur); }
     else if (k !== todayKey && d.getDay() !== rest) cur = 0;                              // today not finished yet / a day off do not break it
   }
   const days = { [todayKey]: (m[todayKey] || 0) > 0 || running || base > 0 };
@@ -905,7 +906,7 @@ const isStale = id => !!id && parseInt(id) <= (+localStorage.getItem('ev_timer_f
 function persist() {
   if (runId && (isStale(runId) || localStorage.getItem('ev_timer_done') === runId)) return abandon();   // finished in another tab
   if (!running && base === 0) return localStorage.removeItem('ev_timer');
-  localStorage.setItem('ev_timer', JSON.stringify({ id: runId, running, base, lastTick, subject: curSub, segs, tops, pres: presenceSecs }));
+  localStorage.setItem('ev_timer', JSON.stringify({ id: runId, running, base, lastTick, subject: curSub, segs, tops, tseg, pres: presenceSecs }));
 }
 let remAt = 0, remote = null;
 const DEV = localStorage.getItem('ev_dev') || (() => { const d = Math.random().toString(36).slice(2, 10); localStorage.setItem('ev_dev', d); return d; })();
@@ -930,7 +931,7 @@ async function remotePull() {
     if (st.id && st.id === localStorage.getItem('ev_timer_done')) { remote = null; return remBar(); }
     if (runId && runId === st.id) {                                        // another device paused/resumed MY run: follow it
       if (t <= remAt + 1500) return; remAt = t;
-      clearInterval(tInt); running = false; base = 0; segs = {}; tops = {}; alerted = {};
+      clearInterval(tInt); running = false; base = 0; segs = {}; tops = {}; tseg = {}; alerted = {};
       localStorage.setItem('ev_timer', JSON.stringify(st)); restoreTimer(); persist(); remote = null; return remBar();
     }
     remote = (running || base > 0) ? null : st; remBar();                   // a run on another device: show the control bar
@@ -959,14 +960,14 @@ async function remToggle() {
 }
 async function remFinish() {
   if (!remote || !confirm('Finish & save the stopwatch running on your other device?')) return;
-  const n = remNow(remote), st = remote, tp = st.tops || {}; remote = null; remBar();
+  const n = remNow(remote), st = remote, tp = st.tops || {}, ts = st.tseg || {}; remote = null; remBar();
   for (const [subject, secs] of Object.entries(n.segs))
-    if (secs >= 15) await save('study_sessions', { subject, duration_minutes: Math.max(1, Math.round(secs / 60)), type: 'stopwatch', created_at: new Date().toISOString(), ...(tp[subject] ? { topic: tp[subject] } : {}) });
+    if (secs >= 15) { const t = topicPack(tp, ts, subject, secs); await save('study_sessions', { subject, duration_minutes: Math.max(1, Math.round(secs / 60)), type: 'stopwatch', created_at: new Date().toISOString(), ...(t ? { topic: t } : {}) }); }
   await remotePush(st.id); await leaveRoom(); refresh();
 }
 setInterval(remBar, 1000);
 function abandon() {
-  clearInterval(tInt); running = false; askOpen = false; presenceSecs = 0; modal('presence', 0); base = 0; segs = {}; tops = {}; runId = null; pLeft = 0; pState = 'study'; alerted = {};
+  clearInterval(tInt); running = false; askOpen = false; presenceSecs = 0; modal('presence', 0); base = 0; segs = {}; tops = {}; tseg = {}; runId = null; pLeft = 0; pState = 'study'; alerted = {};
   $('swTopic').value = '';
   localStorage.removeItem('ev_timer'); ui();
 }
@@ -1015,7 +1016,7 @@ function tick() {
   const d = Math.floor((Date.now() - lastTick) / 1000);
   if (d < 1) return;
   lastTick += d * 1000; presenceSecs += d;
-  if (pState === 'study') { base += d; segs[curSub] = (segs[curSub] || 0) + d; }
+  if (pState === 'study') { base += d; segs[curSub] = (segs[curSub] || 0) + d; const tp = tops[curSub] || ''; (tseg[curSub] = tseg[curSub] || {})[tp] = (tseg[curSub][tp] || 0) + d; }
   if (pomo) {
     pLeft -= d;
     if (pLeft <= 0) {
@@ -1051,6 +1052,18 @@ function toggleTimer() {
 }
 function syncSub() { curSub = getSubject('swSubject', 'swCustom'); $('swTopic').value = tops[curSub] || ''; }
 function setTopic() { const v = $('swTopic').value.trim(); if (v) tops[curSub] = v; else delete tops[curSub]; persist(); }
+// topic time is stored inside the existing `topic` column as JSON: [{t:'Chapter 1',s:seconds},...]; old plain-text topics still work
+function topicPack(tp, ts, subject, secs) {
+  const o = Object.entries(ts[subject] || {}).filter(([k]) => k);
+  if (!o.length) return tp[subject] || '';
+  const tot = Object.values(ts[subject]).reduce((a, b) => a + b, 0) || 1;
+  return JSON.stringify(o.map(([t, s]) => ({ t, s: Math.round(s * secs / tot) })));
+}
+function topicList(v) {
+  if (!v) return [];
+  if (v[0] === '[') { try { const a = JSON.parse(v); if (Array.isArray(a)) return a; } catch (e) {} }
+  return [{ t: v, s: 0 }];
+}
 function togglePomo() { pomo = $('pomoOn').checked; $('pomoSet').classList.toggle('hidden', !pomo); pLeft = 0; pState = 'study'; draw(); }
 async function finishTimer() {
   modal('confirm', 0);
@@ -1059,12 +1072,12 @@ async function finishTimer() {
   localStorage.setItem('ev_timer_finished_at', Date.now());
   runId = null;
   pushClear();
-  const parts = Object.entries(segs), topics = tops;
-  base = 0; segs = {}; tops = {}; $('swTopic').value = ''; pLeft = 0; pState = 'study'; alerted = {};
+  const parts = Object.entries(segs), topics = tops, tsg = tseg;
+  base = 0; segs = {}; tops = {}; tseg = {}; $('swTopic').value = ''; pLeft = 0; pState = 'study'; alerted = {};
   localStorage.removeItem('ev_timer');
   ui(); $('swStatus').textContent = 'Finished & Saved!';
   for (const [subject, secs] of parts)
-    if (secs >= 15) await save('study_sessions', { subject, duration_minutes: Math.max(1, Math.round(secs / 60)), type: 'stopwatch', created_at: new Date().toISOString(), ...(topics[subject] ? { topic: topics[subject] } : {}) });
+    if (secs >= 15) { const tp = topicPack(topics, tsg, subject, secs); await save('study_sessions', { subject, duration_minutes: Math.max(1, Math.round(secs / 60)), type: 'stopwatch', created_at: new Date().toISOString(), ...(tp ? { topic: tp } : {}) }); }
   localStorage.removeItem('ev_timer');
   await leaveRoom(); refresh();
 }
@@ -1077,8 +1090,8 @@ function restoreTimer() {
   [[600, '10'], [1800, '30']].forEach(([sec, m]) => { if (base >= sec) alerted[m] = 1; });
   curSub = s.subject || 'General Study';
   segs = s.segs || { [curSub]: base };
-  tops = s.tops || {}; $('swTopic').value = tops[curSub] || '';
-  if (s.running) { const gap = Math.max(0, Math.floor((Date.now() - s.lastTick) / 1000)); base += gap; presenceSecs += gap; segs[curSub] = (segs[curSub] || 0) + gap; running = true; lastTick = Date.now(); clearInterval(tInt); tInt = setInterval(tick, 1000); }
+  tops = s.tops || {}; tseg = s.tseg || {}; $('swTopic').value = tops[curSub] || '';
+  if (s.running) { const gap = Math.max(0, Math.floor((Date.now() - s.lastTick) / 1000)); base += gap; presenceSecs += gap; segs[curSub] = (segs[curSub] || 0) + gap; const tp0 = tops[curSub] || ''; (tseg[curSub] = tseg[curSub] || {})[tp0] = (tseg[curSub][tp0] || 0) + gap; running = true; lastTick = Date.now(); clearInterval(tInt); tInt = setInterval(tick, 1000); }
   setTimeout(() => { if ([...$('swSubject').options].some(o => o.value === s.subject)) $('swSubject').value = s.subject; }, 600);
   ui(); presenceStep();
 }
@@ -1313,8 +1326,8 @@ async function openReport() {
   const keys = days.map(toYMD), set = new Set(keys), endT = new Date(); endT.setHours(23, 59, 59, 999);
   const ses = D.sessions.filter(s => set.has(toYMD(new Date(s.created_at)))).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   const tst = D.tests.filter(t => set.has(t.test_date) && +t.count > 0), sub = {};
-  const row = n => sub[n] || (sub[n] = { study: 0, cls: 0, tests: 0, topics: new Set() });
-  ses.forEach(s => { const r = row(s.subject); r.study += +s.duration_minutes || 0; if (s.topic) r.topics.add(s.topic); });
+  const row = n => sub[n] || (sub[n] = { study: 0, cls: 0, tests: 0, topics: new Map() });
+  ses.forEach(s => { const r = row(s.subject); r.study += +s.duration_minutes || 0; topicList(s.topic).forEach(x => r.topics.set(x.t, (r.topics.get(x.t) || 0) + (x.s || 0))); });
   const clsDay = days.map(d => withCl && d <= endT ? D.classes.filter(c => +c.day_of_week === d.getDay()) : []);
   clsDay.forEach(cs => cs.forEach(c => { row(c.subject).cls += +c.duration_minutes || 0; }));
   tst.forEach(t => { row(t.subject).tests += +t.count; });
@@ -1329,7 +1342,7 @@ async function openReport() {
   else {
     const anyTopic = names.some(n => sub[n].topics.size);
     h += `<table><tr><th>Subject</th><th>Study</th>${withCl ? '<th>Classes</th><th>Total</th>' : ''}<th>Tests</th>${anyTopic ? '<th>Topics</th>' : ''}</tr>` +
-      names.map(n => { const r = sub[n]; return `<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${color(n)};margin-right:6px"></span>${esc(n)}</td><td>${hm(r.study)}</td>${withCl ? `<td>${hm(r.cls)}</td><td>${hm(r.study + r.cls)}</td>` : ''}<td>${r.tests || '-'}</td>${anyTopic ? `<td>${esc([...r.topics].join(', ')) || '-'}</td>` : ''}</tr>`; }).join('') + '</table>';
+      names.map(n => { const r = sub[n]; return `<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${color(n)};margin-right:6px"></span>${esc(n)}</td><td>${hm(r.study)}</td>${withCl ? `<td>${hm(r.cls)}</td><td>${hm(r.study + r.cls)}</td>` : ''}<td>${r.tests || '-'}</td>${anyTopic ? `<td>${esc([...r.topics].map(([t, sc]) => kind === 'daily' && sc > 0 ? `${t} (${hm(sc / 60)})` : t).join(', ')) || '-'}</td>` : ''}</tr>`; }).join('') + '</table>';
   }
   
   const manualSessions = ses.filter(s => s.type === 'manual');
@@ -1344,7 +1357,7 @@ async function openReport() {
   }
 
   if (kind === 'daily' && ses.length) h += '<h2>Sessions</h2><table><tr><th>Subject</th><th>Time</th><th>Type</th><th>Topic / Reason</th></tr>' +
-    ses.map(s => `<tr><td>${esc(s.subject)}</td><td>${hm(s.duration_minutes)}</td><td>${s.type === 'manual' ? 'Manual entry ( not by stop watch )' : 'Stopwatch'}</td><td>${esc(s.topic || s.reason) || '-'}</td></tr>`).join('') + '</table>';
+    ses.map(s => `<tr><td>${esc(s.subject)}</td><td>${hm(s.duration_minutes)}</td><td>${s.type === 'manual' ? 'Manual entry ( not by stop watch )' : 'Stopwatch'}</td><td>${esc(topicList(s.topic).map(x => x.s > 0 ? `${x.t} (${hm(x.s / 60)})` : x.t).join(', ') || s.reason) || '-'}</td></tr>`).join('') + '</table>';
   if (kind === 'daily' && clsDay[0].length) h += '<h2>Classes</h2><table><tr><th>Class</th><th>Subject</th><th>Time</th></tr>' +
     clsDay[0].map(c => `<tr><td>${esc(c.title)}</td><td>${esc(c.subject)}</td><td>${hm(c.duration_minutes)}</td></tr>`).join('') + '</table>';
   if (kind !== 'daily') {
