@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261116-3">
+<meta name="build" content="20261116-2">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
@@ -794,13 +794,13 @@ function renderLists() {
       <div class="flex items-center pr-3">${trash('exams', e)}</div></div>`;
   }).join('') || '<p class="text-xs text-slate-500">No exams yet.</p>';
   $('classesList').innerHTML = D.classes.map(c => `
-    <div class="row"><div><b>${esc(c.title)}</b> (${esc(c.subject)})<span class="block text-[10px] text-slate-400">${DAYS[(+c.day_of_week + 1) % 7]} · ${c.duration_minutes} min</span></div>${trash('classes', c)}</div>`).join('');
+    <div class="row"><div><b>${esc(c.title)}</b> (${esc(c.subject)})<span class="block text-[10px] text-slate-400">${DAYS[(+c.day_of_week + 1) % 7]} · ${c.duration_minutes} min</span></div><div class="flex items-center">${trash('classes', c)}</div></div>`).join('') || '<p class="text-xs text-slate-500">No classes yet.</p>';
 }
 
 // ---------- Stopwatch ----------
 const isStale = id => !!id && parseInt(id) <= (+localStorage.getItem('ev_timer_finished_at') || 0);   // run that started before the last Finish
 function persist() {
-  if (runId && (isStale(runId) || localStorage.getItem('ev_timer_done') === runId)) return abandon();   // finished in another tab
+  if (runId && (isStale(runId) || localStorage.getItem('ev_timer_done'] === runId)) return abandon();   // finished in another tab
   if (!running && base === 0) return localStorage.removeItem('ev_timer');
   localStorage.setItem('ev_timer', JSON.stringify({ id: runId, running, base, lastTick, subject: curSub, segs, tops, pres: presenceSecs }));
 }
@@ -938,7 +938,7 @@ async function checkUpdate(auto) {
     const r = await fetch(location.pathname + location.search, { cache: 'reload' });   // forces a fresh copy from the server
     const m = (await r.text()).match(/<meta name="build" content="([^"]+)"/);
     if (!m || m[1] === BUILD) return;
-    if (auto && sessionStorage.getItem('ev_upd') !== m[1]) { sessionStorage.setItem('ev_upd', m[1]); location.reload(); return; }
+    if (auto && sessionStorage.getItem('ev_upd'] !== m[1]) { sessionStorage.setItem('ev_upd', m[1]); location.reload(); return; }
     $('updBar').classList.remove('hidden');
   } catch (e) { console.error('update check', e); }
 }
@@ -1040,7 +1040,14 @@ async function saveManual() {
 async function saveClass() {
   const title = $('clTitle').value.trim();
   if (!title) return alert('Enter the class title');
-  await save('classes', { title, subject: $('clSubject').value, day_of_week: +$('clDay').value, duration_minutes: parseInt($('clDur').value) || 60 });
+  const dayOfWeek = parseInt($('clDay').value);
+  await save('classes', { 
+    title, 
+    subject: $('clSubject').value, 
+    day_of_week: dayOfWeek, 
+    weekday: dayOfWeek, 
+    duration_minutes: parseInt($('clDur').value) || 60 
+  });
   $('clTitle').value = ''; refresh();
 }
 async function saveExam() {
