@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261117-9p">
+<meta name="build" content="20261117-11">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
@@ -59,26 +59,30 @@ body{font-family:Inter,system-ui,sans-serif}
 </style>
 <style>
 html[data-theme]{--bgc:#0f172a}
-html[data-theme="pink"]{--a3:#f4a3c7;--a4:#e06399;--a5:#b53d71;--a6:#942c5a;--a7:#731d43;--ar:181,61,113}
-html[data-theme="purple"]{--a3:#d1b0f7;--a4:#ab75e8;--a5:#8042c7;--a6:#662db0;--a7:#4d1d94;--ar:128,66,199}
-html[data-theme="green"]{--a3:#8ce0b4;--a4:#4db881;--a5:#2b8f5d;--a6:#1e7347;--a7:#125433;--ar:43,143,93}
+html[data-theme="pink"]{--a3:#d79ab5;--a4:#c9759a;--a5:#a14f73;--a6:#8a3d5f;--a7:#6f2f4a;--ar:161,79,115;--s950:#12080d;--s900:#1f0f18;--s800:#2e1824;--s700:#3d2231;--sb:#33192a;--s950r:18,8,13;--s900r:31,15,24}
+html[data-theme="purple"]{--a3:#b8a0e0;--a4:#9a7fd0;--a5:#7556b3;--a6:#5f4396;--a7:#4a3378;--ar:117,86,179;--s950:#0d0914;--s900:#171126;--s800:#231b38;--s700:#302648;--sb:#2a2142;--s950r:13,9,20;--s900r:23,17,38}
+html[data-theme="green"]{--a3:#8fc4a8;--a4:#66ad88;--a5:#3f8262;--a6:#2f6b4f;--a7:#245640;--ar:63,130,98;--s950:#08100c;--s900:#0f1d16;--s800:#182a21;--s700:#22392d;--sb:#1d3128;--s950r:8,16,12;--s900r:15,29,22}
+html[data-theme] .bg-slate-950,html[data-theme] .inp{background-color:var(--s950)!important}
+html[data-theme] .bg-slate-900,html[data-theme] .card{background-color:var(--s900)!important}
+html[data-theme] .bg-slate-800{background-color:var(--s800)!important}
+html[data-theme] .hover\:bg-slate-700:hover{background-color:var(--s700)!important}
+html[data-theme] .bg-slate-950\/80{background-color:rgba(var(--s950r),.8)!important}
+html[data-theme] .bg-slate-900\/70{background-color:rgba(var(--s900r),.7)!important}
+html[data-theme] .border-slate-800,html[data-theme] .card,html[data-theme] .inp{border-color:var(--sb)!important}
 html[data-theme] .text-blue-300{color:var(--a3)!important}
 html[data-theme] .text-blue-400,html[data-theme] .text-blue-500,html[data-theme] .text-blue-700,html[data-theme] .text-violet-300{color:var(--a4)!important}
-html[data-theme] .bg-blue-600,html[data-theme] .bg-indigo-600,html[data-theme] .bg-emerald-600,html[data-theme] .bg-amber-600{background-color:var(--a6)!important}
-html[data-theme] .bg-blue-500,html[data-theme] .hover\:bg-blue-500:hover,html[data-theme] .hover\:bg-blue-600:hover,html[data-theme] .hover\:bg-indigo-500:hover,html[data-theme] .hover\:bg-emerald-500:hover,html[data-theme] .hover\:bg-amber-500:hover{background-color:var(--a5)!important}
-html[data-theme] .bg-blue-600\/20,html[data-theme] .bg-violet-600\/20,html[data-theme] .bg-emerald-600\/20,html[data-theme] .bg-amber-500\/10{background-color:rgba(var(--ar),.25)!important}
-html[data-theme] .hover\:bg-blue-600\/30:hover,html[data-theme] .hover\:bg-violet-600\/30:hover{background-color:rgba(var(--ar),.35)!important}
-html[data-theme] .bg-blue-500\/15,html[data-theme] .bg-emerald-500\/10{background-color:rgba(var(--ar),.2)!important}
-html[data-theme] .bg-blue-500\/10{background-color:rgba(var(--ar),.15)!important}
+html[data-theme] .bg-blue-600,html[data-theme] .bg-indigo-600{background-color:var(--a6)!important}
+html[data-theme] .bg-blue-500,html[data-theme] .hover\:bg-blue-500:hover,html[data-theme] .hover\:bg-blue-600:hover,html[data-theme] .hover\:bg-indigo-500:hover{background-color:var(--a5)!important}
+html[data-theme] .bg-blue-600\/20,html[data-theme] .bg-violet-600\/20{background-color:rgba(var(--ar),.2)!important}
+html[data-theme] .hover\:bg-blue-600\/30:hover,html[data-theme] .hover\:bg-violet-600\/30:hover{background-color:rgba(var(--ar),.3)!important}
+html[data-theme] .bg-blue-500\/15{background-color:rgba(var(--ar),.15)!important}
+html[data-theme] .bg-blue-500\/10{background-color:rgba(var(--ar),.1)!important}
 html[data-theme] .border-blue-500,html[data-theme] .inp:focus{border-color:var(--a5)!important}
-html[data-theme] .border-blue-500\/40,html[data-theme] .border-emerald-500\/25,html[data-theme] .border-amber-500\/30{border-color:rgba(var(--ar),.6)!important}
-html[data-theme] .border-blue-500\/30{border-color:rgba(var(--ar),.4)!important}
+html[data-theme] .border-blue-500\/40{border-color:rgba(var(--ar),.4)!important}
+html[data-theme] .border-blue-500\/30{border-color:rgba(var(--ar),.3)!important}
 html[data-theme] .from-blue-400,html[data-theme] .from-blue-500,html[data-theme] .from-blue-600,html[data-theme] .hover\:from-blue-500:hover{--tw-gradient-from:var(--a5)!important}
 html[data-theme] .to-indigo-500,html[data-theme] .to-indigo-600,html[data-theme] .to-violet-500,html[data-theme] .hover\:to-indigo-500:hover{--tw-gradient-to:var(--a7)!important}
 html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var(--a6),var(--tw-gradient-to)!important}
-html[data-theme] .tab-btn.on{background-color:var(--a6)!important;color:#ffffff!important;}
-html[data-theme] .card{border-color:rgba(var(--ar),.35)!important;}
-html[data-theme] select, html[data-theme] input{border-color:rgba(var(--ar),.4)!important;}
 .thc{width:26px;height:26px;border-radius:9999px;border:2px solid transparent;position:relative;flex:none}
 .thc.on{border-color:#e2e8f0}.thc.lk{opacity:.45}
 </style>
@@ -305,8 +309,9 @@ html[data-theme] select, html[data-theme] input{border-color:rgba(var(--ar),.4)!
       <h3 class="text-sm font-semibold text-slate-400"><i class="fa-solid fa-file-pdf text-red-400 mr-1"></i> Download summary (PDF)</h3>
       <div class="grid grid-cols-2 gap-3">
         <div><label class="lbl">Summary type</label>
-          <select id="repKind" onchange="fillPeriods()" class="inp"><option value="daily">Daily</option><option value="weekly" selected>Weekly</option><option value="monthly">Monthly</option></select></div>
-        <div><label class="lbl">Period</label><select id="repPeriod" class="inp"></select></div>
+          <select id="repKind" onchange="fillPeriods()" class="inp"><option value="daily">Daily</option><option value="weekly" selected>Weekly</option><option value="monthly">Monthly</option><option value="range">Certain period</option></select></div>
+        <div id="repPerBox"><label class="lbl">Period</label><select id="repPeriod" class="inp"></select></div>
+        <div id="repRangeBox" class="hidden col-span-2"><label class="lbl">From → To</label><div class="flex gap-2"><input type="date" id="repFrom" class="inp"><input type="date" id="repTo" class="inp"></div></div>
       </div>
       <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="repClasses" checked> Include classes in hours and charts</label>
       <button onclick="openReport()" class="btn bg-blue-600 hover:bg-blue-500"><i class="fa-solid fa-eye mr-1"></i> Preview summary</button>
@@ -392,8 +397,8 @@ html[data-theme] select, html[data-theme] input{border-color:rgba(var(--ar),.4)!
   <div>
     <p class="lbl"><i class="fa-solid fa-key mr-1"></i> Change password</p>
     <div class="space-y-2">
-      <input id="cpOld" type="password" class="inp" placeholder="Current password" autocomplete="current-password">
-      <input id="cpNew" type="password" class="inp" placeholder="New password (min 6 characters)" autocomplete="new-password">
+      <div class="relative"><input id="cpOld" type="password" class="inp !pr-9" placeholder="Current password" autocomplete="current-password"><button type="button" onclick="togglePw('cpOld',this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 px-1" title="Show / hide"><i class="fa-solid fa-eye"></i></button></div>
+      <div class="relative"><input id="cpNew" type="password" class="inp !pr-9" placeholder="New password (min 6 characters)" autocomplete="new-password"><button type="button" onclick="togglePw('cpNew',this)" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 px-1" title="Show / hide"><i class="fa-solid fa-eye"></i></button></div>
       <button onclick="changePassword()" class="btn bg-slate-800 hover:bg-slate-700">Change password</button>
     </div>
   </div>
@@ -672,6 +677,10 @@ function onLogin() {
   }
 }
 
+function togglePw(id, btn) {
+  const i = $(id), show = i.type === 'password'; i.type = show ? 'text' : 'password';
+  btn.innerHTML = show ? '<i class="fa-solid fa-eye-slash"></i>' : '<i class="fa-solid fa-eye"></i>';
+}
 async function changePassword() {
   const o = $('cpOld').value, n = $('cpNew').value;
   if (!o || n.length < 6) return alert('Enter your current password and a new password of at least 6 characters.');
@@ -825,15 +834,15 @@ function renderStreak() {
   checkStreakPerks(); renderThemes();
   if (f.cur !== lastLB) { lastLB = f.cur; pushStreak(f.cur); }
 }
-const THEMES = { blue: '#3b82f6', pink: '#b53d71', purple: '#8042c7', green: '#2b8f5d' };
+const THEMES = { blue: '#3b82f6', pink: '#c2678f', purple: '#8e6cc9', green: '#4f9d78' };
 function renderThemes() {
   const row = $('themeRow'); if (!row) return;
-  const cur = localStorage.getItem('ev_theme') || 'blue', ok = true;
+  const cur = localStorage.getItem('ev_theme') || 'blue', ok = fireState().best >= 15;
   row.innerHTML = Object.entries(THEMES).map(([k, c]) => `<button onclick="setTheme('${k}')" title="${k}" class="thc ${cur === k ? 'on' : ''} ${k !== 'blue' && !ok ? 'lk' : ''}" style="background:${c}">${k !== 'blue' && !ok ? '<i class="fa-solid fa-lock text-[10px] text-white absolute inset-0 flex items-center justify-center"></i>' : ''}</button>`).join('');
   $('themeNote').classList.toggle('hidden', ok);
 }
 function setTheme(k) {
-  if (false) return $('themeNote').classList.remove('hidden');
+  if (k !== 'blue' && fireState().best < 15) return $('themeNote').classList.remove('hidden');
   localStorage.setItem('ev_theme', k);
   if (k === 'blue') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', k);
   renderThemes(); renderCharts();
@@ -1277,14 +1286,21 @@ const loadScript = src => _ls[src] || (_ls[src] = new Promise((ok, no) => {
 let repC1 = null, repC2 = null, repName = 'EDUVEX-summary';
 function fillPeriods() {
   const kind = $('repKind').value, now = new Date(); let h = '';
+  $('repPerBox').classList.toggle('hidden', kind === 'range'); $('repRangeBox').classList.toggle('hidden', kind !== 'range');
+  if (kind === 'range') { if (!$('repTo').value) { $('repTo').value = toYMD(now); $('repFrom').value = toYMD(addDays(now, -6)); } return; }
   if (kind === 'daily') for (let i = 0; i < 31; i++) { const d = addDays(now, -i); h += `<option value="${toYMD(d)}">${i === 0 ? 'Today' : i === 1 ? 'Yesterday' : fmtY(d)}${i < 2 ? ' · ' + fmtY(d) : ''}</option>`; }
   else if (kind === 'weekly') for (let i = 0; i < 16; i++) { const a = addDays(weekStart(now), -7 * i); h += `<option value="${toYMD(a)}">${i === 0 ? 'This week' : i === 1 ? 'Last week' : 'Week of ' + fmt(a)} · ${fmt(a)} to ${fmt(addDays(a, 6))}</option>`; }
   else starts.forEach((m, i) => { const p = pc(m), nm = MN()[p.m - 1] + ' ' + p.y; h += `<option value="${i}">${i === 0 ? 'This month' : i === 1 ? 'Last month' : nm}${i < 2 ? ' · ' + nm : ''}</option>`; });
   $('repPeriod').innerHTML = h;
 }
 function repCollect() {
-  const kind = $('repKind').value, val = $('repPeriod').value, label = $('repPeriod').selectedOptions[0].textContent;
-  let days;
+  const kind = $('repKind').value; let days;
+  if (kind === 'range') {
+    const a = $('repFrom').value && ymd($('repFrom').value), b = $('repTo').value && ymd($('repTo').value); days = [];
+    if (a && b && a <= b) for (let d = a; d <= b && days.length < 120; d = addDays(d, 1)) days.push(d);   // up to 120 days
+    return { kind, days, label: days.length ? fmtY(days[0]) + ' to ' + fmtY(days[days.length - 1]) : '' };
+  }
+  const val = $('repPeriod').value, label = $('repPeriod').selectedOptions[0].textContent;
   if (kind === 'daily') days = [ymd(val)];
   else if (kind === 'weekly') { const a = ymd(val); days = Array.from({ length: 7 }, (_, i) => addDays(a, i)); }
   else { const ms = starts[+val], me = mEnd(ms); days = []; for (let d = new Date(ms); d < me; d = addDays(d, 1)) days.push(d); }
@@ -1293,6 +1309,7 @@ function repCollect() {
 async function openReport() {
   if (!oldLoaded && repCollect().days[0] < winStart()) { oldLoaded = true; await refresh(); }
   const { kind, days, label } = repCollect(), withCl = $('repClasses').checked;
+  if (!days.length) return alert('Choose a valid period: the From date must not be after the To date.');
   const keys = days.map(toYMD), set = new Set(keys), endT = new Date(); endT.setHours(23, 59, 59, 999);
   const ses = D.sessions.filter(s => set.has(toYMD(new Date(s.created_at)))).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   const tst = D.tests.filter(t => set.has(t.test_date) && +t.count > 0), sub = {};
@@ -1337,7 +1354,7 @@ async function openReport() {
   $('rep').innerHTML = h; modal('repModal', 1); repName = `EDUVEX-${kind}-${keys[0]}`;
   if (repC1) repC1.destroy(); if (repC2) repC2.destroy(); repC1 = repC2 = null;
   if (kind === 'daily') return;
-  const labels = days.map(d => kind === 'weekly' ? [(CAL === 'shamsi' ? DAYSF : DAYSE)[dayIdx(d)], fmt(d)] : pc(d).d);
+  const labels = days.map(d => kind === 'weekly' ? [(CAL === 'shamsi' ? DAYSF : DAYSE)[dayIdx(d)], fmt(d)] : kind === 'range' ? fmt(d) : pc(d).d);
   const opt = (t, tk) => ({ responsive: false, animation: false, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: tk, title: { display: true, text: t } } }, plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } });
   const hrs = n => keys.map(k => +(ses.filter(s => s.subject === n && toYMD(new Date(s.created_at)) === k).reduce((a, s) => a + s.duration_minutes, 0) / 60).toFixed(2));
   const sets = names.filter(n => sub[n].study).map(n => ({ label: n, data: hrs(n), backgroundColor: color(n) }));
