@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261116-2">
+<meta name="build" content="20261117-9p">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
@@ -43,6 +43,46 @@ body{font-family:Inter,system-ui,sans-serif}
 .fire-glow{animation:glowbox 1.2s ease-in-out infinite alternate}
 @keyframes glowbox{from{box-shadow:0 0 6px rgba(249,115,22,.35)}to{box-shadow:0 0 22px rgba(239,68,68,.65)}}
 </style>
+<style>
+#focusClock{--w:min(12.5vw,6.5rem);--h:calc(var(--w)*1.45);display:flex;align-items:center;justify-content:center;gap:min(1.2vw,.5rem)}
+#focusClock .fl{position:relative;width:var(--w);height:var(--h);perspective:700px;font:700 calc(var(--w)*1.15)/var(--h) ui-monospace,Menlo,Consolas,monospace;color:#f1f5f9}
+#focusClock .fl>div{position:absolute;left:0;right:0;height:50%;overflow:hidden;background:#1e293b;text-align:center;backface-visibility:hidden}
+#focusClock .fl .t{top:0;border-radius:10px 10px 0 0;border-bottom:1px solid #020617}
+#focusClock .fl .b{bottom:0;border-radius:0 0 10px 10px}
+#focusClock .fl span{display:block;height:var(--h);line-height:var(--h)}
+#focusClock .fl .b span{position:relative;top:-100%}
+#focusClock .fl .ft{transform-origin:bottom;animation:ftA .22s ease-in forwards;z-index:2}
+#focusClock .fl .fb{transform-origin:top;transform:rotateX(90deg);animation:fbA .22s .22s ease-out forwards;z-index:2}
+@keyframes ftA{to{transform:rotateX(-90deg)}}@keyframes fbA{to{transform:rotateX(0)}}
+#focusClock.nosec .sec{display:none}
+#focusClock .fc{font:700 calc(var(--w)*.9)/1 ui-monospace,monospace;color:#475569}
+</style>
+<style>
+html[data-theme]{--bgc:#0f172a}
+html[data-theme="pink"]{--a3:#f4a3c7;--a4:#e06399;--a5:#b53d71;--a6:#942c5a;--a7:#731d43;--ar:181,61,113}
+html[data-theme="purple"]{--a3:#d1b0f7;--a4:#ab75e8;--a5:#8042c7;--a6:#662db0;--a7:#4d1d94;--ar:128,66,199}
+html[data-theme="green"]{--a3:#8ce0b4;--a4:#4db881;--a5:#2b8f5d;--a6:#1e7347;--a7:#125433;--ar:43,143,93}
+html[data-theme] .text-blue-300{color:var(--a3)!important}
+html[data-theme] .text-blue-400,html[data-theme] .text-blue-500,html[data-theme] .text-blue-700,html[data-theme] .text-violet-300{color:var(--a4)!important}
+html[data-theme] .bg-blue-600,html[data-theme] .bg-indigo-600,html[data-theme] .bg-emerald-600,html[data-theme] .bg-amber-600{background-color:var(--a6)!important}
+html[data-theme] .bg-blue-500,html[data-theme] .hover\:bg-blue-500:hover,html[data-theme] .hover\:bg-blue-600:hover,html[data-theme] .hover\:bg-indigo-500:hover,html[data-theme] .hover\:bg-emerald-500:hover,html[data-theme] .hover\:bg-amber-500:hover{background-color:var(--a5)!important}
+html[data-theme] .bg-blue-600\/20,html[data-theme] .bg-violet-600\/20,html[data-theme] .bg-emerald-600\/20,html[data-theme] .bg-amber-500\/10{background-color:rgba(var(--ar),.25)!important}
+html[data-theme] .hover\:bg-blue-600\/30:hover,html[data-theme] .hover\:bg-violet-600\/30:hover{background-color:rgba(var(--ar),.35)!important}
+html[data-theme] .bg-blue-500\/15,html[data-theme] .bg-emerald-500\/10{background-color:rgba(var(--ar),.2)!important}
+html[data-theme] .bg-blue-500\/10{background-color:rgba(var(--ar),.15)!important}
+html[data-theme] .border-blue-500,html[data-theme] .inp:focus{border-color:var(--a5)!important}
+html[data-theme] .border-blue-500\/40,html[data-theme] .border-emerald-500\/25,html[data-theme] .border-amber-500\/30{border-color:rgba(var(--ar),.6)!important}
+html[data-theme] .border-blue-500\/30{border-color:rgba(var(--ar),.4)!important}
+html[data-theme] .from-blue-400,html[data-theme] .from-blue-500,html[data-theme] .from-blue-600,html[data-theme] .hover\:from-blue-500:hover{--tw-gradient-from:var(--a5)!important}
+html[data-theme] .to-indigo-500,html[data-theme] .to-indigo-600,html[data-theme] .to-violet-500,html[data-theme] .hover\:to-indigo-500:hover{--tw-gradient-to:var(--a7)!important}
+html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var(--a6),var(--tw-gradient-to)!important}
+html[data-theme] .tab-btn.on{background-color:var(--a6)!important;color:#ffffff!important;}
+html[data-theme] .card{border-color:rgba(var(--ar),.35)!important;}
+html[data-theme] select, html[data-theme] input{border-color:rgba(var(--ar),.4)!important;}
+.thc{width:26px;height:26px;border-radius:9999px;border:2px solid transparent;position:relative;flex:none}
+.thc.on{border-color:#e2e8f0}.thc.lk{opacity:.45}
+</style>
+<script>(function(){try{var t=localStorage.getItem('ev_theme');if(t&&t!=='blue')document.documentElement.setAttribute('data-theme',t)}catch(e){}})()</script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
 
@@ -101,6 +141,11 @@ body{font-family:Inter,system-ui,sans-serif}
     <span id="streakNum" class="text-lg font-bold leading-tight mt-1">0</span>
     <span class="text-[10px] text-slate-400 -mt-0.5">days</span>
   </button>
+  </div>
+
+  <div id="remBar" class="hidden card !p-3 flex items-center justify-between gap-3 border-blue-500/40">
+    <div class="min-w-0"><div class="text-[10px] text-blue-300"><i class="fa-solid fa-mobile-screen mr-1"></i> Stopwatch on another device</div><div class="flex items-baseline gap-2"><span id="remTime" class="font-mono text-xl font-bold">00:00:00</span><span id="remSub" class="text-[11px] text-slate-400 truncate"></span></div></div>
+    <div class="flex gap-2 shrink-0"><button id="remPause" onclick="remToggle()" class="btn bg-blue-600 hover:bg-blue-500 !py-1.5 !px-3 text-xs"></button><button onclick="remFinish()" class="btn bg-emerald-600 hover:bg-emerald-500 !py-1.5 !px-3 text-xs"><i class="fa-solid fa-check mr-1"></i> Finish</button></div>
   </div>
 
   <div class="flex overflow-x-auto gap-2 border-b border-slate-800 pb-2">
@@ -219,9 +264,7 @@ body{font-family:Inter,system-ui,sans-serif}
     <div class="card">
       <div class="flex justify-between items-center mb-3 gap-2">
         <h4 class="text-sm font-semibold text-amber-400"><i class="fa-solid fa-trophy mr-1"></i> Leaderboard (by streak)</h4>
-        <button id="hideBtn" onclick="toggleHide()" class="bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded-lg text-xs whitespace-nowrap"><i class="fa-solid fa-eye-slash mr-1"></i> Hide me</button>
       </div>
-      <p id="hideNote" class="hidden text-[11px] text-slate-500 mb-2">You are hidden. Press Show me to appear on the leaderboard.</p>
       <div id="lbList" class="space-y-2"></div>
     </div>
   </div>
@@ -281,7 +324,7 @@ body{font-family:Inter,system-ui,sans-serif}
           <span class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/25"><i class="fa-solid fa-lightbulb mr-1"></i> Recommendations</span>
           <span class="px-3 py-1 rounded-full bg-red-500/10 text-red-300 border border-red-500/25"><i class="fa-solid fa-bug mr-1"></i> Bugs</span>
         </div>
-        <a href="https://raswta.carrd.co" target="_blank" rel="noopener" class="btn block text-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500">Open the form <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i></a>
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSf-Lr5hlPesAjzwdNtDLYZ86TLvm9zhnC80moeNW99FeX4GZA/viewform?usp=dialog" target="_blank" rel="noopener" class="btn block text-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500">Open the form <i class="fa-solid fa-arrow-up-right-from-square ml-1"></i></a>
       </div>
     </div>
   </div>
@@ -294,12 +337,13 @@ body{font-family:Inter,system-ui,sans-serif}
 
 <div id="focus" class="hidden fixed inset-0 z-[45] bg-slate-950 flex flex-col items-center justify-center p-6 gap-8">
   <div class="flex flex-wrap items-center justify-center gap-8 w-full">
-    <div id="focusClock" class="font-mono font-bold tracking-wider text-slate-100 text-[17vw] sm:text-8xl leading-none">00:00:00</div>
+    <div id="focusClock"></div>
     <div class="w-56 max-w-full bg-slate-900/70 border border-slate-800 rounded-2xl p-3">
       <div class="text-[11px] text-slate-400 mb-2 flex items-center gap-1.5"><i class="fa-solid fa-users"></i> Study Room</div>
       <div id="focusRoom" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
     </div>
   </div>
+  <button id="secBtn" onclick="toggleSec()" class="absolute top-6 right-6 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium"></button>
   <button onclick="focusOff()" class="absolute bottom-8 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium"><i class="fa-solid fa-compress mr-1"></i> Exit focus mode</button>
 </div>
 <div id="streakModal" class="modal"><div class="card max-w-sm w-full space-y-4 text-center relative">
@@ -307,6 +351,7 @@ body{font-family:Inter,system-ui,sans-serif}
   <div class="py-2 flex justify-center"><img id="streakBig" src="streak/angry.png" class="w-24 h-24 object-contain" alt=""></div>
   <div><span id="streakCount" class="text-4xl font-bold">0</span> <span class="text-slate-400">day streak</span></div>
   <p id="streakNote" class="text-xs text-slate-300"></p>
+  <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-2.5 text-[11px] text-amber-300 text-left"><i class="fa-solid fa-triangle-exclamation mr-1"></i> <b>Warning:</b> a day counts for your streak only if you study <b>more than 3 hours</b> (stopwatch time). After a 15-day streak you need <b>more than 5 hours</b> a day. Your weekly classes are added to that time, but manual entries never count.</div>
   <div class="bg-emerald-500/10 border border-emerald-500/25 rounded-xl p-2.5 text-[11px] text-emerald-300">
     <i class="fa-solid fa-medal mr-1"></i> <b>30 Days Perk:</b> Unlocks manual join/leave room controls!
   </div>
@@ -322,6 +367,8 @@ body{font-family:Inter,system-ui,sans-serif}
 <div id="settings" class="modal"><div class="card max-w-md w-full space-y-5 max-h-[85vh] overflow-y-auto relative">
   <button onclick="modal('settings',0)" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
   <h3 class="text-base font-bold text-slate-200"><i class="fa-solid fa-gear mr-1"></i> Settings</h3>
+  <div class="flex items-center gap-3"><span class="text-xs font-semibold text-slate-300">Theme</span><div id="themeRow" class="flex items-center gap-2"></div></div>
+  <p id="themeNote" class="hidden text-[11px] text-slate-500 -mt-3">More themes unlock when you reach a 15-day streak.</p>
   <div>
     <p class="lbl"><i class="fa-solid fa-calendar-days mr-1"></i> Calendar type (all dates on the site)</p>
     <div class="grid grid-cols-2 gap-2">
@@ -403,10 +450,11 @@ body{font-family:Inter,system-ui,sans-serif}
 <div id="guide" class="modal"><div class="card max-w-xl w-full space-y-3 text-xs text-slate-300 leading-relaxed max-h-[85vh] overflow-y-auto relative">
   <button onclick="modal('guide',0)" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
   <h3 class="text-base font-bold text-blue-400"><i class="fa-solid fa-lightbulb mr-1"></i> EDUVEX Complete Guide</h3>
+  <a href="https://t.me/EDUVEXtut" target="_blank" rel="noopener" class="block text-center rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-300 py-2 font-semibold hover:bg-blue-600/30"><i class="fa-solid fa-images mr-1"></i> Illustrated step-by-step guide (with pictures): t.me/EDUVEXtut</a>
   <p><b><i class="fa-solid fa-bullseye text-blue-400 mr-1"></i> Goal bar:</b> choose Daily or Weekly, type your target hours (12.5 means 12 hours 30 minutes) and press Save Goal. The bar counts your study sessions plus your weekly classes.</p>
   <p><b><i class="fa-solid fa-fire text-orange-400 mr-1"></i> Streak:</b> the character next to the goal bar counts your days in a row. It is angry until you start studying today, and it glows when you reach your daily goal. Tap it to choose a weekly day off that never breaks your streak.</p>
-  <p><b><i class="fa-solid fa-face-smile text-orange-400 mr-1"></i> Streak character:</b> the character shows your level. Angry: you have not started studying today (with any streak). Calm: you started today and have a 1-9 day streak. Sparkle: 10 days. Black graduation cap: 30 days. Red graduation cap: 60 days. Tap it to see all levels.</p>
-  <p><b><i class="fa-solid fa-ranking-star text-amber-400 mr-1"></i> Leaderboard:</b> in the Study Room tab, everyone is ranked by streak (most days first), with their username, streak and level character. You are hidden by default. Press Show me to appear there, and Hide me to leave again.</p>
+  <p><b><i class="fa-solid fa-face-smile text-orange-400 mr-1"></i> Streak character:</b> the character shows your level. Angry: you have not started studying today (with any streak). Calm: you started today and have a 1-14 day streak. Sparkle: 15 days. Black graduation cap: 30 days. Red graduation cap: 60 days. Tap it to see all levels.</p>
+  <p><b><i class="fa-solid fa-ranking-star text-amber-400 mr-1"></i> Leaderboard:</b> in the Study Room tab, everyone is ranked by streak (most days first), with their username, streak and level character. Everyone with a streak is listed automatically.</p>
   <p><b><i class="fa-solid fa-stopwatch text-blue-400 mr-1"></i> Timer:</b> pick a subject and press Start. To study another subject, press Pause, choose the new subject and press Resume. The big clock keeps the total, and each subject is saved with its own time when you press Finish &amp; Save. Sessions shorter than 15 seconds are not saved. The stopwatch keeps going if you refresh the page.</p>
   <p><b><i class="fa-solid fa-user-clock text-blue-400 mr-1"></i> Still studying? check:</b> if the stopwatch runs for 3 hours without you touching the app, a popup asks whether you are still studying. Tap Yes within 10 minutes to keep going. If you do not, the stopwatch pauses and the waiting time is not counted. For very long sessions, use Focus mode so the screen stays on and you can answer.</p>
   <p><b><i class="fa-solid fa-expand text-blue-400 mr-1"></i> Focus mode:</b> tap the expand icon at the top to show only a big study clock and a small Study Room window. Nothing is locked, so you can leave the app any time. Press Exit focus mode at the bottom to come back.</p>
@@ -447,7 +495,7 @@ const PRES_EVERY = 3 * 3600, PRES_GRACE = 10 * 60;   // ask every 3 hours withou
 let subjects = LS('ev_subjects', ['General Study','Physics','Mathematics','Chemistry','Biology']);
 let goalType = localStorage.getItem('ev_goal_type') || 'daily';
 let goalVal = parseFloat(localStorage.getItem('ev_goal_val')) || (goalType === 'weekly' ? 70 : 10);
-let D = { sessions: [], classes: [], exams: [], grades: [], tests: [] };
+let D = { sessions: [], classes: [], exams: [], grades: [], tests: [], days: [] };
 
 const color = s => COLORS[subjects.indexOf(s) % COLORS.length] || '#64748b';
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
@@ -544,14 +592,23 @@ async function sync() {
   }
   setQ(rest);
 }
+let oldLoaded = false;
+const winStart = () => new Date(Date.now() - 35 * 864e5);   // study logs: only the last 35 days are read, older ones on demand
 async function rows(table) {
   const key = `ev_c_${user.id}_${table}`;
   let r = LS(key, []);                                   // last copy from the server (used when offline)
   if (navigator.onLine) {
-    const { data, error } = await sb.from(table).select('*').eq('user_id', user.id);
+    let data = [], error = null;
+    for (let i = 0; ; i += 1000) {                       // read page by page (the server returns max 1000 rows at once)
+      let q = sb.from(table).select('*').eq('user_id', user.id);
+      if (table === 'study_sessions' && !oldLoaded) q = q.gte('created_at', winStart().toISOString());
+      const r = await q.order('id').range(i, i + 999);
+      if (r.error) { error = r.error; break; }
+      data = data.concat(r.data || []); if ((r.data || []).length < 1000) break;
+    }
     if (error) console.error('load ' + table, error); else { r = data || []; localStorage.setItem(key, JSON.stringify(r)); }
   }
-  const all = [...r, ...Q().filter(i => i.table === table && i.row.user_id === user.id).map(i => ({ ...i.row, _local: 1 }))];
+  const all = [...r, ...Q().filter(i => i.table === table && i.row.user_id === user.id).map(i => ({ ...i.row, _local: 1, _qi: Q().indexOf(i) }))];
   if (table !== 'study_tests') return all;
   const m = {}; all.forEach(t => { m[t.test_date + '|' + t.subject] = t; });   // a saved or edited test replaces the older one
   return Object.values(m);
@@ -563,10 +620,15 @@ async function del(table, id) {
   if (!data || !data.length) return alert('Could not delete this item.');
   refresh();
 }
+function delQ(t, i) {
+  if (!confirm('Delete this item?')) return;
+  const q = Q(); if (q[i] && q[i].table === t) q.splice(i, 1); setQ(q); refresh();
+}
 async function refresh() {
   if (!user) return;
   await sync(); pushFlush();
   [D.sessions, D.classes, D.exams, D.grades, D.tests] = await Promise.all(['study_sessions','classes','exams','exam_grades','study_tests'].map(rows));
+  try { const r = await sb.from('daily_summary').select('day,minutes').eq('user_id', user.id); if (!r.error) { D.days = r.data || []; localStorage.setItem('ev_days_' + user.id, JSON.stringify(D.days)); } else D.days = LS('ev_days_' + user.id, []); } catch (e) { D.days = LS('ev_days_' + user.id, []); }
   D.sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   D.sessions.forEach(s => { if (s.subject && !subjects.includes(s.subject)) subjects.push(s.subject); });
   D.classes.forEach(c => { if (c.subject && !subjects.includes(c.subject)) subjects.push(c.subject); });
@@ -599,8 +661,13 @@ function onLogin() {
     leaveRoom();
   }
   refresh();
+  remotePull(); setInterval(remotePull, 10000);
+  setTimeout(() => { if (running) remotePush(); }, 4000);                                  // a timer that was already running (started before this update / reopened tab) becomes visible to other devices
+  setInterval(async () => { if (user && running) { await remotePull(); if (running) remotePush(); } }, 60000);   // heartbeat while studying
+  window.addEventListener('online', remotePull); document.addEventListener('visibilitychange', () => { if (!document.hidden) remotePull(); });
+  initCollapse();
   if (!roomInt) {
-    roomInt = setInterval(() => { if (inRoom || focusActive || !$('roomTab').classList.contains('hidden')) syncRoom(); }, 3000);
+    roomInt = setInterval(() => { if (inRoom || focusActive || !$('roomTab').classList.contains('hidden')) syncRoom(); }, 10000);
     setInterval(() => { if (focusActive || !$('roomTab').classList.contains('hidden')) renderRoom(); }, 1000);
   }
 }
@@ -636,6 +703,17 @@ function getSubject(sel, custom) {
   if (!subjects.includes(n)) { subjects.push(n); localStorage.setItem('ev_subjects', JSON.stringify(subjects)); }
   fillSubjects(); $(sel).value = n; $(custom).value = ''; $(custom).classList.add('hidden');
   return n;
+}
+
+// ---------- Collapsible cards (state remembered) ----------
+function initCollapse() {
+  document.querySelectorAll('#app .card').forEach(c => {
+    const h = c.firstElementChild; if (c.closest('.modal') || c.dataset.col || !h || !/^H[34]$/.test(h.tagName)) return;
+    c.dataset.col = 1; const key = 'ev_col_' + h.textContent.trim().slice(0, 40);
+    h.style.cursor = 'pointer'; h.insertAdjacentHTML('beforeend', ' <i class="fa-solid fa-chevron-down ml-1 text-[10px]" style="transition:transform .2s"></i>');
+    const ap = () => { const o = localStorage.getItem(key) === '1'; [...c.children].forEach(x => { if (x !== h) x.style.display = o ? 'none' : ''; }); h.lastElementChild.style.transform = o ? 'rotate(-90deg)' : ''; };
+    h.onclick = () => { localStorage.setItem(key, localStorage.getItem(key) === '1' ? '0' : '1'); ap(); }; ap();
+  });
 }
 
 // ---------- Subjects manager (Settings) ----------
@@ -703,21 +781,20 @@ function renderGoal() {
 // ---------- Streak ----------
 const restDay = () => { const v = localStorage.getItem('ev_restday'); return v === null || v === '' ? -1 : +v; };
 function fireState() {
-  const days = {}, todayKey = toYMD(new Date()), rest = restDay();
-  D.sessions.forEach(s => { if ((+s.duration_minutes || 0) > 0) days[toYMD(new Date(s.created_at))] = 1; });
-  if (running || base > 0) days[todayKey] = 1;                 // starts counting as soon as you start studying today
-  let cur = 0;
-  for (let i = 0; i < 800; i++) {
-    const d = addDays(new Date(), -i);
-    if (days[toYMD(d)]) cur++;
-    else if (i === 0 || d.getDay() === rest) continue;         // today not studied yet, or a day off: does not break the streak
-    else break;
-  }
-  let best = 0, run = 0; const keys = Object.keys(days).sort();
+  const todayKey = toYMD(new Date()), rest = restDay(), cutK = toYMD(addDays(winStart(), 1)), m = {}, cl = {};
+  (D.days || []).forEach(r => { if (r.day < cutK) m[r.day] = +r.minutes || 0; });   // older days: one summary row each (no manual time)
+  D.sessions.forEach(x => { const k = toYMD(new Date(x.created_at)); if (x.type !== 'manual' && k >= cutK) m[k] = (m[k] || 0) + (+x.duration_minutes || 0); });
+  D.classes.forEach(c => { cl[+c.day_of_week] = (cl[+c.day_of_week] || 0) + (+c.duration_minutes || 0); });
+  const live = (running || base) ? base / 60 : 0;
+  if (live) m[todayKey] = (m[todayKey] || 0) + live;
+  const keys = Object.keys(m).filter(k => m[k] > 0).sort();
+  let cur = 0, best = 0;
   if (keys.length) for (let d = ymd(keys[0]); toYMD(d) <= todayKey; d = addDays(d, 1)) {
-    const k = toYMD(d);
-    if (days[k]) { run++; best = Math.max(best, run); } else if (d.getDay() !== rest && k !== todayKey) run = 0;
+    const k = toYMD(d), st = m[k] || 0, mins = st > 0 ? st + (cl[d.getDay()] || 0) : 0;   // classes add to study time, manual time never counts
+    if (mins > (cur >= 15 ? 300 : 180)) { cur++; best = Math.max(best, cur); }          // days 1-15 need over 3 h, after 15 days over 5 h
+    else if (k !== todayKey && d.getDay() !== rest) cur = 0;                              // today not finished yet / a day off do not break it
   }
+  const days = { [todayKey]: (m[todayKey] || 0) > 0 || running || base > 0 };
   const t0 = new Date(); t0.setHours(0, 0, 0, 0);
   const mins = D.sessions.filter(s => new Date(s.created_at) >= t0).reduce((a, s) => a + (+s.duration_minutes || 0), 0)
     + D.classes.filter(c => +c.day_of_week === new Date().getDay()).reduce((a, c) => a + (+c.duration_minutes || 0), 0) + (running || base ? base / 60 : 0);
@@ -727,9 +804,9 @@ function fireState() {
 
 // Streak characters (put the 5 images in a folder called "streak")
 const SIMG = { angry: 'streak/angry.png', calm: 'streak/calm.png', spark: 'streak/spark.png', black: 'streak/black.png', red: 'streak/red.png' };
-const levelOf = n => n >= 60 ? 'red' : n >= 30 ? 'black' : n >= 10 ? 'spark' : n >= 1 ? 'calm' : 'angry';
+const levelOf = n => n >= 60 ? 'red' : n >= 30 ? 'black' : n >= 15 ? 'spark' : n >= 1 ? 'calm' : 'angry';
 const streakImg = f => SIMG[f.studiedToday ? levelOf(Math.max(1, f.cur)) : 'angry'];
-const LVLS = [['angry', 'Not started today'], ['calm', '1-9 days'], ['spark', '10 days'], ['black', '30 days'], ['red', '60 days']];
+const LVLS = [['angry', 'Not started today'], ['calm', '1-14 days'], ['spark', '15 days'], ['black', '30 days'], ['red', '60 days']];
 let lastLB = -1;
 
 function checkStreakPerks() {
@@ -745,9 +822,24 @@ function renderStreak() {
   $('fireIcon').className = 'w-12 h-12 object-contain ' + (f.blaze ? 'fire-blaze' : '');
   $('streakNum').textContent = f.cur;
   $('streakBtn').className = 'w-24 shrink-0 rounded-2xl border bg-slate-900 flex flex-col items-center justify-center py-2 transition ' + (f.blaze ? 'border-orange-500/60 fire-glow' : f.studiedToday ? 'border-amber-500/40' : 'border-slate-800');
-  checkStreakPerks();
+  checkStreakPerks(); renderThemes();
   if (f.cur !== lastLB) { lastLB = f.cur; pushStreak(f.cur); }
 }
+const THEMES = { blue: '#3b82f6', pink: '#b53d71', purple: '#8042c7', green: '#2b8f5d' };
+function renderThemes() {
+  const row = $('themeRow'); if (!row) return;
+  const cur = localStorage.getItem('ev_theme') || 'blue', ok = true;
+  row.innerHTML = Object.entries(THEMES).map(([k, c]) => `<button onclick="setTheme('${k}')" title="${k}" class="thc ${cur === k ? 'on' : ''} ${k !== 'blue' && !ok ? 'lk' : ''}" style="background:${c}">${k !== 'blue' && !ok ? '<i class="fa-solid fa-lock text-[10px] text-white absolute inset-0 flex items-center justify-center"></i>' : ''}</button>`).join('');
+  $('themeNote').classList.toggle('hidden', ok);
+}
+function setTheme(k) {
+  if (false) return $('themeNote').classList.remove('hidden');
+  localStorage.setItem('ev_theme', k);
+  if (k === 'blue') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', k);
+  renderThemes(); renderCharts();
+}
+const ACC = () => getComputedStyle(document.documentElement).getPropertyValue('--a5').trim() || '#3b82f6';
+const ACCRGB = () => getComputedStyle(document.documentElement).getPropertyValue('--ar').trim() || '59,130,246';
 function openStreak() {
   const f = fireState(), names = CAL === 'shamsi' ? DAYSF : DAYSE;
   $('streakBig').src = streakImg(f);
@@ -764,14 +856,16 @@ function setRestDay() { localStorage.setItem('ev_restday', $('restDay').value); 
 
 // ---------- Focus mode ----------
 async function wakeOn() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {} }
-function focusOn() { focusActive = true; $('focus').classList.remove('hidden'); draw(); renderRoom(); wakeOn(); if (user) syncRoom(); }
+function secApply() { const off = localStorage.getItem('ev_focus_nosec') === '1'; $('focusClock').classList.toggle('nosec', off); $('secBtn').innerHTML = off ? '<i class="fa-solid fa-eye mr-1"></i> Show seconds' : '<i class="fa-solid fa-eye-slash mr-1"></i> Hide seconds'; }
+function toggleSec() { localStorage.setItem('ev_focus_nosec', localStorage.getItem('ev_focus_nosec') === '1' ? '0' : '1'); secApply(); }
+function focusOn() { secApply(); focusActive = true; $('focus').classList.remove('hidden'); draw(); renderRoom(); wakeOn(); if (user) syncRoom(); }
 function focusOff() { focusActive = false; $('focus').classList.add('hidden'); try { if (wakeLock) wakeLock.release(); } catch (e) {} wakeLock = null; }
 
 // ---------- Lists ----------
 function renderLists() {
   const trash = (t, x) => x.id
     ? `<button onclick="del('${t}','${x.id}')" class="text-red-400 hover:text-red-300 ml-3" title="Delete"><i class="fa-solid fa-trash"></i></button>`
-    : '<span class="text-[10px] text-amber-400 ml-3">pending sync</span>';
+    : `<span class="text-[10px] text-amber-400 ml-3">pending sync</span><button onclick="delQ('${t}',${x._qi})" class="text-red-400 hover:text-red-300 ml-2" title="Delete"><i class="fa-solid fa-trash"></i></button>`;
   $('sessionsList').innerHTML = D.sessions.slice(0, 40).map(s => `
     <div class="row"><div><span class="font-medium">${esc(s.subject)}</span>
     <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] ${s.type === 'manual' ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}">${s.type === 'manual' ? 'Manual entry ( not by stop watch )' : 'Stopwatch'}</span>
@@ -804,17 +898,90 @@ function persist() {
   if (!running && base === 0) return localStorage.removeItem('ev_timer');
   localStorage.setItem('ev_timer', JSON.stringify({ id: runId, running, base, lastTick, subject: curSub, segs, tops, pres: presenceSecs }));
 }
+let remAt = 0, remote = null;
+const DEV = localStorage.getItem('ev_dev') || (() => { const d = Math.random().toString(36).slice(2, 10); localStorage.setItem('ev_dev', d); return d; })();
+async function remoteWrite(st) {
+  remAt = Date.now(); st.dev = DEV;
+  try { const r = await sb.from('live_timer').upsert({ user_id: user.id, state: st, updated_at: new Date(remAt).toISOString() }, { onConflict: 'user_id' }); if (r.error) console.error('live_timer push', r.error); } catch (e) { console.error(e); }
+}
+async function remotePush(fin) {
+  if (!user || !navigator.onLine) return;
+  const st = fin ? { finished: true, id: fin } : LS('ev_timer', null); if (!st) return;
+  await remoteWrite({ ...st });
+}
+async function remotePull() {
+  if (!user || !navigator.onLine) return;
+  try {
+    const { data, error } = await sb.from('live_timer').select('state,updated_at').eq('user_id', user.id).maybeSingle();
+    if (error) console.error('live_timer pull', error);
+    if (!data || !data.state) { remote = null; return remBar(); }
+    const st = data.state, t = new Date(data.updated_at).getTime();
+    if (st.dev === DEV) { remote = (st.finished || running || base > 0) ? null : st; return remBar(); }   // my own write: if I wrote it from the bar (paused/resumed), the bar stays until Finish
+    if (st.finished) { remote = null; if (runId && runId === st.id) { localStorage.setItem('ev_timer_done', st.id); abandon(); ui(); leaveRoom(); refresh(); } return remBar(); }
+    if (st.id && st.id === localStorage.getItem('ev_timer_done')) { remote = null; return remBar(); }
+    if (runId && runId === st.id) {                                        // another device paused/resumed MY run: follow it
+      if (t <= remAt + 1500) return; remAt = t;
+      clearInterval(tInt); running = false; base = 0; segs = {}; tops = {}; alerted = {};
+      localStorage.setItem('ev_timer', JSON.stringify(st)); restoreTimer(); persist(); remote = null; return remBar();
+    }
+    remote = (running || base > 0) ? null : st; remBar();                   // a run on another device: show the control bar
+  } catch (e) { console.error(e); }
+}
+function remNow(st) {
+  const gap = st.running ? Math.max(0, Math.floor((Date.now() - st.lastTick) / 1000)) : 0, sg = { ...(st.segs || {}) };
+  if (gap) sg[st.subject] = (sg[st.subject] || 0) + gap;
+  return { base: (st.base || 0) + gap, segs: sg };
+}
+let remWas = false;
+function remBar() {
+  const el = $('remBar'); if (!el) return;
+  if (!remote || (remote.running && Date.now() - remote.lastTick > 6 * 3600e3)) { el.classList.add('hidden'); if (remWas) { remWas = false; draw(); } return; }
+  remWas = true; if (!running && !base) draw();
+  const n = remNow(remote), h = Math.floor(n.base / 3600), m = Math.floor(n.base % 3600 / 60), sc = n.base % 60;
+  $('remTime').textContent = [h, m, sc].map(x => String(x).padStart(2, '0')).join(':');
+  $('remSub').textContent = (remote.subject || 'Study') + (remote.running ? ' · running' : ' · paused');
+  $('remPause').innerHTML = remote.running ? '<i class="fa-solid fa-pause mr-1"></i> Pause' : '<i class="fa-solid fa-play mr-1"></i> Resume';
+  el.classList.remove('hidden');
+}
+async function remToggle() {
+  if (!remote) return; const n = remNow(remote);
+  remote = { ...remote, base: n.base, segs: n.segs, lastTick: Date.now(), running: !remote.running };
+  await remoteWrite({ ...remote }); remBar();
+}
+async function remFinish() {
+  if (!remote || !confirm('Finish & save the stopwatch running on your other device?')) return;
+  const n = remNow(remote), st = remote, tp = st.tops || {}; remote = null; remBar();
+  for (const [subject, secs] of Object.entries(n.segs))
+    if (secs >= 15) await save('study_sessions', { subject, duration_minutes: Math.max(1, Math.round(secs / 60)), type: 'stopwatch', created_at: new Date().toISOString(), ...(tp[subject] ? { topic: tp[subject] } : {}) });
+  await remotePush(st.id); await leaveRoom(); refresh();
+}
+setInterval(remBar, 1000);
 function abandon() {
   clearInterval(tInt); running = false; askOpen = false; presenceSecs = 0; modal('presence', 0); base = 0; segs = {}; tops = {}; runId = null; pLeft = 0; pState = 'study'; alerted = {};
   $('swTopic').value = '';
   localStorage.removeItem('ev_timer'); ui();
 }
+function flipSet(str) {
+  const el = $('focusClock');
+  if (!el.firstChild) el.innerHTML = [...str].map((ch, k) => ch === ':' ? `<div class="fc${k > 4 ? ' sec' : ''}">:</div>` : `<div class="fl${k > 4 ? ' sec' : ''}"><div class="t"><span></span></div><div class="b"><span></span></div></div>`).join('');
+  const tiles = el.querySelectorAll('.fl'); let i = 0;
+  [...str].forEach(ch => { if (ch === ':') return; const t = tiles[i++]; if (!t) return;
+    const ts = t.querySelector('.t span'), bs = t.querySelector('.b span');
+    if (t._d === undefined) { ts.textContent = bs.textContent = ch; t._d = ch; return; }
+    if (t._d === ch) return;
+    const old = t._d; t._d = ch; ts.textContent = ch;
+    const ft = document.createElement('div'), fb = document.createElement('div');
+    ft.className = 't ft'; ft.innerHTML = `<span>${old}</span>`; fb.className = 'b fb'; fb.innerHTML = `<span>${ch}</span>`;
+    t.append(ft, fb); setTimeout(() => { bs.textContent = ch; ft.remove(); fb.remove(); }, 460);
+  });
+}
 function draw() {
-  const s = pomo ? Math.max(0, pLeft) : base;
+  const rem = remote && !running && !base && !(remote.running && Date.now() - remote.lastTick > 6 * 3600e3);   // timer running on another device: show its time here too
+  const s = pomo && !rem ? Math.max(0, pLeft) : rem ? remNow(remote).base : base;
   const p = n => String(n).padStart(2, '0');
   const clk = `${p(Math.floor(s / 3600))}:${p(Math.floor(s % 3600 / 60))}:${p(s % 60)}`;
-  $('swDisplay').textContent = clk; $('focusClock').textContent = clk;
-  $('swStatus').textContent = !running ? (base ? 'Paused' : 'Ready') : (pState === 'rest' ? 'Resting...' : 'Studying...');
+  $('swDisplay').textContent = clk; flipSet(clk);
+  $('swStatus').textContent = rem ? (remote.running ? 'Running on your other device' : 'Paused on your other device') : !running ? (base ? 'Paused' : 'Ready') : (pState === 'rest' ? 'Resting...' : 'Studying...');
   $('swBreak').innerHTML = Object.entries(segs).map(([n, v]) => `<div class="flex justify-between"><span>${esc(n)}</span><span class="font-mono">${Math.floor(v / 60)} min</span></div>`).join('');
 }
 function ui() {
@@ -871,7 +1038,7 @@ function toggleTimer() {
     pushClear();
     if (inRoom) syncRoom();
   }
-  ui(); persist(); renderStreak();
+  ui(); persist(); renderStreak(); remotePush();
 }
 function syncSub() { curSub = getSubject('swSubject', 'swCustom'); $('swTopic').value = tops[curSub] || ''; }
 function setTopic() { const v = $('swTopic').value.trim(); if (v) tops[curSub] = v; else delete tops[curSub]; persist(); }
@@ -879,7 +1046,7 @@ function togglePomo() { pomo = $('pomoOn').checked; $('pomoSet').classList.toggl
 async function finishTimer() {
   modal('confirm', 0);
   clearInterval(tInt); running = false; askOpen = false; presenceSecs = 0; modal('presence', 0); localStorage.removeItem('ev_timer');
-  if (runId) localStorage.setItem('ev_timer_done', runId);
+  if (runId) { localStorage.setItem('ev_timer_done', runId); remotePush(runId); }
   localStorage.setItem('ev_timer_finished_at', Date.now());
   runId = null;
   pushClear();
@@ -926,7 +1093,7 @@ function presenceExpire() {
   pushClear();
   $('presStopMsg').textContent = `It was paused because you did not confirm that you were still studying. The last ${hm(lost / 60)} of waiting time was not counted. Press Resume to continue, or Finish & Save to keep your time.`;
   modal('presStop', 1);
-  ui(); persist(); renderStreak(); if (inRoom) syncRoom();
+  ui(); persist(); renderStreak(); remotePush(); if (inRoom) syncRoom();
 }
 function presenceYes() { presenceSecs = 0; askOpen = false; modal('presence', 0); persist(); }
 function presenceTouch() { if (running && !askOpen) presenceSecs = 0; }
@@ -1123,7 +1290,8 @@ function repCollect() {
   else { const ms = starts[+val], me = mEnd(ms); days = []; for (let d = new Date(ms); d < me; d = addDays(d, 1)) days.push(d); }
   return { kind, days, label };
 }
-function openReport() {
+async function openReport() {
+  if (!oldLoaded && repCollect().days[0] < winStart()) { oldLoaded = true; await refresh(); }
   const { kind, days, label } = repCollect(), withCl = $('repClasses').checked;
   const keys = days.map(toYMD), set = new Set(keys), endT = new Date(); endT.setHours(23, 59, 59, 999);
   const ses = D.sessions.filter(s => set.has(toYMD(new Date(s.created_at)))).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
@@ -1200,32 +1368,20 @@ async function downloadPdf() {
 // ---------- Leaderboard ----------
 async function pushStreak(n) {
   if (!user || !navigator.onLine) return;
-  const { error } = await sb.from('leaderboard').upsert({ user_id: user.id, username: user.email.split('@')[0], streak: n, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+  const { error } = await sb.from('leaderboard').upsert({ user_id: user.id, username: user.email.split('@')[0], streak: n, hidden: false, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
   if (error) console.error('leaderboard', error);
 }
 async function loadLB() {
   if (!user || !navigator.onLine) return;
-  const { data, error } = await sb.from('leaderboard').select('*').eq('hidden', false).order('streak', { ascending: false }).limit(50);
+  const { data, error } = await sb.from('leaderboard').select('*').gte('streak', LB_MIN).order('streak', { ascending: false }).limit(50);
   if (error) return console.error('leaderboard', error);
-  const { data: me } = await sb.from('leaderboard').select('hidden').eq('user_id', user.id).maybeSingle();
-  myHidden = me ? !!me.hidden : true;                     // new users start hidden
-  $('hideNote').classList.toggle('hidden', !myHidden);
-  $('hideBtn').innerHTML = myHidden ? '<i class="fa-solid fa-eye mr-1"></i> Show me' : '<i class="fa-solid fa-eye-slash mr-1"></i> Hide me';
   $('lbList').innerHTML = (data || []).map((m, i) => `<div class="row ${m.user_id === user.id ? '!border-blue-500' : ''}">
     <div class="flex items-center gap-2"><span class="w-5 text-slate-400 font-mono">${i + 1}</span>
     <img src="${SIMG[levelOf(m.streak)]}" class="w-9 h-9 object-contain" alt=""><b>${esc(m.username)}</b>${m.user_id === user.id ? ' (You)' : ''}</div>
     <span class="font-mono text-sm text-amber-300">${m.streak} day${m.streak === 1 ? '' : 's'}</span></div>`).join('') || '<p class="text-xs text-slate-500 text-center py-4">No one yet.</p>';
 }
 
-let myHidden = false;
-async function toggleHide() {
-  if (!user) return;
-  if (!navigator.onLine) return alert('You need to be online to change this.');
-  const next = !myHidden;
-  const { error } = await sb.from('leaderboard').upsert({ user_id: user.id, username: user.email.split('@')[0], streak: Math.max(0, fireState().cur), hidden: next, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
-  if (error) return alert('Error: ' + error.message);
-  loadLB();
-}
+const LB_MIN = 1;   // everyone with at least this many streak days is on the leaderboard
 
 // ---------- Room ----------
 function loadRoomPrefs() {
@@ -1291,7 +1447,7 @@ const hms = s => { s = Math.max(0, Math.floor(s)); const p = n => String(n).padS
 function renderRoom() {
   if (!user) return;
   const el = Math.max(0, Math.min(10, (Date.now() - roomAt) / 1000));          // seconds since the last refresh
-  const secs = m => m.user_id === user.id ? base : (m.live_seconds || 0) + (m.is_studying ? el : 0);
+  const secs = m => m.user_id === user.id && (running || base > 0) ? base : (m.live_seconds || 0) + (m.is_studying ? el : 0);   // my own row: this device's clock if it has the timer, otherwise the one from my other device
   if (!$('roomTab').classList.contains('hidden')) $('roomList').innerHTML = roomRows.map(m => {
     const { sub, cls } = unpackSubject(m.current_subject);
     return `<div class="row"><div><i class="fa-solid fa-user-graduate text-blue-400 mr-1"></i> <b>${esc(m.username)}</b>${m.user_id === user.id ? ' (You)' : ''}${sub ? `<span class="block text-[10px] text-slate-400">${esc(sub)}</span>` : ''}</div>
@@ -1327,8 +1483,8 @@ function dailySets(days, mode, showCl) {
     if (sets.some(x => x.isManual)) sets.push({ label: LEG, data: days.map(() => 0), backgroundColor: 'transparent', borderColor: YEL, borderWidth: 3 });
   } else {
     const man = day.map(ss => ss.some(s => s.type === 'manual'));
-    sets.push({ label: 'Total Hours', data: day.map(hrs), borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,.2)', fill: true, tension: .2,
-      pointBorderColor: man.map(m => m ? YEL : '#3b82f6'), pointBorderWidth: man.map(m => m ? 3 : 1), pointRadius: man.map(m => m ? 6 : 3) });
+    sets.push({ label: 'Total Hours', data: day.map(hrs), borderColor: ACC(), backgroundColor: `rgba(${ACCRGB()},.2)`, fill: true, tension: .2,
+      pointBorderColor: man.map(m => m ? YEL : ACC()), pointBorderWidth: man.map(m => m ? 3 : 1), pointRadius: man.map(m => m ? 6 : 3) });
     if (man.some(Boolean)) sets.push({ label: LEG, data: [], borderColor: YEL, backgroundColor: 'transparent', borderWidth: 3 });
   }
   if (showCl) sets.push({ type: 'line', label: 'Classes', data: days.map(d => +(D.classes.filter(c => +c.day_of_week === d.getDay()).reduce((a, c) => a + (+c.duration_minutes || 0), 0) / 60).toFixed(2)),
@@ -1337,6 +1493,7 @@ function dailySets(days, mode, showCl) {
 }
 function renderCharts() {
   if ($('chartsTab').classList.contains('hidden') || !starts.length) return;
+  if (!oldLoaded && (addDays(weekStart(new Date()), -7 * +$('weekSel').value) < winStart() || starts[+$('monthSel').value] < winStart())) { oldLoaded = true; refresh(); return; }
   const mode = $('chartMode').value, showCl = $('layerClasses').checked, showGr = $('layerGrades').checked, st = mode === 'stacked';
   const yAxis = (extra = {}) => ({ stacked: st, beginAtZero: true, min: 0, max: 20, ticks: { stepSize: 1 }, title: { display: true, text: 'hours' }, ...extra });
   const legend = { labels: { boxWidth: 12, font: { size: 10 }, filter: (it, d) => {
