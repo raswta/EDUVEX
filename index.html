@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261117-12">
+<meta name="build" content="20261118-2">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
@@ -158,6 +158,7 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
     <button class="tab-btn" data-t="testsTab" onclick="tab('testsTab')">Tests</button>
     <button class="tab-btn" data-t="roomTab" onclick="tab('roomTab')"><span class="flex items-center gap-1.5">Study Room <span class="flex h-2 w-2 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span></span></span></button>
     <button class="tab-btn" data-t="chartsTab" onclick="tab('chartsTab')">Charts &amp; Grades</button>
+    <button class="tab-btn" data-t="todoTab" onclick="tab('todoTab')">To-Do</button>
     <button class="tab-btn" data-t="moreTab" onclick="tab('moreTab')">More</button>
   </div>
 
@@ -176,7 +177,11 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
         <label class="lbl">Subject</label>
         <select id="swSubject" class="inp" onchange="pickSubj('swSubject','swCustom');if(this.value!=='__new')syncSub()"></select>
         <input id="swCustom" placeholder="New subject name" class="inp hidden mt-2" onchange="syncSub()">
-        <input id="swTopic" placeholder="Topic (optional)" class="inp mt-2" oninput="setTopic()">
+        <div class="flex gap-2 mt-2">
+          <input id="swTopic" placeholder="Topic (optional)" class="inp min-w-0" onkeydown="if(event.key==='Enter')applyTopic()">
+          <button onclick="applyTopic()" class="bg-blue-600 hover:bg-blue-500 px-4 rounded-lg text-sm font-medium text-white">Set</button>
+        </div>
+        <div id="swTopicNow" class="text-xs text-slate-400 mt-1.5 h-5"></div>
         <div id="swDisplay" class="text-4xl font-bold font-mono text-center my-4">00:00:00</div>
         <div id="swStatus" class="text-center text-xs text-blue-400 mb-2 h-4">Ready</div>
         <div id="swBreak" class="text-xs text-slate-400 space-y-1 mb-3"></div>
@@ -303,6 +308,20 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
     </div>
   </div>
 
+  <!-- TODO -->
+  <div id="todoTab" class="tab hidden space-y-6">
+    <div class="card space-y-3">
+      <h3 class="text-sm font-semibold text-slate-400"><i class="fa-solid fa-square-check text-emerald-500 mr-1"></i> To-Do List (today)</h3>
+      <p class="text-xs text-slate-400">Only for today. It stays on this device and is deleted automatically when the day ends.</p>
+      <div class="flex gap-2">
+        <input id="tdIn" class="inp min-w-0" placeholder="Add a task" onkeydown="if(event.key==='Enter')todoAdd()">
+        <button onclick="todoAdd()" class="bg-blue-600 hover:bg-blue-500 px-4 rounded-lg text-white" title="Add"><i class="fa-solid fa-plus"></i></button>
+      </div>
+      <div id="tdList" class="space-y-2"></div>
+      <div id="tdCount" class="text-xs text-slate-400"></div>
+    </div>
+  </div>
+
   <!-- MORE -->
   <div id="moreTab" class="tab hidden space-y-6">
     <div class="card space-y-4">
@@ -314,6 +333,7 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
         <div id="repRangeBox" class="hidden col-span-2"><label class="lbl">From → To</label><div class="flex gap-2"><input type="date" id="repFrom" class="inp"><input type="date" id="repTo" class="inp"></div></div>
       </div>
       <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="repClasses" checked> Include classes in hours and charts</label>
+      <label id="repTodoBox" class="hidden flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="repTodo"> Include today's to-do list</label>
       <button onclick="openReport()" class="btn bg-blue-600 hover:bg-blue-500"><i class="fa-solid fa-eye mr-1"></i> Preview summary</button>
     </div>
 
@@ -467,7 +487,8 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
   <p><b><i class="fa-solid fa-pen-to-square text-blue-400 mr-1"></i> Manual entry:</b> add minutes you studied without the stopwatch, for any date (including a reason/explanation). In the charts these keep their subject color with a thick yellow border.</p>
   <p><b><i class="fa-solid fa-trash text-blue-400 mr-1"></i> Logs:</b> every saved session appears in Saved Study Logs. Use the trash icon to delete one. Items that say pending sync were saved offline and will upload automatically.</p>
   <p><b><i class="fa-solid fa-calendar-check text-blue-400 mr-1"></i> Exams &amp; Classes:</b> add exams to see the days left. Weekly classes repeat every week and count toward your goal and the Classes layer in the charts.</p>
-  <p><b><i class="fa-solid fa-list-check text-blue-400 mr-1"></i> Tests:</b> in the Tests tab pick a day, type how many practice tests you solved for each subject (optional) and press Save tests. The study time of that day is shown next to each subject, and you can edit the numbers any time. The chart shows tests by subject for one day, or day by day for the whole week. Subjects keep their colors. You can also write a Topic (optional) in the Timer card; it is saved with the session and shown in the PDF summary.</p>
+  <p><b><i class="fa-solid fa-list-check text-blue-400 mr-1"></i> Tests:</b> in the Tests tab pick a day, type how many practice tests you solved for each subject (optional) and press Save tests. The study time of that day is shown next to each subject, and you can edit the numbers any time. The chart shows tests by subject for one day, or day by day for the whole week. Subjects keep their colors. You can also write a Topic (optional) in the Timer card and press Set (or Enter); it is saved with the session and shown in the PDF summary. Under the timer you see the time of each topic.</p>
+  <p><b><i class="fa-solid fa-square-check text-blue-400 mr-1"></i> To-Do:</b> add tasks for today, tick them, edit them with the pen or delete them. The list is kept only on this device and is deleted when the day ends. In the Daily summary (More tab) you can tick "Include today's to-do list" to add it to the PDF; it is off by default.</p>
   <p><b><i class="fa-solid fa-users text-blue-400 mr-1"></i> Study Room:</b> automatically joins when your timer starts and leaves when you finish. Users with 30+ day streaks unlock manual join/leave controls.</p>
   <p><b><i class="fa-solid fa-chart-column text-blue-400 mr-1"></i> Charts:</b> the weekly chart runs Saturday to Friday and the monthly chart shows every day of the month. Use Review Archive to open previous weeks and months. Stacked shows hours per subject, Total shows one line. Log exam scores to see them on the monthly chart.</p>
   <p><b><i class="fa-solid fa-file-pdf text-red-400 mr-1"></i> Summary PDF:</b> open the More tab, choose Daily, Weekly or Monthly, pick the period (This week, Last month, a date...) and tick Include classes if you want class hours added. Press Preview summary, then Download PDF. It shows manual reasons under each manual entry, study time, tests, hours per subject with topics, and charts. You need internet the first time you download.</p>
@@ -563,6 +584,7 @@ function tab(id) {
   if (id === 'chartsTab') renderCharts();
   if (id === 'roomTab') { checkStreakPerks(); syncRoom(); loadLB(); }
   if (id === 'testsTab') renderTests();
+  if (id === 'todoTab') todoRender();
   if (id === 'moreTab') fillPeriods();
 }
 function status() {
@@ -658,7 +680,7 @@ async function login() {
 async function logout() { await leaveRoom(); await sb.auth.signOut(); location.reload(); }
 function onLogin() {
   $('auth').classList.add('hidden'); $('app').classList.remove('hidden'); $('logoutBtn').classList.remove('hidden'); $('hdrTools').classList.remove('hidden');
-  loadRoomPrefs();
+  loadRoomPrefs(); todoLoad();
   if (running || base > 0) {
     inRoom = true;
     syncRoom();
@@ -969,7 +991,7 @@ setInterval(remBar, 1000);
 function abandon() {
   clearInterval(tInt); running = false; askOpen = false; presenceSecs = 0; modal('presence', 0); base = 0; segs = {}; tops = {}; tseg = {}; runId = null; pLeft = 0; pState = 'study'; alerted = {};
   $('swTopic').value = '';
-  localStorage.removeItem('ev_timer'); ui();
+  localStorage.removeItem('ev_timer'); showTopic(); ui();
 }
 function flipSet(str) {
   const el = $('focusClock');
@@ -992,7 +1014,10 @@ function draw() {
   const clk = `${p(Math.floor(s / 3600))}:${p(Math.floor(s % 3600 / 60))}:${p(s % 60)}`;
   $('swDisplay').textContent = clk; flipSet(clk);
   $('swStatus').textContent = rem ? (remote.running ? 'Running on your other device' : 'Paused on your other device') : !running ? (base ? 'Paused' : 'Ready') : (pState === 'rest' ? 'Resting...' : 'Studying...');
-  $('swBreak').innerHTML = Object.entries(segs).map(([n, v]) => `<div class="flex justify-between"><span>${esc(n)}</span><span class="font-mono">${Math.floor(v / 60)} min</span></div>`).join('');
+  $('swBreak').innerHTML = Object.entries(segs).map(([n, v]) => {
+    const tp = Object.entries(tseg[n] || {}).filter(([k]) => k).map(([k, s]) => `<div class="flex justify-between pl-3 text-[11px] text-slate-500"><span>↳ ${esc(k)}</span><span class="font-mono">${Math.floor(s / 60)} min</span></div>`).join('');
+    return `<div class="flex justify-between"><span>${esc(n)}</span><span class="font-mono">${Math.floor(v / 60)} min</span></div>${tp}`;
+  }).join('');
 }
 function ui() {
   $('startBtn').textContent = running ? 'Pause' : (base ? 'Resume' : 'Start');
@@ -1035,7 +1060,9 @@ function tick() {
 function toggleTimer() {
   if (!running) {
     if (!localStorage.getItem('ev_push') && 'Notification' in window) modal('notif', 1);
-    presenceSecs = 0; askOpen = false; syncSub(); if (!runId) runId = Date.now() + '-' + Math.random().toString(36).slice(2, 6); clearInterval(tInt); running = true; lastTick = Date.now();
+    presenceSecs = 0; askOpen = false;
+    const tv = $('swTopic').value.trim(); curSub = getSubject('swSubject', 'swCustom'); if (tv) tops[curSub] = tv; showTopic();   // a typed topic that was not set yet is applied on Start
+    if (!runId) runId = Date.now() + '-' + Math.random().toString(36).slice(2, 6); clearInterval(tInt); running = true; lastTick = Date.now();
     if (pomo && pLeft <= 0) { pState = 'study'; pLeft = (+$('pomoStudy').value || 50) * 60; }
     tInt = setInterval(tick, 1000);
     pushSchedule();
@@ -1050,8 +1077,24 @@ function toggleTimer() {
   }
   ui(); persist(); renderStreak(); remotePush();
 }
-function syncSub() { curSub = getSubject('swSubject', 'swCustom'); $('swTopic').value = tops[curSub] || ''; }
-function setTopic() { const v = $('swTopic').value.trim(); if (v) tops[curSub] = v; else delete tops[curSub]; persist(); }
+function syncSub() { curSub = getSubject('swSubject', 'swCustom'); $('swTopic').value = tops[curSub] || ''; showTopic(); }
+// ---- Topic: applied only with the Set button / Enter (no more saving every typed letter) ----
+function showTopic() {
+  const t = tops[curSub];
+  $('swTopicNow').innerHTML = t ? `<i class="fa-solid fa-tag text-blue-400 mr-1"></i>Current topic: <b class="text-slate-200">${esc(t)}</b>` : 'No topic set';
+}
+function applyTopic() {
+  const v = $('swTopic').value.trim(), old = tops[curSub] || '';
+  if (v === old) return flashTopic(v ? 'This topic is already set' : 'No topic to clear', false);
+  if (v) tops[curSub] = v; else delete tops[curSub];
+  persist(); remotePush();
+  try { if (navigator.vibrate) navigator.vibrate(60); } catch (e) {}
+  flashTopic(v ? `✓ Topic changed to "${v}"` : '✓ Topic cleared', true);
+}
+function flashTopic(msg, ok) {
+  $('swTopicNow').innerHTML = `<span class="${ok ? 'text-emerald-400' : 'text-amber-400'} font-medium">${esc(msg)}</span>`;
+  clearTimeout(flashTopic.t); flashTopic.t = setTimeout(showTopic, 2000);
+}
 // topic time is stored inside the existing `topic` column as JSON: [{t:'Chapter 1',s:seconds},...]; old plain-text topics still work
 function topicPack(tp, ts, subject, secs) {
   const o = Object.entries(ts[subject] || {}).filter(([k]) => k);
@@ -1073,7 +1116,7 @@ async function finishTimer() {
   runId = null;
   pushClear();
   const parts = Object.entries(segs), topics = tops, tsg = tseg;
-  base = 0; segs = {}; tops = {}; tseg = {}; $('swTopic').value = ''; pLeft = 0; pState = 'study'; alerted = {};
+  base = 0; segs = {}; tops = {}; tseg = {}; $('swTopic').value = ''; showTopic(); pLeft = 0; pState = 'study'; alerted = {};
   localStorage.removeItem('ev_timer');
   ui(); $('swStatus').textContent = 'Finished & Saved!';
   for (const [subject, secs] of parts)
@@ -1090,7 +1133,7 @@ function restoreTimer() {
   [[600, '10'], [1800, '30']].forEach(([sec, m]) => { if (base >= sec) alerted[m] = 1; });
   curSub = s.subject || 'General Study';
   segs = s.segs || { [curSub]: base };
-  tops = s.tops || {}; tseg = s.tseg || {}; $('swTopic').value = tops[curSub] || '';
+  tops = s.tops || {}; tseg = s.tseg || {}; $('swTopic').value = tops[curSub] || ''; showTopic();
   if (s.running) { const gap = Math.max(0, Math.floor((Date.now() - s.lastTick) / 1000)); base += gap; presenceSecs += gap; segs[curSub] = (segs[curSub] || 0) + gap; const tp0 = tops[curSub] || ''; (tseg[curSub] = tseg[curSub] || {})[tp0] = (tseg[curSub][tp0] || 0) + gap; running = true; lastTick = Date.now(); clearInterval(tInt); tInt = setInterval(tick, 1000); }
   setTimeout(() => { if ([...$('swSubject').options].some(o => o.value === s.subject)) $('swSubject').value = s.subject; }, 600);
   ui(); presenceStep();
@@ -1245,6 +1288,39 @@ async function saveGrade() {
   $('gTitle').value = ''; $('gScore').value = ''; refresh();
 }
 
+// ---------- To-Do (today only: kept on this device, never sent to the server, deleted when the day ends) ----------
+const todoKey = () => 'ev_todo_' + (user ? user.id : '');
+function todoLoad() {
+  const today = toYMD(new Date()); let t = LS(todoKey(), null);
+  if (!t || t.day !== today || !Array.isArray(t.items)) { t = { day: today, items: [] }; localStorage.removeItem(todoKey()); }
+  return t;
+}
+function todoSave(t) { if (t.items.length) localStorage.setItem(todoKey(), JSON.stringify(t)); else localStorage.removeItem(todoKey()); todoRender(); }
+function todoRender() {
+  const el = $('tdList'); if (!el) return;
+  const t = todoLoad();
+  el.innerHTML = t.items.map(x => `<div class="row !text-sm gap-2">
+    <input type="checkbox" ${x.done ? 'checked' : ''} onchange="todoToggle('${x.id}')" class="w-4 h-4 shrink-0">
+    <span class="flex-1 min-w-0 break-words ${x.done ? 'line-through text-slate-500' : ''}">${esc(x.t)}</span>
+    <button onclick="todoEdit('${x.id}')" class="text-blue-400 ml-2" title="Edit"><i class="fa-solid fa-pen"></i></button>
+    <button onclick="todoDel('${x.id}')" class="text-red-400 ml-3" title="Delete"><i class="fa-solid fa-trash"></i></button></div>`).join('') || '<p class="text-xs text-slate-500">No tasks yet.</p>';
+  const d = t.items.filter(x => x.done).length;
+  $('tdCount').textContent = t.items.length ? `${d} / ${t.items.length} done` : '';
+}
+function todoAdd() {
+  const v = $('tdIn').value.trim(); if (!v) return;
+  const t = todoLoad(); t.items.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), t: v, done: false });
+  $('tdIn').value = ''; todoSave(t);
+}
+function todoToggle(id) { const t = todoLoad(), x = t.items.find(i => i.id === id); if (x) x.done = !x.done; todoSave(t); }
+function todoEdit(id) {
+  const t = todoLoad(), x = t.items.find(i => i.id === id); if (!x) return;
+  const v = (prompt('Edit task', x.t) || '').trim(); if (!v || v === x.t) return;
+  x.t = v; todoSave(t);
+}
+function todoDel(id) { const t = todoLoad(); t.items = t.items.filter(i => i.id !== id); todoSave(t); }
+setInterval(() => { if (user) { todoLoad(); if (!$('todoTab').classList.contains('hidden')) todoRender(); } }, 60000);
+
 // ---------- Practice tests ----------
 let tChart = null;
 const hm = m => { m = Math.round(m || 0); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
@@ -1299,6 +1375,7 @@ const loadScript = src => _ls[src] || (_ls[src] = new Promise((ok, no) => {
 let repC1 = null, repC2 = null, repName = 'EDUVEX-summary';
 function fillPeriods() {
   const kind = $('repKind').value, now = new Date(); let h = '';
+  $('repTodoBox').classList.toggle('hidden', kind !== 'daily'); if (kind !== 'daily') $('repTodo').checked = false;
   $('repPerBox').classList.toggle('hidden', kind === 'range'); $('repRangeBox').classList.toggle('hidden', kind !== 'range');
   if (kind === 'range') { if (!$('repTo').value) { $('repTo').value = toYMD(now); $('repFrom').value = toYMD(addDays(now, -6)); } return; }
   if (kind === 'daily') for (let i = 0; i < 31; i++) { const d = addDays(now, -i); h += `<option value="${toYMD(d)}">${i === 0 ? 'Today' : i === 1 ? 'Yesterday' : fmtY(d)}${i < 2 ? ' · ' + fmtY(d) : ''}</option>`; }
@@ -1360,6 +1437,13 @@ async function openReport() {
     ses.map(s => `<tr><td>${esc(s.subject)}</td><td>${hm(s.duration_minutes)}</td><td>${s.type === 'manual' ? 'Manual entry ( not by stop watch )' : 'Stopwatch'}</td><td>${esc(topicList(s.topic).map(x => x.s > 0 ? `${x.t} (${hm(x.s / 60)})` : x.t).join(', ') || s.reason) || '-'}</td></tr>`).join('') + '</table>';
   if (kind === 'daily' && clsDay[0].length) h += '<h2>Classes</h2><table><tr><th>Class</th><th>Subject</th><th>Time</th></tr>' +
     clsDay[0].map(c => `<tr><td>${esc(c.title)}</td><td>${esc(c.subject)}</td><td>${hm(c.duration_minutes)}</td></tr>`).join('') + '</table>';
+  if (kind === 'daily' && $('repTodo').checked) {
+    h += '<h2>To-Do List</h2>';
+    const td = todoLoad();
+    if (keys[0] !== toYMD(new Date())) h += '<p style="font-size:12px;color:#64748b">The to-do list is only kept for today.</p>';
+    else if (!td.items.length) h += '<p style="font-size:12px;color:#64748b">No tasks.</p>';
+    else h += td.items.map(x => `<div style="font-size:12px;margin-bottom:5px"><span style="display:inline-block;width:11px;height:11px;border:1.5px solid #334155;border-radius:2px;margin-right:7px;vertical-align:-1px;background:${x.done ? '#10b981' : '#fff'}"></span>${x.done ? `<span style="color:#64748b;text-decoration:line-through">${esc(x.t)}</span>` : esc(x.t)}</div>`).join('');
+  }
   if (kind !== 'daily') {
     h += '<h2>Study hours per day</h2><canvas id="repC1" width="730" height="260"></canvas>';
     if (tests) h += '<h2>Tests per day</h2><canvas id="repC2" width="730" height="260"></canvas>';
@@ -1570,7 +1654,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('goalType').onchange = () => { goalType = $('goalType').value; localStorage.setItem('ev_goal_type', goalType); renderGoal(); };
   ['manDate', 'exDate', 'gDate', 'tDate'].forEach(id => mkPicker(id));
   $('tDate').addEventListener('change', renderTests);
-  initArchive(); fillPeriods(); fillSubjects(); restoreTimer(); status(); calUI(); pushUI();
+  initArchive(); fillPeriods(); fillSubjects(); restoreTimer(); status(); calUI(); pushUI(); showTopic();
   window.addEventListener('online', () => { status(); refresh(); });
   window.addEventListener('offline', status);
   ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, presenceTouch, { passive: true }));
