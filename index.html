@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261118-2">
+<meta name="build" content="20261118-3">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
@@ -44,7 +44,8 @@ body{font-family:Inter,system-ui,sans-serif}
 @keyframes glowbox{from{box-shadow:0 0 6px rgba(249,115,22,.35)}to{box-shadow:0 0 22px rgba(239,68,68,.65)}}
 </style>
 <style>
-#focusClock{--w:min(12.5vw,6.5rem);--h:calc(var(--w)*1.45);display:flex;align-items:center;justify-content:center;gap:min(1.2vw,.5rem)}
+#focusClock{--w:min(13.5vw,11rem);--h:calc(var(--w)*1.45);display:flex;align-items:center;justify-content:center;gap:min(1vw,.6rem)}
+#focusClock.nosec{--w:min(20vw,16rem)}
 #focusClock .fl{position:relative;width:var(--w);height:var(--h);perspective:700px;font:700 calc(var(--w)*1.15)/var(--h) ui-monospace,Menlo,Consolas,monospace;color:#f1f5f9}
 #focusClock .fl>div{position:absolute;left:0;right:0;height:50%;overflow:hidden;background:#1e293b;text-align:center;backface-visibility:hidden}
 #focusClock .fl .t{top:0;border-radius:10px 10px 0 0;border-bottom:1px solid #020617}
@@ -55,7 +56,7 @@ body{font-family:Inter,system-ui,sans-serif}
 #focusClock .fl .fb{transform-origin:top;transform:rotateX(90deg);animation:fbA .22s .22s ease-out forwards;z-index:2}
 @keyframes ftA{to{transform:rotateX(-90deg)}}@keyframes fbA{to{transform:rotateX(0)}}
 #focusClock.nosec .sec{display:none}
-#focusClock .fc{font:700 calc(var(--w)*.9)/1 ui-monospace,monospace;color:#475569}
+#focusClock .fc{width:calc(var(--w)*.32);text-align:center;font:700 calc(var(--w)*.9)/1 ui-monospace,monospace;color:#475569}
 </style>
 <style>
 html[data-theme]{--bgc:#0f172a}
@@ -360,14 +361,15 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
   Made by <a href="https://raswta.carrd.co" target="_blank" class="text-blue-400 font-semibold">raswta</a> · v7
 </footer>
 
-<div id="focus" class="hidden fixed inset-0 z-[45] bg-slate-950 flex flex-col items-center justify-center p-6 gap-8">
-  <div class="flex flex-wrap items-center justify-center gap-8 w-full">
+<div id="focus" class="hidden fixed inset-0 z-[45] bg-slate-950 flex flex-col items-center justify-center p-3 sm:p-6 gap-6 sm:gap-8">
+  <div class="flex flex-wrap items-center justify-center gap-6 sm:gap-8 w-full">
     <div id="focusClock"></div>
-    <div class="w-56 max-w-full bg-slate-900/70 border border-slate-800 rounded-2xl p-3">
+    <div id="focusRoomBox" class="w-56 max-w-full bg-slate-900/70 border border-slate-800 rounded-2xl p-3">
       <div class="text-[11px] text-slate-400 mb-2 flex items-center gap-1.5"><i class="fa-solid fa-users"></i> Study Room</div>
       <div id="focusRoom" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
     </div>
   </div>
+  <button id="roomBtn" onclick="toggleRoomBox()" class="absolute top-6 left-6 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium"></button>
   <button id="secBtn" onclick="toggleSec()" class="absolute top-6 right-6 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium"></button>
   <button onclick="focusOff()" class="absolute bottom-8 px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium"><i class="fa-solid fa-compress mr-1"></i> Exit focus mode</button>
 </div>
@@ -890,7 +892,9 @@ function setRestDay() { localStorage.setItem('ev_restday', $('restDay').value); 
 async function wakeOn() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {} }
 function secApply() { const off = localStorage.getItem('ev_focus_nosec') === '1'; $('focusClock').classList.toggle('nosec', off); $('secBtn').innerHTML = off ? '<i class="fa-solid fa-eye mr-1"></i> Show seconds' : '<i class="fa-solid fa-eye-slash mr-1"></i> Hide seconds'; }
 function toggleSec() { localStorage.setItem('ev_focus_nosec', localStorage.getItem('ev_focus_nosec') === '1' ? '0' : '1'); secApply(); }
-function focusOn() { secApply(); focusActive = true; $('focus').classList.remove('hidden'); draw(); renderRoom(); wakeOn(); if (user) syncRoom(); }
+function roomApply() { const off = localStorage.getItem('ev_focus_noroom') === '1'; $('focusRoomBox').classList.toggle('hidden', off); $('roomBtn').innerHTML = off ? '<i class="fa-solid fa-eye mr-1"></i> Show study room' : '<i class="fa-solid fa-eye-slash mr-1"></i> Hide study room'; }
+function toggleRoomBox() { localStorage.setItem('ev_focus_noroom', localStorage.getItem('ev_focus_noroom') === '1' ? '0' : '1'); roomApply(); }
+function focusOn() { secApply(); roomApply(); focusActive = true; $('focus').classList.remove('hidden'); draw(); renderRoom(); wakeOn(); if (user) syncRoom(); }
 function focusOff() { focusActive = false; $('focus').classList.add('hidden'); try { if (wakeLock) wakeLock.release(); } catch (e) {} wakeLock = null; }
 
 // ---------- Lists ----------
