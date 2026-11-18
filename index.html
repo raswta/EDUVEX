@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261118-3">
+<meta name="build" content="20261118-4">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
@@ -44,8 +44,8 @@ body{font-family:Inter,system-ui,sans-serif}
 @keyframes glowbox{from{box-shadow:0 0 6px rgba(249,115,22,.35)}to{box-shadow:0 0 22px rgba(239,68,68,.65)}}
 </style>
 <style>
-#focusClock{--w:min(13.5vw,11rem);--h:calc(var(--w)*1.45);display:flex;align-items:center;justify-content:center;gap:min(1vw,.6rem)}
-#focusClock.nosec{--w:min(20vw,16rem)}
+#focusClock{--w:min(11.5vw,9.5rem);--h:calc(var(--w)*1.45);display:flex;align-items:center;justify-content:center;gap:min(1vw,.6rem)}
+#focusClock.nosec{--w:min(17vw,13.5rem)}
 #focusClock .fl{position:relative;width:var(--w);height:var(--h);perspective:700px;font:700 calc(var(--w)*1.15)/var(--h) ui-monospace,Menlo,Consolas,monospace;color:#f1f5f9}
 #focusClock .fl>div{position:absolute;left:0;right:0;height:50%;overflow:hidden;background:#1e293b;text-align:center;backface-visibility:hidden}
 #focusClock .fl .t{top:0;border-radius:10px 10px 0 0;border-bottom:1px solid #020617}
@@ -56,7 +56,7 @@ body{font-family:Inter,system-ui,sans-serif}
 #focusClock .fl .fb{transform-origin:top;transform:rotateX(90deg);animation:fbA .22s .22s ease-out forwards;z-index:2}
 @keyframes ftA{to{transform:rotateX(-90deg)}}@keyframes fbA{to{transform:rotateX(0)}}
 #focusClock.nosec .sec{display:none}
-#focusClock .fc{width:calc(var(--w)*.32);text-align:center;font:700 calc(var(--w)*.9)/1 ui-monospace,monospace;color:#475569}
+#focusClock .fc{width:calc(var(--w)*.32);display:flex;align-items:center;justify-content:center;font:700 calc(var(--w)*.9)/1 ui-monospace,monospace;color:#475569}
 </style>
 <style>
 html[data-theme]{--bgc:#0f172a}
