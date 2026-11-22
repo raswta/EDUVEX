@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261118-4">
+<meta name="build" content="20261122-1">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
@@ -331,7 +331,7 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
         <div><label class="lbl">Summary type</label>
           <select id="repKind" onchange="fillPeriods()" class="inp"><option value="daily">Daily</option><option value="weekly" selected>Weekly</option><option value="monthly">Monthly</option><option value="range">Certain period</option></select></div>
         <div id="repPerBox"><label class="lbl">Period</label><select id="repPeriod" class="inp"></select></div>
-        <div id="repRangeBox" class="hidden col-span-2"><label class="lbl">From → To</label><div class="flex gap-2"><input type="date" id="repFrom" class="inp"><input type="date" id="repTo" class="inp"></div></div>
+        <div id="repRangeBox" class="hidden col-span-2"><label class="lbl">From → To</label><div class="space-y-2"><div class="flex items-center gap-2"><span class="text-[11px] text-slate-400 w-9 shrink-0">From</span><div id="repFrom" class="grid grid-cols-3 gap-1.5 flex-1"></div></div><div class="flex items-center gap-2"><span class="text-[11px] text-slate-400 w-9 shrink-0">To</span><div id="repTo" class="grid grid-cols-3 gap-1.5 flex-1"></div></div></div></div>
       </div>
       <label class="flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="repClasses" checked> Include classes in hours and charts</label>
       <label id="repTodoBox" class="hidden flex items-center gap-2 text-xs cursor-pointer"><input type="checkbox" id="repTodo"> Include today's to-do list</label>
@@ -483,6 +483,7 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
   <p><b><i class="fa-solid fa-face-smile text-orange-400 mr-1"></i> Streak character:</b> the character shows your level. Angry: you have not started studying today (with any streak). Calm: you started today and have a 1-14 day streak. Sparkle: 15 days. Black graduation cap: 30 days. Red graduation cap: 60 days. Tap it to see all levels.</p>
   <p><b><i class="fa-solid fa-ranking-star text-amber-400 mr-1"></i> Leaderboard:</b> in the Study Room tab, everyone is ranked by streak (most days first), with their username, streak and level character. Everyone with a streak is listed automatically.</p>
   <p><b><i class="fa-solid fa-stopwatch text-blue-400 mr-1"></i> Timer:</b> pick a subject and press Start. To study another subject, press Pause, choose the new subject and press Resume. The big clock keeps the total, and each subject is saved with its own time when you press Finish &amp; Save. Sessions shorter than 15 seconds are not saved. The stopwatch keeps going if you refresh the page.</p>
+  <p><b><i class="fa-solid fa-moon text-indigo-400 mr-1"></i> Auto-save at 3:00 AM:</b> if you paused the stopwatch and forgot to press Finish &amp; Save, it is saved automatically at 3:00 AM (or when you next open the app) on the day you studied, so your streak is not lost.</p>
   <p><b><i class="fa-solid fa-user-clock text-blue-400 mr-1"></i> Still studying? check:</b> if the stopwatch runs for 3 hours without you touching the app, a popup asks whether you are still studying. Tap Yes within 10 minutes to keep going. If you do not, the stopwatch pauses and the waiting time is not counted. For very long sessions, use Focus mode so the screen stays on and you can answer.</p>
   <p><b><i class="fa-solid fa-expand text-blue-400 mr-1"></i> Focus mode:</b> tap the expand icon at the top to show only a big study clock and a small Study Room window. Nothing is locked, so you can leave the app any time. Press Exit focus mode at the bottom to come back.</p>
   <p><b><i class="fa-solid fa-hourglass-half text-blue-400 mr-1"></i> Pomodoro:</b> tick the box, set study and rest minutes, and the clock counts down. Rest time is not added to your study time.</p>
@@ -552,9 +553,10 @@ function fromJ(y, m, d) {
   return best || new Date();
 }
 const fromC = (y, m, d) => CAL === 'shamsi' ? fromJ(y, m, d) : new Date(y, m - 1, Math.min(d, new Date(y, m, 0).getDate()), 12);
-function mkPicker(id, date) {
+function mkPicker(id, date, back) {
   const t = pc(date || new Date()), now = pc(new Date()), c = 'class="inp !px-1.5"';
-  const years = [...new Set([now.y - 1, now.y, now.y + 1, now.y + 2, t.y])].sort();
+  const yr = back ? Array.from({ length: back + 1 }, (_, i) => now.y - i) : [now.y - 1, now.y, now.y + 1, now.y + 2];
+  const years = [...new Set([...yr, t.y])].sort();
   $(id).innerHTML =
     `<select ${c}>${years.map(y => `<option ${y === t.y ? 'selected' : ''}>${y}</option>`).join('')}</select>` +
     `<select ${c}>${MN().map((n, i) => `<option value="${i + 1}" ${i + 1 === t.m ? 'selected' : ''}>${n}</option>`).join('')}</select>` +
@@ -571,8 +573,10 @@ function calUI() {
 }
 function setCal(k) {
   const ids = ['manDate', 'exDate', 'gDate', 'tDate'], keep = ids.map(id => ymd(pickGet(id)));
+  const rf = ymd(pickGet('repFrom')), rt = ymd(pickGet('repTo'));
   CAL = k; localStorage.setItem('ev_cal', k);
   ids.forEach((id, i) => mkPicker(id, keep[i]));
+  mkPicker('repFrom', rf, 3); mkPicker('repTo', rt, 3);
   const w = $('weekSel').value; initArchive(); $('weekSel').value = w;
   calUI(); renderLists(); renderCharts(); fillPeriods(); renderTests();
 }
@@ -689,7 +693,7 @@ function onLogin() {
   } else {
     leaveRoom();
   }
-  refresh();
+  autoSaveForgotten().then(saved => { if (!saved) refresh(); });   // save a forgotten stopwatch first, so the streak is right
   remotePull(); setInterval(remotePull, 10000);
   setTimeout(() => { if (running) remotePush(); }, 4000);                                  // a timer that was already running (started before this update / reopened tab) becomes visible to other devices
   setInterval(async () => { if (user && running) { await remotePull(); if (running) remotePush(); } }, 60000);   // heartbeat while studying
@@ -929,10 +933,11 @@ function renderLists() {
 
 // ---------- Stopwatch ----------
 const isStale = id => !!id && parseInt(id) <= (+localStorage.getItem('ev_timer_finished_at') || 0);   // run that started before the last Finish
+let actAt = 0;   // last moment the stopwatch was really counting (used by the 3 AM auto-save)
 function persist() {
   if (runId && (isStale(runId) || localStorage.getItem('ev_timer_done') === runId)) return abandon();   // finished in another tab
   if (!running && base === 0) return localStorage.removeItem('ev_timer');
-  localStorage.setItem('ev_timer', JSON.stringify({ id: runId, running, base, lastTick, subject: curSub, segs, tops, tseg, pres: presenceSecs }));
+  localStorage.setItem('ev_timer', JSON.stringify({ id: runId, running, base, lastTick, act: actAt, subject: curSub, segs, tops, tseg, pres: presenceSecs }));
 }
 let remAt = 0, remote = null;
 const DEV = localStorage.getItem('ev_dev') || (() => { const d = Math.random().toString(36).slice(2, 10); localStorage.setItem('ev_dev', d); return d; })();
@@ -1044,7 +1049,7 @@ function tick() {
   if (!running) { clearInterval(tInt); return; }
   const d = Math.floor((Date.now() - lastTick) / 1000);
   if (d < 1) return;
-  lastTick += d * 1000; presenceSecs += d;
+  lastTick += d * 1000; presenceSecs += d; actAt = Date.now();
   if (pState === 'study') { base += d; segs[curSub] = (segs[curSub] || 0) + d; const tp = tops[curSub] || ''; (tseg[curSub] = tseg[curSub] || {})[tp] = (tseg[curSub][tp] || 0) + d; }
   if (pomo) {
     pLeft -= d;
@@ -1066,7 +1071,7 @@ function toggleTimer() {
     if (!localStorage.getItem('ev_push') && 'Notification' in window) modal('notif', 1);
     presenceSecs = 0; askOpen = false;
     const tv = $('swTopic').value.trim(); curSub = getSubject('swSubject', 'swCustom'); if (tv) tops[curSub] = tv; showTopic();   // a typed topic that was not set yet is applied on Start
-    if (!runId) runId = Date.now() + '-' + Math.random().toString(36).slice(2, 6); clearInterval(tInt); running = true; lastTick = Date.now();
+    if (!runId) runId = Date.now() + '-' + Math.random().toString(36).slice(2, 6); clearInterval(tInt); running = true; lastTick = Date.now(); actAt = Date.now();
     if (pomo && pLeft <= 0) { pState = 'study'; pLeft = (+$('pomoStudy').value || 50) * 60; }
     tInt = setInterval(tick, 1000);
     pushSchedule();
@@ -1075,7 +1080,7 @@ function toggleTimer() {
       syncRoom();
     } else if (inRoom) syncRoom();
   } else {
-    running = false; clearInterval(tInt); askOpen = false; modal('presence', 0);
+    running = false; clearInterval(tInt); askOpen = false; modal('presence', 0); actAt = Date.now();
     pushClear();
     if (inRoom) syncRoom();
   }
@@ -1112,7 +1117,8 @@ function topicList(v) {
   return [{ t: v, s: 0 }];
 }
 function togglePomo() { pomo = $('pomoOn').checked; $('pomoSet').classList.toggle('hidden', !pomo); pLeft = 0; pState = 'study'; draw(); }
-async function finishTimer() {
+async function finishTimer(at) {
+  const when = at instanceof Date ? at : new Date();   // normal Finish = now | auto-save = the forgotten day
   modal('confirm', 0);
   clearInterval(tInt); running = false; askOpen = false; presenceSecs = 0; modal('presence', 0); localStorage.removeItem('ev_timer');
   if (runId) { localStorage.setItem('ev_timer_done', runId); remotePush(runId); }
@@ -1124,7 +1130,7 @@ async function finishTimer() {
   localStorage.removeItem('ev_timer');
   ui(); $('swStatus').textContent = 'Finished & Saved!';
   for (const [subject, secs] of parts)
-    if (secs >= 15) { const tp = topicPack(topics, tsg, subject, secs); await save('study_sessions', { subject, duration_minutes: Math.max(1, Math.round(secs / 60)), type: 'stopwatch', created_at: new Date().toISOString(), ...(tp ? { topic: tp } : {}) }); }
+    if (secs >= 15) { const tp = topicPack(topics, tsg, subject, secs); await save('study_sessions', { subject, duration_minutes: Math.max(1, Math.round(secs / 60)), type: 'stopwatch', created_at: when.toISOString(), ...(tp ? { topic: tp } : {}) }); }
   localStorage.removeItem('ev_timer');
   await leaveRoom(); refresh();
 }
@@ -1133,7 +1139,7 @@ function restoreTimer() {
   if (!s) return;
   if (s.id && (s.id === localStorage.getItem('ev_timer_done') || isStale(s.id))) { localStorage.removeItem('ev_timer'); return; }
   runId = s.id || null;
-  base = s.base || 0; presenceSecs = s.pres || 0;
+  base = s.base || 0; presenceSecs = s.pres || 0; actAt = s.act || s.lastTick || Date.now();
   [[600, '10'], [1800, '30']].forEach(([sec, m]) => { if (base >= sec) alerted[m] = 1; });
   curSub = s.subject || 'General Study';
   segs = s.segs || { [curSub]: base };
@@ -1154,6 +1160,7 @@ function presenceStep() {
   if (askOpen) { const left = Math.max(0, PRES_EVERY + PRES_GRACE - presenceSecs); $('presLeft').textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; }
 }
 function presenceExpire() {
+  actAt = Date.now() - Math.max(0, presenceSecs - PRES_EVERY) * 1000;   // the last moment that still counted
   const lost = Math.min(Math.max(0, Math.round(presenceSecs - PRES_EVERY)), base);   // time after the question was asked is not counted
   let cut = lost;
   base -= cut;
@@ -1163,7 +1170,32 @@ function presenceExpire() {
   $('presStopMsg').textContent = `It was paused because you did not confirm that you were still studying. The last ${hm(lost / 60)} of waiting time was not counted. Press Resume to continue, or Finish & Save to keep your time.`;
   modal('presStop', 1);
   ui(); persist(); renderStreak(); remotePush(); if (inRoom) syncRoom();
+  autoSaveForgotten();
 }
+// ---------- Auto-save at 3:00 AM (forgotten, paused stopwatch) ----------
+// If a stopwatch was paused (or timed out) and never saved, then at 3:00 AM it is saved on the day it was
+// really used, so that day (and the streak) is not lost. It runs when the app is open or the next time it opens.
+const AUTO_HOUR = 3;
+let autoBusy = false;
+async function autoSaveForgotten() {
+  if (autoBusy || !user || running || !(base > 0)) return false;
+  const cut = new Date(); cut.setHours(AUTO_HOUR, 0, 0, 0); if (cut > new Date()) cut.setDate(cut.getDate() - 1);   // most recent 3:00 AM
+  if (!actAt) { actAt = Date.now(); persist(); return false; }
+  if (actAt >= cut.getTime()) return false;                                       // paused after 3 AM: still "today", wait for the next 3 AM
+  autoBusy = true;
+  try {
+    const dayKey = toYMD(new Date(actAt - AUTO_HOUR * 3600e3));                      // before 3 AM still belongs to the previous day
+    const at = toYMD(new Date(actAt)) === dayKey ? new Date(actAt) : new Date(dayKey + 'T23:59:00');
+    modal('presStop', 0);
+    await finishTimer(at);
+    $('swStatus').textContent = 'Auto-saved to ' + fmtY(ymd(dayKey));
+    notify('EDUVEX', 'Your paused stopwatch was saved automatically to ' + fmtY(ymd(dayKey)) + '.', 'ev-autosave');
+    return true;
+  } catch (e) { console.error('autosave', e); return false; }
+  finally { autoBusy = false; }
+}
+setInterval(autoSaveForgotten, 60000);
+
 function presenceYes() { presenceSecs = 0; askOpen = false; modal('presence', 0); persist(); }
 function presenceTouch() { if (running && !askOpen) presenceSecs = 0; }
 
@@ -1381,7 +1413,7 @@ function fillPeriods() {
   const kind = $('repKind').value, now = new Date(); let h = '';
   $('repTodoBox').classList.toggle('hidden', kind !== 'daily'); if (kind !== 'daily') $('repTodo').checked = false;
   $('repPerBox').classList.toggle('hidden', kind === 'range'); $('repRangeBox').classList.toggle('hidden', kind !== 'range');
-  if (kind === 'range') { if (!$('repTo').value) { $('repTo').value = toYMD(now); $('repFrom').value = toYMD(addDays(now, -6)); } return; }
+  if (kind === 'range') return;
   if (kind === 'daily') for (let i = 0; i < 31; i++) { const d = addDays(now, -i); h += `<option value="${toYMD(d)}">${i === 0 ? 'Today' : i === 1 ? 'Yesterday' : fmtY(d)}${i < 2 ? ' · ' + fmtY(d) : ''}</option>`; }
   else if (kind === 'weekly') for (let i = 0; i < 16; i++) { const a = addDays(weekStart(now), -7 * i); h += `<option value="${toYMD(a)}">${i === 0 ? 'This week' : i === 1 ? 'Last week' : 'Week of ' + fmt(a)} · ${fmt(a)} to ${fmt(addDays(a, 6))}</option>`; }
   else starts.forEach((m, i) => { const p = pc(m), nm = MN()[p.m - 1] + ' ' + p.y; h += `<option value="${i}">${i === 0 ? 'This month' : i === 1 ? 'Last month' : nm}${i < 2 ? ' · ' + nm : ''}</option>`; });
@@ -1390,7 +1422,7 @@ function fillPeriods() {
 function repCollect() {
   const kind = $('repKind').value; let days;
   if (kind === 'range') {
-    const a = $('repFrom').value && ymd($('repFrom').value), b = $('repTo').value && ymd($('repTo').value); days = [];
+    const a = ymd(pickGet('repFrom')), b = ymd(pickGet('repTo')); days = [];
     if (a && b && a <= b) for (let d = a; d <= b && days.length < 120; d = addDays(d, 1)) days.push(d);   // up to 120 days
     return { kind, days, label: days.length ? fmtY(days[0]) + ' to ' + fmtY(days[days.length - 1]) : '' };
   }
@@ -1657,12 +1689,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   $('goalType').value = goalType; $('goalIn').value = goalVal;
   $('goalType').onchange = () => { goalType = $('goalType').value; localStorage.setItem('ev_goal_type', goalType); renderGoal(); };
   ['manDate', 'exDate', 'gDate', 'tDate'].forEach(id => mkPicker(id));
+  mkPicker('repFrom', addDays(new Date(), -6), 3); mkPicker('repTo', new Date(), 3);
   $('tDate').addEventListener('change', renderTests);
   initArchive(); fillPeriods(); fillSubjects(); restoreTimer(); status(); calUI(); pushUI(); showTopic();
   window.addEventListener('online', () => { status(); refresh(); });
   window.addEventListener('offline', status);
   ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, presenceTouch, { passive: true }));
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (running) tick(); checkUpdate(false); if (focusActive) wakeOn(); } });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (running) tick(); autoSaveForgotten(); checkUpdate(false); if (focusActive) wakeOn(); } });
   window.addEventListener('storage', e => { if ((e.key === 'ev_timer_done' || e.key === 'ev_timer_finished_at') && runId && (e.newValue === runId || isStale(runId))) abandon(); });
   checkUpdate(true);
   let { data: { session } } = await sb.auth.getSession();
