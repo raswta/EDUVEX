@@ -5,15 +5,18 @@
   if (window.__evPolish) return; window.__evPolish = 1;
 
   /* ---------- 0) Update notice for THIS file (the old "new version" bar only watches index.html) ---------- */
-  var ADDON_BUILD = '2026-11-22.7';
+  var ADDON_BUILD = '2026-11-25.2';
   var selfSrc = (document.currentScript && document.currentScript.src) || '';
+  var lastAddChk = 0;
   async function checkAddon(auto) {
     if (!selfSrc || !navigator.onLine) return;
+    if (!auto && Date.now() - lastAddChk < 30 * 60e3) return;   // at most every 30 minutes (the first check after opening always runs)
+    lastAddChk = Date.now();
     try {
       var t = await (await fetch(selfSrc, { cache: 'reload' })).text();
       var m = t.match(/ADDON_BUILD = '([^']+)'/);
       if (!m || m[1] === ADDON_BUILD) return;
-      if (auto && sessionStorage.getItem('ev_upd2') !== m[1]) { sessionStorage.setItem('ev_upd2', m[1]); location.reload(); return; }   // when the app is just being opened: reload by itself, once
+      if ((window.evBooted === false || document.hidden) && sessionStorage.getItem('ev_upd2') !== m[1]) { sessionStorage.setItem('ev_upd2', m[1]); location.reload(); return; }   // reload by itself only when nobody can see it (loading screen / background), once
       var bar = document.getElementById('updBar'); if (bar) bar.classList.remove('hidden');                                      // app already open (or still old after a reload): show the Update button
     } catch (e) {}
   }
@@ -118,10 +121,7 @@ body .modal.show>*{animation:evPop .18s ease-out}
   fl.href = 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700;800&display=swap';
   document.head.appendChild(fl);
 
-  // notebook font + goal track hook
-  var fl = document.createElement('link');
-  fl.rel = 'stylesheet'; fl.href = 'https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&display=swap';
-  document.head.appendChild(fl);
+  // goal track hook (the font is already loaded above)
   var gb = document.getElementById('goalBar'); if (gb && gb.parentElement) gb.parentElement.id = 'goalTrack';
 
   // sticky tab bar sits right under the header
