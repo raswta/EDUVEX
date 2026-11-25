@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261125-3">
+<meta name="build" content="20261125-4">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
@@ -158,6 +158,8 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
   </button>
   </div>
 
+  <div id="duelBar" class="hidden space-y-2"></div>
+
   <div id="remBar" class="hidden card !p-3 flex items-center justify-between gap-3 border-blue-500/40">
     <div class="min-w-0"><div class="text-[10px] text-blue-300"><i class="fa-solid fa-mobile-screen mr-1"></i> Stopwatch on another device</div><div class="flex items-baseline gap-2"><span id="remTime" class="font-mono text-xl font-bold">00:00:00</span><span id="remSub" class="text-[11px] text-slate-400 truncate"></span></div></div>
     <div class="flex gap-2 shrink-0"><button id="remPause" onclick="remToggle()" class="btn bg-blue-600 hover:bg-blue-500 !py-1.5 !px-3 text-xs"></button><button onclick="remFinish()" class="btn bg-emerald-600 hover:bg-emerald-500 !py-1.5 !px-3 text-xs"><i class="fa-solid fa-check mr-1"></i> Finish</button></div>
@@ -228,10 +230,13 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
     </div>
     <div class="card space-y-3">
       <h3 class="text-sm font-semibold text-slate-400">Weekly Classes</h3>
+      <p class="text-[11px] text-slate-500">Classes repeat every week. If a class time changes, edit it (pen): the change counts from this week on and past weeks keep their old time.</p>
       <input id="clTitle" placeholder="Class title" class="inp">
       <select id="clSubject" class="inp"></select>
       <select id="clDay" class="inp"></select>
       <input id="clDur" type="number" placeholder="Duration in minutes" class="inp">
+      <div><label class="lbl">Starts from</label>
+        <select id="clFrom" class="inp"><option value="0">This week</option><option value="1">Next week</option></select></div>
       <button onclick="saveClass()" class="btn bg-emerald-500 hover:bg-emerald-600">Add Class</button>
       <div id="classesList" class="space-y-2 max-h-56 overflow-y-auto"></div>
     </div>
@@ -278,14 +283,32 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
     </div>
     <div class="card">
       <div class="flex justify-between items-center mb-3"><h4 class="text-sm font-semibold text-slate-400">Active Members</h4>
-        <button onclick="syncRoom();loadLB()" class="bg-slate-800 px-3 py-1 rounded-lg text-xs"><i class="fa-solid fa-rotate"></i> Refresh</button></div>
+        <button onclick="syncRoom();loadLB();duelsLoad()" class="bg-slate-800 px-3 py-1 rounded-lg text-xs"><i class="fa-solid fa-rotate"></i> Refresh</button></div>
+      <div id="roomDuels" class="mb-3 space-y-2"></div>
       <div id="roomList" class="space-y-2"></div>
     </div>
-    <div class="card">
-      <div class="flex justify-between items-center mb-3 gap-2">
-        <h4 class="text-sm font-semibold text-amber-400"><i class="fa-solid fa-trophy mr-1"></i> Leaderboard (by streak)</h4>
+    <div class="grid md:grid-cols-2 gap-6 items-start">
+      <div class="card">
+        <div class="flex justify-between items-center mb-3 gap-2">
+          <h4 class="text-sm font-semibold text-amber-400"><i class="fa-solid fa-trophy mr-1"></i> Leaderboard (by streak)</h4>
+        </div>
+        <div id="lbList" class="space-y-2"></div>
       </div>
-      <div id="lbList" class="space-y-2"></div>
+      <div class="card" id="duelCard">
+        <div class="flex justify-between items-center mb-3 gap-2">
+          <h4 class="text-sm font-semibold text-rose-400">⚔️ Duel</h4>
+          <button onclick="duelUsers();duelsLoad()" class="bg-slate-800 px-3 py-1 rounded-lg text-xs" title="Refresh"><i class="fa-solid fa-rotate"></i></button>
+        </div>
+        <div class="space-y-2">
+          <select id="duelWho" class="inp"><option value="">Choose a person…</option></select>
+          <div class="grid grid-cols-2 gap-2">
+            <select id="duelDay" class="inp"></select>
+            <button onclick="duelSend()" class="btn bg-rose-600 hover:bg-rose-500">Send duel</button>
+          </div>
+          <p class="text-[11px] text-slate-500">Pick anyone with an account and a day (today up to 3 days ahead). If they accept, whoever studies more with the stopwatch that day wins. Everyone can watch.</p>
+        </div>
+        <div id="duelList" class="space-y-2 mt-3"></div>
+      </div>
     </div>
   </div>
 
@@ -436,6 +459,16 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
   </div>
   <button id="logoutBtn" onclick="logout()" class="hidden btn bg-slate-800 hover:bg-slate-700 !text-red-400"><i class="fa-solid fa-right-from-bracket mr-1"></i> Logout</button>
 </div></div>
+<div id="clEdit" class="modal"><div class="card max-w-sm w-full space-y-3">
+  <h3 class="text-base font-bold text-slate-200"><i class="fa-solid fa-pen mr-1"></i> Edit class</h3>
+  <input type="hidden" id="ceId">
+  <div><label class="lbl">Class title</label><input id="ceTitle" class="inp"></div>
+  <div><label class="lbl">Subject</label><select id="ceSubject" class="inp"></select></div>
+  <div><label class="lbl">Day</label><select id="ceDay" class="inp"></select></div>
+  <div><label class="lbl">Duration (minutes)</label><input id="ceDur" type="number" class="inp"></div>
+  <p class="text-[11px] text-slate-400">The change counts from <b>this week</b> on. Past weeks keep the old time.</p>
+  <div class="flex gap-3"><button onclick="modal('clEdit',0)" class="btn bg-slate-800 hover:bg-slate-700">Cancel</button><button onclick="clEditSave()" class="btn bg-emerald-600 hover:bg-emerald-500">Save</button></div>
+</div></div>
 <div id="offInfo" class="modal"><div class="card max-w-sm w-full space-y-4 relative">
   <button onclick="modal('offInfo',0)" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
   <h3 class="text-base font-bold text-blue-400">Connection Status Info</h3>
@@ -492,6 +525,7 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
   <p><b><i class="fa-solid fa-fire text-orange-400 mr-1"></i> Streak:</b> the character next to the goal bar counts your days in a row. It is angry until you start studying today, and it glows when you reach your daily goal. Tap it to choose a weekly day off that never breaks your streak.</p>
   <p><b><i class="fa-solid fa-face-smile text-orange-400 mr-1"></i> Streak character:</b> the character shows your level. Angry: you have not started studying today (with any streak). Calm: you started today and have a 1-14 day streak. Sparkle: 15 days. Black graduation cap: 30 days. Red graduation cap: 60 days. Tap it to see all levels.</p>
   <p><b><i class="fa-solid fa-ranking-star text-amber-400 mr-1"></i> Leaderboard:</b> in the Study Room tab, everyone is ranked by streak (most days first), with their username, streak and level character. Everyone with a streak is listed automatically.</p>
+  <p><b>⚔️ Duel:</b> next to the Leaderboard (Study Room tab) pick any person with an account, choose a day (today up to 3 days ahead) and press Send duel. When they accept, both of you compete with the stopwatch time of that day. Everyone sees "In duel" next to your names, and the person who is ahead gets 🎖️. Requests, and your own running duel, also show at the top of every tab. Manual entries do not count in a duel.</p>
   <p><b><i class="fa-solid fa-stopwatch text-blue-400 mr-1"></i> Timer:</b> pick a subject and press Start. To study another subject, press Pause, choose the new subject and press Resume. The big clock keeps the total, and each subject is saved with its own time when you press Finish &amp; Save. Sessions shorter than 15 seconds are not saved. The stopwatch keeps going if you refresh the page.</p>
   <p><b><i class="fa-solid fa-moon text-indigo-400 mr-1"></i> Auto-save at 3:00 AM:</b> if you paused the stopwatch and forgot to press Finish &amp; Save, it is saved automatically at 3:00 AM (or when you next open the app) on the day you studied, so your streak is not lost.</p>
   <p><b><i class="fa-solid fa-user-clock text-blue-400 mr-1"></i> Still studying? check:</b> if the stopwatch runs for 3 hours without you touching the app, a popup asks whether you are still studying. Tap Yes within 10 minutes to keep going. If you do not, the stopwatch pauses and the waiting time is not counted. For very long sessions, use Focus mode so the screen stays on and you can answer.</p>
@@ -499,7 +533,7 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
   <p><b><i class="fa-solid fa-hourglass-half text-blue-400 mr-1"></i> Pomodoro:</b> tick the box, set study and rest minutes, and the clock counts down. Rest time is not added to your study time.</p>
   <p><b><i class="fa-solid fa-pen-to-square text-blue-400 mr-1"></i> Manual entry:</b> add minutes you studied without the stopwatch, for any date (including a reason/explanation). In the charts these keep their subject color with a thick yellow border.</p>
   <p><b><i class="fa-solid fa-trash text-blue-400 mr-1"></i> Logs:</b> every saved session appears in Saved Study Logs. Use the trash icon to delete one. Items that say pending sync were saved offline and will upload automatically.</p>
-  <p><b><i class="fa-solid fa-calendar-check text-blue-400 mr-1"></i> Exams &amp; Classes:</b> add exams to see the days left. Weekly classes repeat every week and count toward your goal and the Classes layer in the charts.</p>
+  <p><b><i class="fa-solid fa-calendar-check text-blue-400 mr-1"></i> Exams &amp; Classes:</b> add exams to see the days left. Weekly classes repeat every week and count toward your goal and the Classes layer in the charts. If a class time changes, tap the pen and change it: the new time counts from this week on, and past weeks (goal, streak, charts, PDF) keep the old time. The trash icon stops a class from this week on without touching past weeks. You can also choose "Next week" when adding a class.</p>
   <p><b><i class="fa-solid fa-list-check text-blue-400 mr-1"></i> Tests:</b> in the Tests tab pick a day, type how many practice tests you solved for each subject (optional) and press Save tests. The study time of that day is shown next to each subject, and you can edit the numbers any time. The chart shows tests by subject for one day, or day by day for the whole week. Subjects keep their colors. You can also write a Topic (optional) in the Timer card and press Set (or Enter); it is saved with the session and shown in the PDF summary. Under the timer you see the time of each topic.</p>
   <p><b><i class="fa-solid fa-square-check text-blue-400 mr-1"></i> To-Do:</b> add tasks for today, tick them, edit them with the pen or delete them. The list is kept only on this device and is deleted when the day ends. In the Daily summary (More tab) you can tick "Include today's to-do list" to add it to the PDF; it is off by default.</p>
   <p><b><i class="fa-solid fa-users text-blue-400 mr-1"></i> Study Room:</b> automatically joins when your timer starts and leaves when you finish. Users with 30+ day streaks unlock manual join/leave controls.</p>
@@ -595,7 +629,17 @@ function setCal(k) {
   mkPicker('repFrom', rf, 3); mkPicker('repTo', rt, 3);
   const w = $('weekSel').value; initArchive(); $('weekSel').value = w;
   calUI(); renderLists(); renderCharts(); fillPeriods(); renderTests();
+  duelFillDays(); duSig = ''; duelsRender();
 }
+
+// ---------- Weekly classes with dates ----------
+// A class row repeats every week. start_date / end_date are week keys (the Saturday that starts the week), both inclusive.
+// Empty start_date = "from the beginning", empty end_date = "still going". Editing a class ends the old row at last week and adds a new row from this week,
+// so past weeks keep their old class time (goal, streak, charts, PDF all read classes through classesOn / classMins).
+const wkKey = d => toYMD(weekStart(d));
+const clActive = (c, wk) => (!c.start_date || c.start_date <= wk) && (!c.end_date || c.end_date >= wk);
+const classesOn = d => { const wk = wkKey(d), dw = d.getDay(); return D.classes.filter(c => +c.day_of_week === dw && clActive(c, wk)); };
+const classMins = d => classesOn(d).reduce((a, c) => a + (+c.duration_minutes || 0), 0);
 
 // ---------- UI helpers ----------
 function modal(id, show) { $(id).classList.toggle('show', !!show); }
@@ -604,7 +648,7 @@ function tab(id) {
   $(id).classList.remove('hidden');
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('on', b.dataset.t === id));
   if (id === 'chartsTab') renderCharts();
-  if (id === 'roomTab') { checkStreakPerks(); syncRoom(); loadLB(); }
+  if (id === 'roomTab') { checkStreakPerks(); syncRoom(); loadLB(); duelFillDays(); duelUsers(); duelsLoad(); }
   if (id === 'testsTab') renderTests();
   if (id === 'todoTab') todoRender();
   if (id === 'moreTab') fillPeriods();
@@ -720,6 +764,7 @@ async function refresh() {
     applyData(got, days); dataLoaded = true;
   } catch (e) { console.error('refresh load', e); }       // keep showing the data we already have
   renderAll();
+  duelsLoad();                                           // my stopwatch time may have changed: update my duels too
 }
 
 // ---------- Auth ----------
@@ -760,6 +805,14 @@ function onLogin() {
   setInterval(async () => { if (user && running) { await remotePull(); if (running) remotePush(); } }, 60000);   // heartbeat while studying
   window.addEventListener('online', remotePull); document.addEventListener('visibilitychange', () => { if (!document.hidden) remotePull(); });
   initCollapse();
+  duelFillDays(); duelUsers(); duelsLoad();
+  // duels: ask the server every 15 s while the Study Room tab is open or I am in an accepted duel, otherwise once a minute; the clocks tick every second
+  setInterval(() => {
+    if (!user || document.hidden) return;
+    const fast = !$('roomTab').classList.contains('hidden') || DU.some(d => d.status === 'accepted' && duMine(d));
+    if (Date.now() - duelLast >= (fast ? 14500 : 59500)) duelsLoad();
+  }, 5000);
+  setInterval(() => { if (user && DU.length) duelsRender(); }, 1000);
   if (!roomInt) {
     roomInt = setInterval(() => { if (inRoom || focusActive || !$('roomTab').classList.contains('hidden')) syncRoom(); }, 10000);
     setInterval(() => { if (focusActive || !$('roomTab').classList.contains('hidden')) renderRoom(); }, 1000);
@@ -784,7 +837,7 @@ async function changePassword() {
 
 // ---------- Subjects ----------
 function fillSubjects() {
-  [['swSubject',1],['manSubject',1],['exSubject',0],['clSubject',0]].forEach(([id, add]) => {
+  [['swSubject',1],['manSubject',1],['exSubject',0],['clSubject',0],['ceSubject',0]].forEach(([id, add]) => {
     const e = $(id), v = e.value;
     e.innerHTML = subjects.map(s => `<option>${esc(s)}</option>`).join('') + (add ? '<option value="__new">+ Add New Subject</option>' : '');
     if (v && [...e.options].some(o => o.value === v)) e.value = v;
@@ -859,36 +912,38 @@ function saveGoal() {
   localStorage.setItem('ev_goal_val', v); localStorage.setItem('ev_goal_type', goalType);
   renderGoal();
 }
+// Goal bar: study sessions + classes of that day/week (by date) + the running stopwatch (whole minutes)
 function renderGoal() {
   const now = logicalNow(), t0 = dayStart();
   const sum = (arr, f) => arr.reduce((a, x) => a + (+f(x) || 0), 0);
+  const live = Math.floor(base / 60);
   let mins;
   if (goalType === 'daily') {
-    mins = sum(D.sessions.filter(s => new Date(s.created_at) >= t0), s => s.duration_minutes)
-         + sum(D.classes.filter(c => +c.day_of_week === now.getDay()), c => c.duration_minutes);
+    mins = sum(D.sessions.filter(s => new Date(s.created_at) >= t0), s => s.duration_minutes) + classMins(now) + live;
   } else {
-    const ws = weekStart(now); ws.setHours(DAY_CUT, 0, 0, 0);
-    mins = sum(D.sessions.filter(s => new Date(s.created_at) >= ws), s => s.duration_minutes) + sum(D.classes, c => c.duration_minutes);
+    const ws = weekStart(now); ws.setHours(DAY_CUT, 0, 0, 0); const wk = wkKey(now);
+    mins = sum(D.sessions.filter(s => new Date(s.created_at) >= ws), s => s.duration_minutes)
+         + sum(D.classes.filter(c => clActive(c, wk)), c => c.duration_minutes) + live;
   }
   const h = mins / 60, pct = Math.min(100, Math.round(h / goalVal * 100));
   $('goalText').textContent = `${h.toFixed(1)} / ${goalVal} hrs (${pct}%)`;
   $('goalBar').style.width = pct + '%';
   renderStreak();
 }
+setInterval(() => { if (user) renderGoal(); }, 30000);
 
 // ---------- Streak ----------
 const restDay = () => { const v = localStorage.getItem('ev_restday'); return v === null || v === '' ? -1 : +v; };
 function fireState() {
-  const todayKey = dayKey(new Date()), rest = restDay(), cutK = toYMD(addDays(winStart(), 1)), m = {}, cl = {};
+  const todayKey = dayKey(new Date()), rest = restDay(), cutK = toYMD(addDays(winStart(), 1)), m = {};
   (D.days || []).forEach(r => { if (r.day < cutK) m[r.day] = +r.minutes || 0; });   // older days: one summary row each (no manual time)
   D.sessions.forEach(x => { const k = dayKey(x.created_at); if (x.type !== 'manual' && k >= cutK) m[k] = (m[k] || 0) + (+x.duration_minutes || 0); });
-  D.classes.forEach(c => { cl[+c.day_of_week] = (cl[+c.day_of_week] || 0) + (+c.duration_minutes || 0); });
   const live = (running || base) ? base / 60 : 0;
   if (live) m[todayKey] = (m[todayKey] || 0) + live;
   const keys = Object.keys(m).filter(k => m[k] > 0).sort();
   let cur = 0, best = 0;
   if (keys.length) for (let d = ymd(keys[0]); toYMD(d) <= todayKey; d = addDays(d, 1)) {
-    const k = toYMD(d), st = m[k] || 0, mins = st > 0 ? st + (cl[d.getDay()] || 0) : 0;   // classes add to study time, manual time never counts
+    const k = toYMD(d), st = m[k] || 0, mins = st > 0 ? st + classMins(d) : 0;   // classes of THAT week add to study time, manual time never counts
     const need = cur >= 7 ? 300 : cur >= 2 ? 180 : 0;                                      // days 1-2: any stopwatch time | days 3-7: over 3 h | from day 8: over 5 h
     if (mins > need) { cur++; best = Math.max(best, cur); }
     else if (k !== todayKey && d.getDay() !== rest) cur = 0;                              // today not finished yet / a day off do not break it
@@ -896,7 +951,7 @@ function fireState() {
   const days = { [todayKey]: (m[todayKey] || 0) > 0 || running || base > 0 };
   const t0 = dayStart();
   const mins = D.sessions.filter(s => new Date(s.created_at) >= t0).reduce((a, s) => a + (+s.duration_minutes || 0), 0)
-    + D.classes.filter(c => +c.day_of_week === logicalNow().getDay()).reduce((a, c) => a + (+c.duration_minutes || 0), 0) + (running || base ? base / 60 : 0);
+    + classMins(logicalNow()) + (running || base ? base / 60 : 0);
   const studiedToday = !!days[todayKey], blaze = studiedToday && mins / 60 >= (goalType === 'daily' ? goalVal : goalVal / 7);
   return { cur, best: Math.max(best, cur), studiedToday, blaze };
 }
@@ -988,8 +1043,18 @@ function renderLists() {
         ${e.topics ? `<div class="text-[11px] text-slate-500 mt-1.5 line-clamp-2">${esc(e.topics)}</div>` : ''}</div>
       <div class="flex items-center pr-3">${trash('exams', e)}</div></div>`;
   }).join('') || '<p class="text-xs text-slate-500">No exams yet.</p>';
-  $('classesList').innerHTML = D.classes.map(c => `
-    <div class="row"><div><b>${esc(c.title)}</b> (${esc(c.subject)})<span class="block text-[10px] text-slate-400">${DAYS[(+c.day_of_week + 1) % 7]} · ${c.duration_minutes} min</span></div>${trash('classes', c)}</div>`).join('');
+  // classes: running ones first, ended ones (kept for the history of past weeks) at the end
+  const wkNow = wkKey(logicalNow());
+  const isEnded = c => !!c.end_date && c.end_date < wkNow;
+  const cl = D.classes.slice().sort((a, b) => (isEnded(a) - isEnded(b)) || (((+a.day_of_week + 1) % 7) - ((+b.day_of_week + 1) % 7)));
+  $('classesList').innerHTML = cl.map(c => {
+    const ended = isEnded(c), info = (c.start_date ? ` · from ${fmt(ymd(c.start_date))}` : '') + (c.end_date ? ` · until ${fmt(addDays(ymd(c.end_date), 6))}` : '');
+    const acts = !c.id ? trash('classes', c)
+      : ended ? `<button onclick="delOldClass('${c.id}')" class="text-red-400 hover:text-red-300 ml-3" title="Delete from history"><i class="fa-solid fa-trash"></i></button>`
+      : `<button onclick="editClass('${c.id}')" class="text-blue-400 hover:text-blue-300 ml-3" title="Edit (from this week on)"><i class="fa-solid fa-pen"></i></button>
+         <button onclick="stopClass('${c.id}')" class="text-red-400 hover:text-red-300 ml-3" title="Remove from this week on"><i class="fa-solid fa-trash"></i></button>`;
+    return `<div class="row ${ended ? 'opacity-60' : ''}"><div><b>${esc(c.title)}</b> (${esc(c.subject)})<span class="block text-[10px] text-slate-400">${DAYS[(+c.day_of_week + 1) % 7]} · ${c.duration_minutes} min${ended ? ' · ended' : ''}${info}</span></div><div class="flex items-center shrink-0">${acts}</div></div>`;
+  }).join('') || '<p class="text-xs text-slate-500">No classes yet.</p>';
 }
 
 // ---------- Stopwatch ----------
@@ -1374,8 +1439,53 @@ async function saveManual() {
 async function saveClass() {
   const title = $('clTitle').value.trim();
   if (!title) return alert('Enter the class title');
-  await save('classes', { title, subject: $('clSubject').value, day_of_week: +$('clDay').value, duration_minutes: parseInt($('clDur').value) || 60 });
+  const from = toYMD(addDays(weekStart(logicalNow()), 7 * (+$('clFrom').value || 0)));   // the Saturday of the week the class starts in
+  await save('classes', { title, subject: $('clSubject').value, day_of_week: +$('clDay').value, duration_minutes: parseInt($('clDur').value) || 60, start_date: from });
   $('clTitle').value = ''; refresh();
+}
+const findClass = id => D.classes.find(x => x.id !== undefined && String(x.id) === String(id));
+function editClass(id) {
+  const c = findClass(id); if (!c) return;
+  fillSubjects();
+  $('ceId').value = c.id; $('ceTitle').value = c.title; $('ceSubject').value = c.subject; $('ceDay').value = String(+c.day_of_week); $('ceDur').value = c.duration_minutes;
+  modal('clEdit', 1);
+}
+async function clEditSave() {
+  const c = findClass($('ceId').value); if (!c) return modal('clEdit', 0);
+  const title = $('ceTitle').value.trim();
+  if (!title) return alert('Enter the class title');
+  if (!navigator.onLine) return alert('You need to be online to edit a class.');
+  const row = { title, subject: $('ceSubject').value, day_of_week: +$('ceDay').value, duration_minutes: parseInt($('ceDur').value) || 60 };
+  const wk = wkKey(logicalNow()), prev = toYMD(addDays(weekStart(logicalNow()), -7));
+  if (c.start_date && c.start_date >= wk) {                       // it only exists from this week (or later): change it in place
+    const { error } = await sb.from('classes').update(row).eq('id', c.id).eq('user_id', user.id);
+    if (error) return alert('Error: ' + error.message);
+  } else {                                                        // it was already there in past weeks: end it at last week and start a new one from this week
+    const r1 = await sb.from('classes').update({ end_date: prev }).eq('id', c.id).eq('user_id', user.id);
+    if (r1.error) return alert('Error: ' + r1.error.message);
+    const r2 = await sb.from('classes').insert({ ...row, user_id: user.id, start_date: wk });
+    if (r2.error) {
+      await sb.from('classes').update({ end_date: c.end_date || null }).eq('id', c.id).eq('user_id', user.id);   // undo, nothing is lost
+      return alert('Error: ' + r2.error.message);
+    }
+  }
+  modal('clEdit', 0); refresh();
+}
+async function stopClass(id) {
+  const c = findClass(id); if (!c) return;
+  if (!navigator.onLine) return alert('You need to be online to change a class.');
+  const wk = wkKey(logicalNow());
+  if (c.start_date && c.start_date >= wk) return del('classes', c.id);        // it never counted in a past week: just delete it
+  if (!confirm(`Remove "${c.title}" from this week on?\n\nPast weeks keep it (goal, streak, charts and PDF stay the same).`)) return;
+  const { error } = await sb.from('classes').update({ end_date: toYMD(addDays(weekStart(logicalNow()), -7)) }).eq('id', c.id).eq('user_id', user.id);
+  if (error) return alert('Error: ' + error.message);
+  refresh();
+}
+async function delOldClass(id) {
+  if (!confirm('This class already ended. Deleting it also removes it from the past weeks it counted in (goal, streak, charts). Delete anyway?')) return;
+  const { error } = await sb.from('classes').delete().eq('id', id).eq('user_id', user.id);
+  if (error) return alert('Error: ' + error.message);
+  refresh();
 }
 async function saveExam() {
   const title = $('exTitle').value.trim();
@@ -1507,7 +1617,7 @@ async function openReport() {
   const tst = D.tests.filter(t => set.has(t.test_date) && +t.count > 0), sub = {};
   const row = n => sub[n] || (sub[n] = { study: 0, cls: 0, tests: 0, topics: new Map() });
   ses.forEach(s => { const r = row(s.subject); r.study += +s.duration_minutes || 0; topicList(s.topic).forEach(x => r.topics.set(x.t, (r.topics.get(x.t) || 0) + (x.s || 0))); });
-  const clsDay = days.map(d => withCl && d <= endT ? D.classes.filter(c => +c.day_of_week === d.getDay()) : []);
+  const clsDay = days.map(d => withCl && d <= endT ? classesOn(d) : []);   // the classes that were valid in THAT week
   clsDay.forEach(cs => cs.forEach(c => { row(c.subject).cls += +c.duration_minutes || 0; }));
   tst.forEach(t => { row(t.subject).tests += +t.count; });
   const names = Object.keys(sub).sort((a, b) => (sub[b].study + sub[b].cls) - (sub[a].study + sub[a].cls));
@@ -1587,17 +1697,168 @@ async function pushStreak(n) {
   const { error } = await sb.from('leaderboard').upsert({ user_id: user.id, username: user.email.split('@')[0], streak: n, hidden: false, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
   if (error) console.error('leaderboard', error);
 }
+let lbData = null;
 async function loadLB() {
   if (!user || !navigator.onLine) return;
   const { data, error } = await sb.from('leaderboard').select('*').gte('streak', LB_MIN).order('streak', { ascending: false }).limit(50);
   if (error) return console.error('leaderboard', error);
-  $('lbList').innerHTML = (data || []).map((m, i) => `<div class="row ${m.user_id === user.id ? '!border-blue-500' : ''}">
-    <div class="flex items-center gap-2"><span class="w-5 text-slate-400 font-mono">${i + 1}</span>
-    <img src="${SIMG[levelOf(m.streak)]}" class="w-9 h-9 object-contain" alt=""><b>${esc(m.username)}</b>${m.user_id === user.id ? ' (You)' : ''}</div>
-    <span class="font-mono text-sm text-amber-300">${m.streak} day${m.streak === 1 ? '' : 's'}</span></div>`).join('') || '<p class="text-xs text-slate-500 text-center py-4">No one yet.</p>';
+  lbData = data || []; renderLB();
+}
+function renderLB() {
+  const el = $('lbList'); if (!el || !lbData) return;
+  el.innerHTML = lbData.map((m, i) => `<div class="row ${m.user_id === user.id ? '!border-blue-500' : ''}">
+    <div class="flex items-center gap-2 flex-wrap min-w-0"><span class="w-5 text-slate-400 font-mono">${i + 1}</span>
+    <img src="${SIMG[levelOf(m.streak)]}" class="w-9 h-9 object-contain" alt=""><b class="truncate">${esc(m.username)}</b>${m.user_id === user.id ? ' (You)' : ''}${duBadge(m.user_id)}</div>
+    <span class="font-mono text-sm text-amber-300 shrink-0 ml-2">${m.streak} day${m.streak === 1 ? '' : 's'}</span></div>`).join('') || '<p class="text-xs text-slate-500 text-center py-4">No one yet.</p>';
 }
 
 const LB_MIN = 1;   // everyone with at least this many streak days is on the leaderboard
+
+// ---------- Duels ----------
+// duel_date = the study day (3 AM rule). The duel is decided by the STOPWATCH time of that day (manual entries never count).
+// Each person writes only their own seconds into the duels row (every ~15 s while studying), everybody can read accepted duels.
+let DU = [], duelUsersList = [], duelLast = 0, duelBusy = false, duelSeen = null, duSig = '';
+const duelPushed = {};
+const todayK = () => dayKey(new Date());
+const uname = () => user.email.split('@')[0];
+const duMine = d => !!user && (d.challenger_id === user.id || d.opponent_id === user.id);
+const duShown = d => d.status === 'accepted' || (d.status === 'pending' && d.duel_date >= todayK() && duMine(d));
+function myStopSecs(key) {                                  // my stopwatch seconds on that study day (saved sessions + the run in progress)
+  let s = 0;
+  D.sessions.forEach(x => { if (x.type !== 'manual' && dayKey(x.created_at) === key) s += (+x.duration_minutes || 0) * 60; });
+  if (key === todayK()) { if (running || base > 0) s += base; else if (remote && !(remote.running && Date.now() - remote.lastTick > 6 * 3600e3)) s += remNow(remote).base; }
+  return s;
+}
+function duSecs(d, side) {
+  const mine = (side === 'c' ? d.challenger_id : d.opponent_id) === user.id;
+  return mine ? myStopSecs(d.duel_date) : (+d[side === 'c' ? 'challenger_secs' : 'opponent_secs'] || 0);
+}
+function leadOf(d) {
+  if (d.duel_date > todayK()) return '';
+  const a = duSecs(d, 'c'), b = duSecs(d, 'o');
+  return a > b ? 'c' : b > a ? 'o' : '';
+}
+const duTime = (d, side) => d.duel_date > todayK() ? '--:--:--' : hms(duSecs(d, side));
+function duelIds() {
+  const t = todayK(), s = new Set();
+  DU.forEach(d => { if (d.status === 'accepted' && d.duel_date === t) { s.add(d.challenger_id); s.add(d.opponent_id); } });
+  return s;
+}
+function duelInfo(uid) {                                    // is this person in a duel today? and are they in front?
+  const t = todayK(), d = DU.find(x => x.status === 'accepted' && x.duel_date === t && (x.challenger_id === uid || x.opponent_id === uid));
+  if (!d) return null;
+  const l = leadOf(d);
+  return { lead: (l === 'c' && d.challenger_id === uid) || (l === 'o' && d.opponent_id === uid) };
+}
+function duBadge(uid) {
+  const di = duelInfo(uid);
+  return di ? `<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-rose-500/15 text-rose-300 whitespace-nowrap">${di.lead ? '🎖️ ' : ''}⚔️ In duel</span>` : '';
+}
+function duelRow(d) {
+  const t = todayK(), future = d.duel_date > t, over = d.duel_date < t, lead = leadOf(d), mine = duMine(d);
+  const side = (s, name, id) => `<div class="flex items-center justify-between gap-2"><span class="truncate">${lead === s ? '🎖️ ' : ''}<b>${esc(name)}</b>${id === user.id ? ' (You)' : ''}</span><span data-dt="${d.id}:${s}" class="font-mono ${lead === s ? 'text-amber-300' : 'text-slate-400'}">${duTime(d, s)}</span></div>`;
+  const tag = future ? `📅 Scheduled · ${fmtY(ymd(d.duel_date))}`
+    : over ? (lead ? `🏁 Finished · 🏆 ${esc(lead === 'c' ? d.challenger_name : d.opponent_name)} won` : '🏁 Finished · draw')
+    : '⚔️ In duel';
+  return `<div class="rounded-xl border-2 ${mine && !over ? 'border-rose-500/60' : 'border-slate-800'} bg-slate-950 p-2.5 text-xs space-y-1">
+    <div class="flex items-center justify-between gap-2"><span class="text-[11px] font-semibold ${over ? 'text-slate-400' : 'text-rose-300'}">${tag}</span>${mine && !over ? `<button onclick="duelDel('${d.id}')" class="text-slate-500 hover:text-red-400" title="Cancel duel"><i class="fa-solid fa-xmark"></i></button>` : ''}</div>
+    ${side('c', d.challenger_name, d.challenger_id)}${side('o', d.opponent_name, d.opponent_id)}</div>`;
+}
+const reqRow = d => `<div class="rounded-xl border-2 border-rose-500/50 bg-slate-950 p-2.5 text-xs flex items-center justify-between gap-2 flex-wrap"><span>⚔️ <b>${esc(d.challenger_name)}</b> challenged you · ${fmtY(ymd(d.duel_date))}</span>
+  <span class="flex gap-2"><button onclick="duelAnswer('${d.id}',true)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-lg font-medium">Accept</button><button onclick="duelAnswer('${d.id}',false)" class="bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded-lg">Decline</button></span></div>`;
+const outRow = d => `<div class="rounded-xl border-2 border-slate-800 bg-slate-950 p-2.5 text-xs flex items-center justify-between gap-2"><span>You → <b>${esc(d.opponent_name)}</b> · ${fmtY(ymd(d.duel_date))} · waiting…</span>
+  <button onclick="duelDel('${d.id}')" class="text-slate-400 hover:text-red-400" title="Cancel"><i class="fa-solid fa-xmark"></i></button></div>`;
+function duelsRender() {
+  if (!user) return;
+  const t = todayK(), list = DU.filter(duShown);
+  const sig = t + '|' + list.map(d => d.id + d.status + leadOf(d)).join(',');
+  if (sig !== duSig) {                                       // rebuild only when something changed (the clocks below tick without rebuilding, so buttons never move under your finger)
+    duSig = sig;
+    const acc = list.filter(d => d.status === 'accepted'), inc = list.filter(d => d.status === 'pending' && d.opponent_id === user.id), out = list.filter(d => d.status === 'pending' && d.challenger_id === user.id);
+    const now = acc.filter(d => d.duel_date === t), up = acc.filter(d => d.duel_date > t), done = acc.filter(d => d.duel_date < t);
+    const sec = (title, arr, fn) => arr.length ? `<div class="text-[11px] font-semibold text-slate-400 pt-1">${title}</div>` + arr.map(fn).join('') : '';
+    const bar = inc.map(reqRow).join('') + now.filter(duMine).map(duelRow).join('');
+    $('duelBar').innerHTML = bar; $('duelBar').classList.toggle('hidden', !bar);
+    $('duelList').innerHTML = sec('Requests for you', inc, reqRow) + sec('Sent', out, outRow) + sec('In duel today', now, duelRow) + sec('Scheduled', up, duelRow) + sec('Yesterday', done, duelRow)
+      || '<p class="text-xs text-slate-500 text-center py-2">No duels yet. Challenge someone!</p>';
+    $('roomDuels').innerHTML = now.length ? `<div class="text-[11px] font-semibold text-rose-300">⚔️ In duel</div>` + now.map(duelRow).join('') : '';
+    renderRoom(); renderLB();
+  }
+  document.querySelectorAll('[data-dt]').forEach(sp => {
+    const [id, s] = sp.dataset.dt.split(':'), d = DU.find(x => x.id === id);
+    if (d) { const v = duTime(d, s); if (sp.textContent !== v) sp.textContent = v; }
+  });
+}
+async function duelsLoad() {
+  if (!user || !navigator.onLine || duelBusy) return;
+  duelBusy = true; duelLast = Date.now();
+  try {
+    const since = toYMD(addDays(logicalNow(), -1));
+    const { data, error } = await sb.from('duels').select('*').gte('duel_date', since).order('created_at', { ascending: false }).limit(200);
+    if (error) { console.error('duels', error); return; }
+    DU = data || [];
+    const inc = DU.filter(d => d.status === 'pending' && d.opponent_id === user.id && d.duel_date >= todayK());
+    if (duelSeen === null) duelSeen = new Set(inc.map(d => d.id));
+    else inc.forEach(d => { if (!duelSeen.has(d.id)) { duelSeen.add(d.id); notify('EDUVEX', `${d.challenger_name} challenged you to a duel!`, 'ev-duel-' + d.id); } });
+    duSig = ''; duelsRender();
+    duelsPush();
+  } catch (e) { console.error('duels', e); }
+  finally { duelBusy = false; }
+}
+async function duelsPush() {                                 // write MY seconds into my side of each accepted duel (today / yesterday)
+  const t = todayK(), y = toYMD(addDays(logicalNow(), -1));
+  for (const d of DU) {
+    if (d.status !== 'accepted' || !duMine(d) || d.duel_date > t || d.duel_date < y) continue;
+    const col = d.challenger_id === user.id ? 'challenger_secs' : 'opponent_secs', v = Math.round(myStopSecs(d.duel_date));
+    if (v === (+d[col] || 0) || duelPushed[d.id + col] === v) continue;
+    duelPushed[d.id + col] = v;
+    const { error } = await sb.from('duels').update({ [col]: v }).eq('id', d.id);
+    if (error) { console.error('duel push', error); delete duelPushed[d.id + col]; } else d[col] = v;
+  }
+}
+async function duelUsers() {
+  if (!user || !navigator.onLine) return;
+  const { data, error } = await sb.from('leaderboard').select('user_id,username,streak').neq('user_id', user.id).order('username').limit(500);
+  if (error) return console.error('duel users', error);
+  duelUsersList = data || [];
+  const e = $('duelWho'), v = e.value;
+  e.innerHTML = '<option value="">Choose a person…</option>' + duelUsersList.map(u => `<option value="${esc(u.user_id)}">${esc(u.username)} · ${u.streak || 0}d</option>`).join('');
+  if (v && [...e.options].some(o => o.value === v)) e.value = v;
+}
+function duelFillDays() {
+  const e = $('duelDay'); if (!e) return; const v = e.value || '0';
+  e.innerHTML = [0, 1, 2, 3].map(i => `<option value="${i}">${i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : 'In ' + i + ' days'} · ${fmt(addDays(logicalNow(), i))}</option>`).join('');
+  e.value = v;
+}
+async function duelSend() {
+  if (!user) return;
+  if (!navigator.onLine) return alert('You need to be online to send a duel.');
+  const who = $('duelWho').value; if (!who) return alert('Choose a person first.');
+  const u = duelUsersList.find(x => x.user_id === who); if (!u) return alert('Choose a person first.');
+  const date = toYMD(addDays(logicalNow(), +$('duelDay').value || 0));
+  if (DU.some(d => (d.status === 'pending' || d.status === 'accepted') && d.duel_date === date && ((d.challenger_id === user.id && d.opponent_id === who) || (d.challenger_id === who && d.opponent_id === user.id))))
+    return alert('You already have a duel with this person on that day.');
+  const { error } = await sb.from('duels').insert({ challenger_id: user.id, challenger_name: uname(), opponent_id: who, opponent_name: u.username, duel_date: date, status: 'pending' });
+  if (error) return alert('Could not send the duel: ' + error.message + (/does not exist|schema cache|relation/i.test(error.message) ? '\n\nThe duels SQL has not been run yet.' : ''));
+  alert('Duel request sent to ' + u.username + '.');
+  duelsLoad();
+}
+async function duelAnswer(id, ok) {
+  const d = DU.find(x => x.id === id); if (!d) return;
+  if (!navigator.onLine) return alert('You need to be online.');
+  if (ok && DU.some(x => x.status === 'accepted' && x.duel_date === d.duel_date && (x.challenger_id === d.challenger_id || x.opponent_id === d.challenger_id || x.challenger_id === d.opponent_id || x.opponent_id === d.opponent_id)))
+    return alert('One of you already has a duel on that day. A person can be in one duel per day.');
+  const { error } = await sb.from('duels').update({ status: ok ? 'accepted' : 'declined' }).eq('id', id);
+  if (error) return alert('Error: ' + error.message);
+  duelsLoad();
+}
+async function duelDel(id) {
+  const d = DU.find(x => x.id === id); if (!d) return;
+  if (!confirm(d.status === 'accepted' ? 'Cancel this duel for both of you?' : 'Cancel this request?')) return;
+  const { error } = await sb.from('duels').delete().eq('id', id);
+  if (error) return alert('Error: ' + error.message);
+  duelsLoad();
+}
 
 // ---------- Room ----------
 function loadRoomPrefs() {
@@ -1613,7 +1874,7 @@ function saveRoomPrefs() {
 }
 function todayClassText() {
   if ($('anonCls').checked) return '';
-  const m = D.classes.filter(c => +c.day_of_week === logicalNow().getDay()).reduce((a, c) => a + (+c.duration_minutes || 0), 0);
+  const m = classMins(logicalNow());
   if (!m) return '';
   return `+ ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}’ class`;
 }
@@ -1664,13 +1925,19 @@ function renderRoom() {
   if (!user) return;
   const el = Math.max(0, Math.min(10, (Date.now() - roomAt) / 1000));          // seconds since the last refresh
   const secs = m => m.user_id === user.id && (running || base > 0) ? base : (m.live_seconds || 0) + (m.is_studying ? el : 0);   // my own row: this device's clock if it has the timer, otherwise the one from my other device
-  if (!$('roomTab').classList.contains('hidden')) $('roomList').innerHTML = roomRows.map(m => {
+  const ds = duelIds();
+  const rowH = m => {
     const { sub, cls } = unpackSubject(m.current_subject);
-    return `<div class="row"><div><i class="fa-solid fa-user-graduate text-blue-400 mr-1"></i> <b>${esc(m.username)}</b>${m.user_id === user.id ? ' (You)' : ''}${sub ? `<span class="block text-[10px] text-slate-400">${esc(sub)}</span>` : ''}</div>
+    return `<div class="row"><div><i class="fa-solid fa-user-graduate text-blue-400 mr-1"></i> <b>${esc(m.username)}</b>${m.user_id === user.id ? ' (You)' : ''}${duBadge(m.user_id)}${sub ? `<span class="block text-[10px] text-slate-400">${esc(sub)}</span>` : ''}</div>
     <div class="text-right"><div class="font-mono text-sm">${hms(secs(m))}</div>
     <div class="text-[10px]"><span class="px-1.5 py-0.5 rounded ${m.is_studying ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-400'}">${m.is_studying ? 'Studying' : 'Resting'}</span>${cls ? ` <span class="text-emerald-400 font-mono">${esc(cls)}</span>` : ''}</div></div></div>`;
-  }).join('') || '<p class="text-xs text-slate-500 text-center py-4">No active members.</p>';
-  if (focusActive) $('focusRoom').innerHTML = roomRows.map(m => `<div class="flex justify-between items-center text-xs"><span class="truncate mr-2 text-slate-300">${esc(m.username)}${m.user_id === user.id ? ' (You)' : ''}</span><span class="font-mono ${m.is_studying ? 'text-emerald-400' : 'text-slate-500'}">${hms(secs(m))}</span></div>`).join('') || '<p class="text-[11px] text-slate-500">No active members.</p>';
+  };
+  if (!$('roomTab').classList.contains('hidden')) {
+    const A = roomRows.filter(m => ds.has(m.user_id)), B = roomRows.filter(m => !ds.has(m.user_id));
+    $('roomList').innerHTML = (A.length ? `<div class="text-[11px] font-semibold text-rose-300">⚔️ In duel</div>` + A.map(rowH).join('') + (B.length ? '<div class="border-t-2 border-dashed border-slate-800 my-2"></div>' : '') : '')   // duelists are set apart from the others
+      + B.map(rowH).join('') || '<p class="text-xs text-slate-500 text-center py-4">No active members.</p>';
+  }
+  if (focusActive) $('focusRoom').innerHTML = roomRows.map(m => { const di = duelInfo(m.user_id); return `<div class="flex justify-between items-center text-xs"><span class="truncate mr-2 text-slate-300">${di ? (di.lead ? '🎖️' : '') + '⚔️ ' : ''}${esc(m.username)}${m.user_id === user.id ? ' (You)' : ''}</span><span class="font-mono ${m.is_studying ? 'text-emerald-400' : 'text-slate-500'}">${hms(secs(m))}</span></div>`; }).join('') || '<p class="text-[11px] text-slate-500">No active members.</p>';
 }
 
 // ---------- Charts ----------
@@ -1703,7 +1970,7 @@ function dailySets(days, mode, showCl) {
       pointBorderColor: man.map(m => m ? YEL : ACC()), pointBorderWidth: man.map(m => m ? 3 : 1), pointRadius: man.map(m => m ? 6 : 3) });
     if (man.some(Boolean)) sets.push({ label: LEG, data: [], borderColor: YEL, backgroundColor: 'transparent', borderWidth: 3 });
   }
-  if (showCl) sets.push({ type: 'line', label: 'Classes', data: days.map(d => +(D.classes.filter(c => +c.day_of_week === d.getDay()).reduce((a, c) => a + (+c.duration_minutes || 0), 0) / 60).toFixed(2)),
+  if (showCl) sets.push({ type: 'line', label: 'Classes', data: days.map(d => +(classMins(d) / 60).toFixed(2)),   // each day uses the classes valid in ITS week
     borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.3)', tension: .2 });
   return sets;
 }
@@ -1760,12 +2027,13 @@ document.addEventListener('DOMContentLoaded', async () => {
  try {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   $('clDay').innerHTML = DAYS.map((n, i) => `<option value="${(i + 6) % 7}">${n}</option>`).join('');
+  $('ceDay').innerHTML = $('clDay').innerHTML;
   $('goalType').value = goalType; $('goalIn').value = goalVal;
   $('goalType').onchange = () => { goalType = $('goalType').value; localStorage.setItem('ev_goal_type', goalType); renderGoal(); };
   ['manDate', 'gDate', 'tDate'].forEach(id => mkPicker(id, logicalNow())); mkPicker('exDate');
   mkPicker('repFrom', addDays(logicalNow(), -6), 3); mkPicker('repTo', logicalNow(), 3);
   $('tDate').addEventListener('change', renderTests);
-  initArchive(); fillPeriods(); fillSubjects(); restoreTimer(); status(); calUI(); pushUI(); showTopic();
+  initArchive(); fillPeriods(); fillSubjects(); restoreTimer(); status(); calUI(); pushUI(); showTopic(); duelFillDays();
   window.addEventListener('online', () => { status(); refresh(); });
   window.addEventListener('offline', status);
   ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, presenceTouch, { passive: true }));
@@ -1787,26 +2055,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.error('init', e);
  } finally { bootDone(); }
 });
-  // ---- Goal bar: live progress while the timer runs (every 10 min) ----
-function renderGoal() {
-  const now = logicalNow(), t0 = dayStart();
-  const sum = (arr, f) => arr.reduce((a, x) => a + (+f(x) || 0), 0);
-  const live = Math.floor(base / 60) * 1;
-  let mins;
-  if (goalType === 'daily') {
-    mins = sum(D.sessions.filter(s => new Date(s.created_at) >= t0), s => s.duration_minutes)
-         + sum(D.classes.filter(c => +c.day_of_week === now.getDay()), c => c.duration_minutes) + live;
-  } else {
-    const ws = weekStart(now); ws.setHours(DAY_CUT, 0, 0, 0);
-    mins = sum(D.sessions.filter(s => new Date(s.created_at) >= ws), s => s.duration_minutes) + sum(D.classes, c => c.duration_minutes) + live;
-  }
-  const h = mins / 60, pct = Math.min(100, Math.round(h / goalVal * 100));
-  $('goalText').textContent = `${h.toFixed(1)} / ${goalVal} hrs (${pct}%)`;
-  $('goalBar').style.width = pct + '%';
-  renderStreak();
-}
-setInterval(() => { if (user) renderGoal(); }, 30000);
-
 </script>
 <script src="eduvex-polish.js?v=4"></script>
 </body>
