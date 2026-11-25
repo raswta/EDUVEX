@@ -4,11 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261122-2">
+<meta name="build" content="20261125-3">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0f172a">
+<style>
+/* works before Tailwind (CDN) finishes: no white/blank/unstyled flash while the page is loading */
+body{background:#020617;color:#e2e8f0;margin:0}
+.hidden{display:none}
+.modal{display:none}
+.modal.show{display:flex}
+#boot{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;background:#020617;color:#94a3b8;font:600 14px system-ui,sans-serif}
+#boot b{font-size:26px;letter-spacing:.04em;color:#e2e8f0}
+</style>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="EDUVEX">
@@ -90,6 +99,7 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
 <script>(function(){try{var t=localStorage.getItem('ev_theme');if(t&&t!=='blue')document.documentElement.setAttribute('data-theme',t)}catch(e){}})()</script>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col">
+<div id="boot"><b>EDUVEX</b><span>Loading…</span></div>
 
 <div id="updBar" class="hidden flex fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] bg-blue-600 text-white text-sm rounded-xl shadow-lg px-4 py-3 items-center gap-3">
   <span>A new version is ready</span><button onclick="applyUpdate()" class="bg-white text-blue-700 font-semibold px-3 py-1 rounded-lg">Update</button>
@@ -111,7 +121,7 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
 
 <main class="max-w-4xl w-full mx-auto p-4 flex-grow">
 
-<section id="auth" class="max-w-md mx-auto mt-10 card space-y-4">
+<section id="auth" class="hidden max-w-md mx-auto mt-10 card space-y-4">
   <h2 class="text-2xl font-bold text-center">Welcome to EDUVEX</h2>
   <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 text-[11px] text-amber-300">
     <i class="fa-solid fa-triangle-exclamation"></i> Save your username and password somewhere safe. There is NO password recovery!
@@ -542,6 +552,12 @@ const pc = d => CAL === 'shamsi' ? pj(d) : { y: d.getFullYear(), m: d.getMonth()
 const fmt = d => { const p = pc(d), n = MN()[p.m - 1]; return `${p.d} ${CAL === 'shamsi' ? n : n.slice(0, 3)}`; };
 const toYMD = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const ymd = str => new Date(str + 'T12:00:00');
+// ---------- Study day: a new day starts at 3:00 AM, not at midnight (studying until 1 AM still counts for the day it began) ----------
+const DAY_CUT = 3;
+const logicalNow = () => new Date(Date.now() - DAY_CUT * 3600e3);                        // before 3 AM this is still "yesterday"
+const shiftD = d => new Date(new Date(d).getTime() - DAY_CUT * 3600e3);                   // a moment shifted back, to find the study day it belongs to
+const dayKey = d => toYMD(shiftD(d));                                                       // YYYY-MM-DD of that study day
+const dayStart = () => { const x = logicalNow(); x.setHours(DAY_CUT, 0, 0, 0); return x; };  // the moment the current study day began
 function fromJ(y, m, d) {
   let t = new Date(y + 621, 1, 20, 12), best = null;
   for (let i = 0; i < 430; i++) {
@@ -627,19 +643,28 @@ async function sync() {
 }
 let oldLoaded = false;
 const winStart = () => new Date(Date.now() - 35 * 864e5);   // study logs: only the last 35 days are read, older ones on demand
-async function rows(table) {
+async function rows(table, cacheOnly) {
   const key = `ev_c_${user.id}_${table}`;
-  let r = LS(key, []);                                   // last copy from the server (used when offline)
-  if (navigator.onLine) {
-    let data = [], error = null;
-    for (let i = 0; ; i += 1000) {                       // read page by page (the server returns max 1000 rows at once)
-      let q = sb.from(table).select('*').eq('user_id', user.id);
-      if (table === 'study_sessions' && !oldLoaded) q = q.gte('created_at', winStart().toISOString());
-      const r = await q.order('id').range(i, i + 999);
-      if (r.error) { error = r.error; break; }
-      data = data.concat(r.data || []); if ((r.data || []).length < 1000) break;
+  let r = LS(key, []);                                   // last copy from the server (used when offline, and shown instantly while the server answers)
+  if (navigator.onLine && !cacheOnly) {
+    const fetchAll = async () => {
+      let data = [], error = null;
+      for (let i = 0; ; i += 1000) {                     // read page by page (the server returns max 1000 rows at once)
+        let q = sb.from(table).select('*').eq('user_id', user.id);
+        if (table === 'study_sessions' && !oldLoaded) q = q.gte('created_at', winStart().toISOString());
+        const resp = await q.order('id').range(i, i + 999);
+        if (resp.error) { error = resp.error; break; }
+        data = data.concat(resp.data || []); if ((resp.data || []).length < 1000) break;
+      }
+      return { data, error };
+    };
+    let res = await fetchAll();
+    if (!res.error && !res.data.length && r.length) {    // "no rows" while we hold data is suspicious (an expiring login answers with nothing): renew the login and ask once more
+      try { await Promise.race([sb.auth.getSession(), new Promise(x => setTimeout(x, 3000))]); } catch (e) {}
+      await new Promise(x => setTimeout(x, 800));
+      res = await fetchAll();
     }
-    if (error) console.error('load ' + table, error); else { r = data || []; localStorage.setItem(key, JSON.stringify(r)); }
+    if (res.error) console.error('load ' + table, res.error); else { r = res.data || []; localStorage.setItem(key, JSON.stringify(r)); }
   }
   const all = [...r, ...Q().filter(i => i.table === table && i.row.user_id === user.id).map(i => ({ ...i.row, _local: 1, _qi: Q().indexOf(i) }))];
   if (table !== 'study_tests') return all;
@@ -657,16 +682,44 @@ function delQ(t, i) {
   if (!confirm('Delete this item?')) return;
   const q = Q(); if (q[i] && q[i].table === t) q.splice(i, 1); setQ(q); refresh();
 }
-async function refresh() {
-  if (!user) return;
-  await sync(); pushFlush();
-  [D.sessions, D.classes, D.exams, D.grades, D.tests] = await Promise.all(['study_sessions','classes','exams','exam_grades','study_tests'].map(rows));
-  try { const r = await sb.from('daily_summary').select('day,minutes').eq('user_id', user.id); if (!r.error) { D.days = r.data || []; localStorage.setItem('ev_days_' + user.id, JSON.stringify(D.days)); } else D.days = LS('ev_days_' + user.id, []); } catch (e) { D.days = LS('ev_days_' + user.id, []); }
+let refreshSeq = 0, dataLoaded = false;
+const TABLES = ['study_sessions', 'classes', 'exams', 'exam_grades', 'study_tests'];
+function applyData(got, days) {
+  [D.sessions, D.classes, D.exams, D.grades, D.tests] = got; D.days = days;
   D.sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
   D.sessions.forEach(s => { if (s.subject && !subjects.includes(s.subject)) subjects.push(s.subject); });
   D.classes.forEach(c => { if (c.subject && !subjects.includes(c.subject)) subjects.push(c.subject); });
   localStorage.setItem('ev_subjects', JSON.stringify(subjects));
-  fillSubjects(); renderGoal(); renderLists(); renderSubjects(); renderCharts(); renderTests();
+}
+function renderAll() {
+  for (const f of [fillSubjects, renderGoal, renderLists, renderSubjects, renderCharts, renderTests]) {
+    try { f(); } catch (e) { console.error('render ' + f.name, e); }   // one broken part must not blank the rest
+  }
+}
+async function showCached() {                            // right after opening: show the last saved copy at once instead of an empty screen while the server answers
+  if (!user || dataLoaded) return;
+  try {
+    const got = await Promise.all(TABLES.map(t => rows(t, true)));
+    if (dataLoaded) return;
+    applyData(got, LS('ev_days_' + user.id, [])); renderAll();
+  } catch (e) { console.error('cached', e); }
+}
+async function refresh() {
+  if (!user) return;
+  const my = ++refreshSeq;
+  try {
+    await sync(); pushFlush();
+    try { await Promise.race([sb.auth.getSession(), new Promise(x => setTimeout(x, 4000))]); } catch (e) {}   // renews an expired login first, so the server does not answer "nothing"
+    const got = await Promise.all(TABLES.map(t => rows(t)));
+    let days; const oldDays = LS('ev_days_' + user.id, []);
+    try {
+      const r = await sb.from('daily_summary').select('day,minutes').eq('user_id', user.id);
+      if (!r.error && ((r.data || []).length || !oldDays.length)) { days = r.data || []; localStorage.setItem('ev_days_' + user.id, JSON.stringify(days)); } else days = oldDays;
+    } catch (e) { days = oldDays; }
+    if (my !== refreshSeq) return;                         // a newer refresh already started: let it finish
+    applyData(got, days); dataLoaded = true;
+  } catch (e) { console.error('refresh load', e); }       // keep showing the data we already have
+  renderAll();
 }
 
 // ---------- Auth ----------
@@ -693,8 +746,16 @@ function onLogin() {
   } else {
     leaveRoom();
   }
+  showCached();
   autoSaveForgotten().then(saved => { if (!saved) refresh(); });   // save a forgotten stopwatch first, so the streak is right
-  remotePull(); setInterval(remotePull, 10000);
+  remotePull();
+  // asks the server only when needed: never while the app is in the background; every 10 s while a stopwatch is running/paused here or shown from another device; otherwise once a minute
+  // (coming back to the app, going online and the 60 s heartbeat still ask at once)
+  setInterval(() => {
+    if (document.hidden) return;
+    const busy = running || base > 0 || !!remote;
+    if (Date.now() - pullLast >= (busy ? 9500 : 59500)) remotePull();
+  }, 5000);
   setTimeout(() => { if (running) remotePush(); }, 4000);                                  // a timer that was already running (started before this update / reopened tab) becomes visible to other devices
   setInterval(async () => { if (user && running) { await remotePull(); if (running) remotePush(); } }, 60000);   // heartbeat while studying
   window.addEventListener('online', remotePull); document.addEventListener('visibilitychange', () => { if (!document.hidden) remotePull(); });
@@ -799,14 +860,14 @@ function saveGoal() {
   renderGoal();
 }
 function renderGoal() {
-  const now = new Date(), t0 = new Date(now); t0.setHours(0,0,0,0);
+  const now = logicalNow(), t0 = dayStart();
   const sum = (arr, f) => arr.reduce((a, x) => a + (+f(x) || 0), 0);
   let mins;
   if (goalType === 'daily') {
     mins = sum(D.sessions.filter(s => new Date(s.created_at) >= t0), s => s.duration_minutes)
          + sum(D.classes.filter(c => +c.day_of_week === now.getDay()), c => c.duration_minutes);
   } else {
-    const ws = weekStart(now);
+    const ws = weekStart(now); ws.setHours(DAY_CUT, 0, 0, 0);
     mins = sum(D.sessions.filter(s => new Date(s.created_at) >= ws), s => s.duration_minutes) + sum(D.classes, c => c.duration_minutes);
   }
   const h = mins / 60, pct = Math.min(100, Math.round(h / goalVal * 100));
@@ -818,9 +879,9 @@ function renderGoal() {
 // ---------- Streak ----------
 const restDay = () => { const v = localStorage.getItem('ev_restday'); return v === null || v === '' ? -1 : +v; };
 function fireState() {
-  const todayKey = toYMD(new Date()), rest = restDay(), cutK = toYMD(addDays(winStart(), 1)), m = {}, cl = {};
+  const todayKey = dayKey(new Date()), rest = restDay(), cutK = toYMD(addDays(winStart(), 1)), m = {}, cl = {};
   (D.days || []).forEach(r => { if (r.day < cutK) m[r.day] = +r.minutes || 0; });   // older days: one summary row each (no manual time)
-  D.sessions.forEach(x => { const k = toYMD(new Date(x.created_at)); if (x.type !== 'manual' && k >= cutK) m[k] = (m[k] || 0) + (+x.duration_minutes || 0); });
+  D.sessions.forEach(x => { const k = dayKey(x.created_at); if (x.type !== 'manual' && k >= cutK) m[k] = (m[k] || 0) + (+x.duration_minutes || 0); });
   D.classes.forEach(c => { cl[+c.day_of_week] = (cl[+c.day_of_week] || 0) + (+c.duration_minutes || 0); });
   const live = (running || base) ? base / 60 : 0;
   if (live) m[todayKey] = (m[todayKey] || 0) + live;
@@ -833,9 +894,9 @@ function fireState() {
     else if (k !== todayKey && d.getDay() !== rest) cur = 0;                              // today not finished yet / a day off do not break it
   }
   const days = { [todayKey]: (m[todayKey] || 0) > 0 || running || base > 0 };
-  const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+  const t0 = dayStart();
   const mins = D.sessions.filter(s => new Date(s.created_at) >= t0).reduce((a, s) => a + (+s.duration_minutes || 0), 0)
-    + D.classes.filter(c => +c.day_of_week === new Date().getDay()).reduce((a, c) => a + (+c.duration_minutes || 0), 0) + (running || base ? base / 60 : 0);
+    + D.classes.filter(c => +c.day_of_week === logicalNow().getDay()).reduce((a, c) => a + (+c.duration_minutes || 0), 0) + (running || base ? base / 60 : 0);
   const studiedToday = !!days[todayKey], blaze = studiedToday && mins / 60 >= (goalType === 'daily' ? goalVal : goalVal / 7);
   return { cur, best: Math.max(best, cur), studiedToday, blaze };
 }
@@ -885,7 +946,7 @@ function openStreak() {
   $('streakCount').textContent = f.cur; $('streakBest').textContent = f.best;
   $('streakNote').textContent = f.blaze ? 'You reached your goal today. Your character is glowing!'
     : f.studiedToday ? 'You studied today. Reach your daily goal to make your character glow.'
-    : restDay() === new Date().getDay() ? 'Today is your day off. Your streak is safe.' : 'Start studying to cheer your character up.';
+    : restDay() === logicalNow().getDay() ? 'Today is your day off. Your streak is safe.' : 'Start studying to cheer your character up.';
   $('restDay').innerHTML = '<option value="-1">No day off</option>' + names.map((n, i) => `<option value="${(i + 6) % 7}">${n}</option>`).join('');
   $('restDay').value = String(restDay());
   modal('streakModal', 1);
@@ -910,8 +971,8 @@ function renderLists() {
     <div class="row"><div><span class="font-medium">${esc(s.subject)}</span>
     <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] ${s.type === 'manual' ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}">${s.type === 'manual' ? 'Manual entry ( not by stop watch )' : 'Stopwatch'}</span>
     ${s.reason ? `<span class="block text-[10px] text-slate-400 mt-0.5">Reason: ${esc(s.reason)}</span>` : ''}</div>
-    <div class="flex items-center"><span class="font-mono text-slate-300">${s.duration_minutes} min · ${fmt(new Date(s.created_at))}</span>${trash('study_sessions', s)}</div></div>`).join('') || '<p class="text-xs text-slate-500">No sessions yet.</p>';
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+    <div class="flex items-center"><span class="font-mono text-slate-300">${s.duration_minutes} min · ${fmt(shiftD(s.created_at))}</span>${trash('study_sessions', s)}</div></div>`).join('') || '<p class="text-xs text-slate-500">No sessions yet.</p>';
+  const today = logicalNow(); today.setHours(0, 0, 0, 0);
   const exams = D.exams.map(e => ({ e, left: Math.ceil((new Date(e.exam_date + 'T00:00:00') - today) / DAY) }))
     .sort((a, b) => ((a.left < 0) - (b.left < 0)) || (a.e.exam_date > b.e.exam_date ? 1 : -1));
   $('examsList').innerHTML = exams.map(({ e, left }) => {
@@ -939,7 +1000,7 @@ function persist() {
   if (!running && base === 0) return localStorage.removeItem('ev_timer');
   localStorage.setItem('ev_timer', JSON.stringify({ id: runId, running, base, lastTick, act: actAt, subject: curSub, segs, tops, tseg, pres: presenceSecs }));
 }
-let remAt = 0, remote = null;
+let remAt = 0, remote = null, pullLast = 0;
 const DEV = localStorage.getItem('ev_dev') || (() => { const d = Math.random().toString(36).slice(2, 10); localStorage.setItem('ev_dev', d); return d; })();
 async function remoteWrite(st) {
   remAt = Date.now(); st.dev = DEV;
@@ -952,6 +1013,7 @@ async function remotePush(fin) {
 }
 async function remotePull() {
   if (!user || !navigator.onLine) return;
+  pullLast = Date.now();
   try {
     const { data, error } = await sb.from('live_timer').select('state,updated_at').eq('user_id', user.id).maybeSingle();
     if (error) console.error('live_timer pull', error);
@@ -1175,7 +1237,7 @@ function presenceExpire() {
 // ---------- Auto-save at 3:00 AM (forgotten, paused stopwatch) ----------
 // If a stopwatch was paused (or timed out) and never saved, then at 3:00 AM it is saved on the day it was
 // really used, so that day (and the streak) is not lost. It runs when the app is open or the next time it opens.
-const AUTO_HOUR = 3;
+const AUTO_HOUR = DAY_CUT;
 let autoBusy = false;
 async function autoSaveForgotten() {
   if (autoBusy || !user || running || !(base > 0)) return false;
@@ -1184,12 +1246,12 @@ async function autoSaveForgotten() {
   if (actAt >= cut.getTime()) return false;                                       // paused after 3 AM: still "today", wait for the next 3 AM
   autoBusy = true;
   try {
-    const dayKey = toYMD(new Date(actAt - AUTO_HOUR * 3600e3));                      // before 3 AM still belongs to the previous day
-    const at = toYMD(new Date(actAt)) === dayKey ? new Date(actAt) : new Date(dayKey + 'T23:59:00');
+    const dKey = toYMD(new Date(actAt - AUTO_HOUR * 3600e3));                      // before 3 AM still belongs to the previous day
+    const at = toYMD(new Date(actAt)) === dKey ? new Date(actAt) : new Date(dKey + 'T23:59:00');
     modal('presStop', 0);
     await finishTimer(at);
-    $('swStatus').textContent = 'Auto-saved to ' + fmtY(ymd(dayKey));
-    notify('EDUVEX', 'Your paused stopwatch was saved automatically to ' + fmtY(ymd(dayKey)) + '.', 'ev-autosave');
+    $('swStatus').textContent = 'Auto-saved to ' + fmtY(ymd(dKey));
+    notify('EDUVEX', 'Your paused stopwatch was saved automatically to ' + fmtY(ymd(dKey)) + '.', 'ev-autosave');
     return true;
   } catch (e) { console.error('autosave', e); return false; }
   finally { autoBusy = false; }
@@ -1200,13 +1262,17 @@ function presenceYes() { presenceSecs = 0; askOpen = false; modal('presence', 0)
 function presenceTouch() { if (running && !askOpen) presenceSecs = 0; }
 
 // ---------- Auto-update (also for apps added to the Home Screen) ----------
+let lastUpdChk = 0;
 async function checkUpdate(auto) {
   if (!navigator.onLine) return;
+  if (!auto && Date.now() - lastUpdChk < 30 * 60e3) return;   // the whole page is downloaded for this check, so not more than every 30 min
+  lastUpdChk = Date.now();
   try {
     const r = await fetch(location.pathname + location.search, { cache: 'reload' });   // forces a fresh copy from the server
     const m = (await r.text()).match(/<meta name="build" content="([^"]+)"/);
     if (!m || m[1] === BUILD) return;
-    if (auto && sessionStorage.getItem('ev_upd') !== m[1]) { sessionStorage.setItem('ev_upd', m[1]); location.reload(); return; }
+    // reload by itself only while the loading screen is still up or the app is in the background (nobody sees it); otherwise show the Update button
+    if ((!window.evBooted || document.hidden) && sessionStorage.getItem('ev_upd') !== m[1]) { sessionStorage.setItem('ev_upd', m[1]); location.reload(); return; }
     $('updBar').classList.remove('hidden');
   } catch (e) { console.error('update check', e); }
 }
@@ -1327,7 +1393,7 @@ async function saveGrade() {
 // ---------- To-Do (today only: kept on this device, never sent to the server, deleted when the day ends) ----------
 const todoKey = () => 'ev_todo_' + (user ? user.id : '');
 function todoLoad() {
-  const today = toYMD(new Date()); let t = LS(todoKey(), null);
+  const today = dayKey(new Date()); let t = LS(todoKey(), null);
   if (!t || t.day !== today || !Array.isArray(t.items)) { t = { day: today, items: [] }; localStorage.removeItem(todoKey()); }
   return t;
 }
@@ -1374,7 +1440,7 @@ async function saveTests() {
 function renderTests() {
   if ($('testsTab').classList.contains('hidden')) return;
   const day = ymd(pickGet('tDate')), key = toYMD(day), mins = {}, cnt = {};
-  D.sessions.forEach(s => { if (toYMD(new Date(s.created_at)) === key) mins[s.subject] = (mins[s.subject] || 0) + (+s.duration_minutes || 0); });
+  D.sessions.forEach(s => { if (dayKey(s.created_at) === key) mins[s.subject] = (mins[s.subject] || 0) + (+s.duration_minutes || 0); });
   D.tests.forEach(t => { if (t.test_date === key) cnt[t.subject] = +t.count; });
   const order = [...new Set([...subjects, ...Object.keys(cnt)])].sort((a, b) => (mins[b] || 0) - (mins[a] || 0));
   $('testsList').innerHTML = order.map(s => `<div class="row"><div><b>${esc(s)}</b><span class="block text-[10px] text-slate-400">${mins[s] ? hm(mins[s]) + ' studied' : 'no study time'}</span></div>
@@ -1410,7 +1476,7 @@ const loadScript = src => _ls[src] || (_ls[src] = new Promise((ok, no) => {
 }));
 let repC1 = null, repC2 = null, repName = 'EDUVEX-summary';
 function fillPeriods() {
-  const kind = $('repKind').value, now = new Date(); let h = '';
+  const kind = $('repKind').value, now = logicalNow(); let h = '';
   $('repTodoBox').classList.toggle('hidden', kind !== 'daily'); if (kind !== 'daily') $('repTodo').checked = false;
   $('repPerBox').classList.toggle('hidden', kind === 'range'); $('repRangeBox').classList.toggle('hidden', kind !== 'range');
   if (kind === 'range') return;
@@ -1437,7 +1503,7 @@ async function openReport() {
   const { kind, days, label } = repCollect(), withCl = $('repClasses').checked;
   if (!days.length) return alert('Choose a valid period: the From date must not be after the To date.');
   const keys = days.map(toYMD), set = new Set(keys), endT = new Date(); endT.setHours(23, 59, 59, 999);
-  const ses = D.sessions.filter(s => set.has(toYMD(new Date(s.created_at)))).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  const ses = D.sessions.filter(s => set.has(dayKey(s.created_at))).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   const tst = D.tests.filter(t => set.has(t.test_date) && +t.count > 0), sub = {};
   const row = n => sub[n] || (sub[n] = { study: 0, cls: 0, tests: 0, topics: new Map() });
   ses.forEach(s => { const r = row(s.subject); r.study += +s.duration_minutes || 0; topicList(s.topic).forEach(x => r.topics.set(x.t, (r.topics.get(x.t) || 0) + (x.s || 0))); });
@@ -1462,7 +1528,7 @@ async function openReport() {
   if (manualSessions.length) {
     h += '<h2>Manual Entries & Reasons</h2>';
     h += manualSessions.map(s => {
-      const dStr = fmt(new Date(s.created_at));
+      const dStr = fmt(shiftD(s.created_at));
       const durStr = `${Math.floor(s.duration_minutes / 60)}h ${s.duration_minutes % 60}m`;
       const reasonStr = s.reason ? ` -> ${esc(s.reason)}` : '';
       return `<div style="font-size:12px;margin-bottom:4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">${dStr} | ${esc(s.subject)} | ${durStr} | Manual entry ( not by stop watch )${reasonStr}</div>`;
@@ -1476,7 +1542,7 @@ async function openReport() {
   if (kind === 'daily' && $('repTodo').checked) {
     h += '<h2>To-Do List</h2>';
     const td = todoLoad();
-    if (keys[0] !== toYMD(new Date())) h += '<p style="font-size:12px;color:#64748b">The to-do list is only kept for today.</p>';
+    if (keys[0] !== dayKey(new Date())) h += '<p style="font-size:12px;color:#64748b">The to-do list is only kept for today.</p>';
     else if (!td.items.length) h += '<p style="font-size:12px;color:#64748b">No tasks.</p>';
     else h += td.items.map(x => `<div style="font-size:12px;margin-bottom:5px"><span style="display:inline-block;width:11px;height:11px;border:1.5px solid #334155;border-radius:2px;margin-right:7px;vertical-align:-1px;background:${x.done ? '#10b981' : '#fff'}"></span>${x.done ? `<span style="color:#64748b;text-decoration:line-through">${esc(x.t)}</span>` : esc(x.t)}</div>`).join('');
   }
@@ -1489,7 +1555,7 @@ async function openReport() {
   if (kind === 'daily') return;
   const labels = days.map(d => kind === 'weekly' ? [(CAL === 'shamsi' ? DAYSF : DAYSE)[dayIdx(d)], fmt(d)] : kind === 'range' ? fmt(d) : pc(d).d);
   const opt = (t, tk) => ({ responsive: false, animation: false, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: tk, title: { display: true, text: t } } }, plugins: { legend: { labels: { boxWidth: 10, font: { size: 10 } } } } });
-  const hrs = n => keys.map(k => +(ses.filter(s => s.subject === n && toYMD(new Date(s.created_at)) === k).reduce((a, s) => a + s.duration_minutes, 0) / 60).toFixed(2));
+  const hrs = n => keys.map(k => +(ses.filter(s => s.subject === n && dayKey(s.created_at) === k).reduce((a, s) => a + s.duration_minutes, 0) / 60).toFixed(2));
   const sets = names.filter(n => sub[n].study).map(n => ({ label: n, data: hrs(n), backgroundColor: color(n) }));
   if (withCl) sets.push({ label: 'Classes', backgroundColor: '#94a3b8', data: clsDay.map(cs => +(cs.reduce((a, c) => a + (+c.duration_minutes || 0), 0) / 60).toFixed(2)) });
   repC1 = new Chart($('repC1'), { type: 'bar', data: { labels, datasets: sets }, options: opt('hours', {}) });
@@ -1547,7 +1613,7 @@ function saveRoomPrefs() {
 }
 function todayClassText() {
   if ($('anonCls').checked) return '';
-  const m = D.classes.filter(c => +c.day_of_week === new Date().getDay()).reduce((a, c) => a + (+c.duration_minutes || 0), 0);
+  const m = D.classes.filter(c => +c.day_of_week === logicalNow().getDay()).reduce((a, c) => a + (+c.duration_minutes || 0), 0);
   if (!m) return '';
   return `+ ${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}’ class`;
 }
@@ -1609,17 +1675,17 @@ function renderRoom() {
 
 // ---------- Charts ----------
 function initArchive() {
-  let s = mStart(new Date());
+  let s = mStart(logicalNow());
   starts = [];
   for (let i = 0; i < 12; i++) { starts.push(s); s = mStart(addDays(s, -1)); }
   $('monthSel').innerHTML = starts.map((m, i) => { const p = pc(m); return `<option value="${i}">${MN()[p.m - 1]} ${p.y}</option>`; }).join('');
-  const w0 = weekStart(new Date());
+  const w0 = weekStart(logicalNow());
   $('weekSel').innerHTML = Array.from({ length: 16 }, (_, i) =>
     `<option value="${i}">${i === 0 ? 'This week' : i === 1 ? 'Last week' : 'Week of ' + fmt(addDays(w0, -7 * i))}</option>`).join('');
 }
 function dailySets(days, mode, showCl) {
   const by = {};
-  D.sessions.forEach(s => { const k = toYMD(new Date(s.created_at)); (by[k] = by[k] || []).push(s); });
+  D.sessions.forEach(s => { const k = dayKey(s.created_at); (by[k] = by[k] || []).push(s); });
   const day = days.map(d => by[toYMD(d)] || []);
   const hrs = ss => +(ss.reduce((a, s) => a + s.duration_minutes, 0) / 60).toFixed(2);
   const YEL = '#facc15', LEG = 'Manual entry (yellow border)';
@@ -1643,7 +1709,7 @@ function dailySets(days, mode, showCl) {
 }
 function renderCharts() {
   if ($('chartsTab').classList.contains('hidden') || !starts.length) return;
-  if (!oldLoaded && (addDays(weekStart(new Date()), -7 * +$('weekSel').value) < winStart() || starts[+$('monthSel').value] < winStart())) { oldLoaded = true; refresh(); return; }
+  if (!oldLoaded && (addDays(weekStart(logicalNow()), -7 * +$('weekSel').value) < winStart() || starts[+$('monthSel').value] < winStart())) { oldLoaded = true; refresh(); return; }
   const mode = $('chartMode').value, showCl = $('layerClasses').checked, showGr = $('layerGrades').checked, st = mode === 'stacked';
   const yAxis = (extra = {}) => ({ stacked: st, beginAtZero: true, min: 0, max: 20, ticks: { stepSize: 1 }, title: { display: true, text: 'hours' }, ...extra });
   const legend = { labels: { boxWidth: 12, font: { size: 10 }, filter: (it, d) => {
@@ -1652,7 +1718,7 @@ function renderCharts() {
   } } };
 
   // weekly
-  const ws = addDays(weekStart(new Date()), -7 * +$('weekSel').value);
+  const ws = addDays(weekStart(logicalNow()), -7 * +$('weekSel').value);
   const wdays = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
   if (wChart) wChart.destroy();
   wChart = new Chart($('weeklyChart'), {
@@ -1683,13 +1749,21 @@ function renderCharts() {
 }
 
 // ---------- Init ----------
+window.evBooted = false;
+function bootDone() {
+  window.evBooted = true;
+  if ($('app').classList.contains('hidden') && $('auth').classList.contains('hidden')) $('auth').classList.remove('hidden');   // never leave an empty screen
+  const b = $('boot'); if (b) b.remove();
+}
+setTimeout(bootDone, 12000);                                                       // safety net: the loading screen can never get stuck
 document.addEventListener('DOMContentLoaded', async () => {
+ try {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   $('clDay').innerHTML = DAYS.map((n, i) => `<option value="${(i + 6) % 7}">${n}</option>`).join('');
   $('goalType').value = goalType; $('goalIn').value = goalVal;
   $('goalType').onchange = () => { goalType = $('goalType').value; localStorage.setItem('ev_goal_type', goalType); renderGoal(); };
-  ['manDate', 'exDate', 'gDate', 'tDate'].forEach(id => mkPicker(id));
-  mkPicker('repFrom', addDays(new Date(), -6), 3); mkPicker('repTo', new Date(), 3);
+  ['manDate', 'gDate', 'tDate'].forEach(id => mkPicker(id, logicalNow())); mkPicker('exDate');
+  mkPicker('repFrom', addDays(logicalNow(), -6), 3); mkPicker('repTo', logicalNow(), 3);
   $('tDate').addEventListener('change', renderTests);
   initArchive(); fillPeriods(); fillSubjects(); restoreTimer(); status(); calUI(); pushUI(); showTopic();
   window.addEventListener('online', () => { status(); refresh(); });
@@ -1698,16 +1772,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (running) tick(); autoSaveForgotten(); checkUpdate(false); if (focusActive) wakeOn(); } });
   window.addEventListener('storage', e => { if ((e.key === 'ev_timer_done' || e.key === 'ev_timer_finished_at') && runId && (e.newValue === runId || isStale(runId))) abandon(); });
   checkUpdate(true);
-  let { data: { session } } = await sb.auth.getSession();
-  if (!session && !navigator.onLine) {                   // opened offline: reuse the saved login
+  let session = null, slow = false;
+  try {
+    const r = await Promise.race([sb.auth.getSession(), new Promise(res => setTimeout(() => res(null), 5000))]);   // getSession can stall for seconds (token refresh / tab lock)
+    if (r === null) slow = true; else session = r.data && r.data.session;
+  } catch (e) { console.error('getSession', e); slow = true; }
+  if (!session && (slow || !navigator.onLine)) {         // opened offline or the check is stuck: reuse the saved login
     const saved = LS('sb-kuescglkkpvsqqxnubww-auth-token', null);
     if (saved && (saved.user || (saved.currentSession && saved.currentSession.user))) session = { user: saved.user || saved.currentSession.user };
   }
   if (session) { user = session.user; onLogin(); }
+  else $('auth').classList.remove('hidden');
+ } catch (e) {
+  console.error('init', e);
+ } finally { bootDone(); }
 });
   // ---- Goal bar: live progress while the timer runs (every 10 min) ----
 function renderGoal() {
-  const now = new Date(), t0 = new Date(now); t0.setHours(0,0,0,0);
+  const now = logicalNow(), t0 = dayStart();
   const sum = (arr, f) => arr.reduce((a, x) => a + (+f(x) || 0), 0);
   const live = Math.floor(base / 60) * 1;
   let mins;
@@ -1715,7 +1797,7 @@ function renderGoal() {
     mins = sum(D.sessions.filter(s => new Date(s.created_at) >= t0), s => s.duration_minutes)
          + sum(D.classes.filter(c => +c.day_of_week === now.getDay()), c => c.duration_minutes) + live;
   } else {
-    const ws = weekStart(now);
+    const ws = weekStart(now); ws.setHours(DAY_CUT, 0, 0, 0);
     mins = sum(D.sessions.filter(s => new Date(s.created_at) >= ws), s => s.duration_minutes) + sum(D.classes, c => c.duration_minutes) + live;
   }
   const h = mins / 60, pct = Math.min(100, Math.round(h / goalVal * 100));
@@ -1726,6 +1808,6 @@ function renderGoal() {
 setInterval(() => { if (user) renderGoal(); }, 30000);
 
 </script>
-<script src="eduvex-polish.js?v=2"></script>
+<script src="eduvex-polish.js?v=4"></script>
 </body>
 </html>
