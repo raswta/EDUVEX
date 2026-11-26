@@ -4,13 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261125-4">
+<meta name="build" content="20261126-7">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0f172a">
 <style>
-/* works before Tailwind (CDN) finishes: no white/blank/unstyled flash while the page is loading */
 body{background:#020617;color:#e2e8f0;margin:0}
 .hidden{display:none}
 .modal{display:none}
@@ -288,11 +287,19 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
       <div id="roomList" class="space-y-2"></div>
     </div>
     <div class="grid md:grid-cols-2 gap-6 items-start">
-      <div class="card">
-        <div class="flex justify-between items-center mb-3 gap-2">
-          <h4 class="text-sm font-semibold text-amber-400"><i class="fa-solid fa-trophy mr-1"></i> Leaderboard (by streak)</h4>
+      <div class="card" id="lbCard">
+        <div class="flex justify-between items-center gap-2 cursor-pointer select-none" onclick="toggleLbDrawer()">
+          <h4 class="text-sm font-semibold text-amber-400 flex items-center gap-2">
+            <i class="fa-solid fa-trophy"></i>
+            <span>Leaderboard (by streak)</span>
+          </h4>
+          <button type="button" id="lbArrowBtn" class="bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-lg text-xs text-slate-300 transition" title="Open / Close">
+            <i id="lbArrowIcon" class="fa-solid fa-chevron-down transition-transform duration-200"></i>
+          </button>
         </div>
-        <div id="lbList" class="space-y-2"></div>
+        <div id="lbDrawer" class="mt-3 space-y-2">
+          <div id="lbList" class="space-y-2"></div>
+        </div>
       </div>
       <div class="card" id="duelCard">
         <div class="flex justify-between items-center mb-3 gap-2">
@@ -523,26 +530,7 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
   <a href="https://t.me/EDUVEXtut" target="_blank" rel="noopener" class="block text-center rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-300 py-2 font-semibold hover:bg-blue-600/30"><i class="fa-solid fa-images mr-1"></i> Illustrated step-by-step guide (with pictures): t.me/EDUVEXtut</a>
   <p><b><i class="fa-solid fa-bullseye text-blue-400 mr-1"></i> Goal bar:</b> choose Daily or Weekly, type your target hours (12.5 means 12 hours 30 minutes) and press Save Goal. The bar counts your study sessions plus your weekly classes.</p>
   <p><b><i class="fa-solid fa-fire text-orange-400 mr-1"></i> Streak:</b> the character next to the goal bar counts your days in a row. It is angry until you start studying today, and it glows when you reach your daily goal. Tap it to choose a weekly day off that never breaks your streak.</p>
-  <p><b><i class="fa-solid fa-face-smile text-orange-400 mr-1"></i> Streak character:</b> the character shows your level. Angry: you have not started studying today (with any streak). Calm: you started today and have a 1-14 day streak. Sparkle: 15 days. Black graduation cap: 30 days. Red graduation cap: 60 days. Tap it to see all levels.</p>
-  <p><b><i class="fa-solid fa-ranking-star text-amber-400 mr-1"></i> Leaderboard:</b> in the Study Room tab, everyone is ranked by streak (most days first), with their username, streak and level character. Everyone with a streak is listed automatically.</p>
-  <p><b>⚔️ Duel:</b> next to the Leaderboard (Study Room tab) pick any person with an account, choose a day (today up to 3 days ahead) and press Send duel. When they accept, both of you compete with the stopwatch time of that day. Everyone sees "In duel" next to your names, and the person who is ahead gets 🎖️. Requests, and your own running duel, also show at the top of every tab. Manual entries do not count in a duel.</p>
-  <p><b><i class="fa-solid fa-stopwatch text-blue-400 mr-1"></i> Timer:</b> pick a subject and press Start. To study another subject, press Pause, choose the new subject and press Resume. The big clock keeps the total, and each subject is saved with its own time when you press Finish &amp; Save. Sessions shorter than 15 seconds are not saved. The stopwatch keeps going if you refresh the page.</p>
-  <p><b><i class="fa-solid fa-moon text-indigo-400 mr-1"></i> Auto-save at 3:00 AM:</b> if you paused the stopwatch and forgot to press Finish &amp; Save, it is saved automatically at 3:00 AM (or when you next open the app) on the day you studied, so your streak is not lost.</p>
-  <p><b><i class="fa-solid fa-user-clock text-blue-400 mr-1"></i> Still studying? check:</b> if the stopwatch runs for 3 hours without you touching the app, a popup asks whether you are still studying. Tap Yes within 10 minutes to keep going. If you do not, the stopwatch pauses and the waiting time is not counted. For very long sessions, use Focus mode so the screen stays on and you can answer.</p>
-  <p><b><i class="fa-solid fa-expand text-blue-400 mr-1"></i> Focus mode:</b> tap the expand icon at the top to show only a big study clock and a small Study Room window. Nothing is locked, so you can leave the app any time. Press Exit focus mode at the bottom to come back.</p>
-  <p><b><i class="fa-solid fa-hourglass-half text-blue-400 mr-1"></i> Pomodoro:</b> tick the box, set study and rest minutes, and the clock counts down. Rest time is not added to your study time.</p>
-  <p><b><i class="fa-solid fa-pen-to-square text-blue-400 mr-1"></i> Manual entry:</b> add minutes you studied without the stopwatch, for any date (including a reason/explanation). In the charts these keep their subject color with a thick yellow border.</p>
-  <p><b><i class="fa-solid fa-trash text-blue-400 mr-1"></i> Logs:</b> every saved session appears in Saved Study Logs. Use the trash icon to delete one. Items that say pending sync were saved offline and will upload automatically.</p>
-  <p><b><i class="fa-solid fa-calendar-check text-blue-400 mr-1"></i> Exams &amp; Classes:</b> add exams to see the days left. Weekly classes repeat every week and count toward your goal and the Classes layer in the charts. If a class time changes, tap the pen and change it: the new time counts from this week on, and past weeks (goal, streak, charts, PDF) keep the old time. The trash icon stops a class from this week on without touching past weeks. You can also choose "Next week" when adding a class.</p>
-  <p><b><i class="fa-solid fa-list-check text-blue-400 mr-1"></i> Tests:</b> in the Tests tab pick a day, type how many practice tests you solved for each subject (optional) and press Save tests. The study time of that day is shown next to each subject, and you can edit the numbers any time. The chart shows tests by subject for one day, or day by day for the whole week. Subjects keep their colors. You can also write a Topic (optional) in the Timer card and press Set (or Enter); it is saved with the session and shown in the PDF summary. Under the timer you see the time of each topic.</p>
-  <p><b><i class="fa-solid fa-square-check text-blue-400 mr-1"></i> To-Do:</b> add tasks for today, tick them, edit them with the pen or delete them. The list is kept only on this device and is deleted when the day ends. In the Daily summary (More tab) you can tick "Include today's to-do list" to add it to the PDF; it is off by default.</p>
-  <p><b><i class="fa-solid fa-users text-blue-400 mr-1"></i> Study Room:</b> automatically joins when your timer starts and leaves when you finish. Users with 30+ day streaks unlock manual join/leave controls.</p>
-  <p><b><i class="fa-solid fa-chart-column text-blue-400 mr-1"></i> Charts:</b> the weekly chart runs Saturday to Friday and the monthly chart shows every day of the month. Use Review Archive to open previous weeks and months. Stacked shows hours per subject, Total shows one line. Log exam scores to see them on the monthly chart.</p>
-  <p><b><i class="fa-solid fa-file-pdf text-red-400 mr-1"></i> Summary PDF:</b> open the More tab, choose Daily, Weekly or Monthly, pick the period (This week, Last month, a date...) and tick Include classes if you want class hours added. Press Preview summary, then Download PDF. It shows manual reasons under each manual entry, study time, tests, hours per subject with topics, and charts. You need internet the first time you download.</p>
-  <p><b><i class="fa-solid fa-gear text-blue-400 mr-1"></i> Settings (gear icon):</b> switch all dates between Shamsi and Gregorian, rename or delete subjects, add new subjects, turn reminders on or off, send a test notification, change your password, and log out. If you delete a subject, its name disappears but the time you already studied stays in the charts under Other.</p>
-  <p><b><i class="fa-solid fa-bell text-blue-400 mr-1"></i> Reminders:</b> if you forget the stopwatch is running, you get a message after 10 minutes and again after 30 minutes, even when the app is closed. After that, nothing more. Pausing or finishing cancels them.</p>
-  <p><b><i class="fa-solid fa-wifi text-blue-400 mr-1"></i> Offline:</b> everything you add without internet is saved on your device and uploads when you are back online. Subject changes and the study room need internet.</p>
-  <p><b><i class="fa-solid fa-mobile-screen-button text-blue-400 mr-1"></i> Home Screen app:</b> after you add EDUVEX to your Home Screen, updates arrive by themselves the next time you open it. You do not need to add it again.</p>
+  <p><b>⚔️ Duel:</b> challenge any user for today up to 3 days ahead. Yesterday's duel result stays visible for up to 12 hours after completion (at 3:00 AM if both were studying, or immediately when both finish).</p>
   <button onclick="modal('guide',0)" class="btn bg-blue-600">Got it!</button>
 </div></div>
 
@@ -564,7 +552,7 @@ let inRoom = false, pomo = false, pState = 'study', pLeft = 0, alerted = {};
 let wChart = null, mChart = null, starts = [];
 let segs = {}, tops = {}, tseg = {}, curSub = 'General Study', runId = null;
 let focusActive = false, wakeLock = null, roomRows = [], roomAt = 0, pushErr = '', presenceSecs = 0, askOpen = false;
-const PRES_EVERY = 3 * 3600, PRES_GRACE = 10 * 60;   // ask every 3 hours without activity, 10 minutes to answer
+const PRES_EVERY = 3 * 3600, PRES_GRACE = 10 * 60;
 let subjects = LS('ev_subjects', ['General Study','Physics','Mathematics','Chemistry','Biology']);
 let goalType = localStorage.getItem('ev_goal_type') || 'daily';
 let goalVal = parseFloat(localStorage.getItem('ev_goal_val')) || (goalType === 'weekly' ? 70 : 10);
@@ -572,10 +560,10 @@ let D = { sessions: [], classes: [], exams: [], grades: [], tests: [], days: [] 
 
 const color = s => COLORS[subjects.indexOf(s) % COLORS.length] || '#64748b';
 const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
-const dayIdx = d => (d.getDay() + 1) % 7;               // Saturday = 0
+const dayIdx = d => (d.getDay() + 1) % 7;
 function weekStart(d) { const x = new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate() - dayIdx(x)); return x; }
 
-// ---------- Calendar helpers (Shamsi / Gregorian switch) ----------
+// ---------- Calendar helpers ----------
 let CAL = localStorage.getItem('ev_cal') === 'gregorian' ? 'gregorian' : 'shamsi';
 const PM = ['Farvardin','Ordibehesht','Khordad','Tir','Mordad','Shahrivar','Mehr','Aban','Azar','Dey','Bahman','Esfand'];
 const GM = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -586,12 +574,14 @@ const pc = d => CAL === 'shamsi' ? pj(d) : { y: d.getFullYear(), m: d.getMonth()
 const fmt = d => { const p = pc(d), n = MN()[p.m - 1]; return `${p.d} ${CAL === 'shamsi' ? n : n.slice(0, 3)}`; };
 const toYMD = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const ymd = str => new Date(str + 'T12:00:00');
-// ---------- Study day: a new day starts at 3:00 AM, not at midnight (studying until 1 AM still counts for the day it began) ----------
+
+// ---------- Study day (3:00 AM cutoff) ----------
 const DAY_CUT = 3;
-const logicalNow = () => new Date(Date.now() - DAY_CUT * 3600e3);                        // before 3 AM this is still "yesterday"
-const shiftD = d => new Date(new Date(d).getTime() - DAY_CUT * 3600e3);                   // a moment shifted back, to find the study day it belongs to
-const dayKey = d => toYMD(shiftD(d));                                                       // YYYY-MM-DD of that study day
-const dayStart = () => { const x = logicalNow(); x.setHours(DAY_CUT, 0, 0, 0); return x; };  // the moment the current study day began
+const logicalNow = () => new Date(Date.now() - DAY_CUT * 3600e3);
+const shiftD = d => new Date(new Date(d).getTime() - DAY_CUT * 3600e3);
+const dayKey = d => toYMD(shiftD(d));
+const dayStart = () => { const x = logicalNow(); x.setHours(DAY_CUT, 0, 0, 0); return x; };
+
 function fromJ(y, m, d) {
   let t = new Date(y + 621, 1, 20, 12), best = null;
   for (let i = 0; i < 430; i++) {
@@ -632,10 +622,7 @@ function setCal(k) {
   duelFillDays(); duSig = ''; duelsRender();
 }
 
-// ---------- Weekly classes with dates ----------
-// A class row repeats every week. start_date / end_date are week keys (the Saturday that starts the week), both inclusive.
-// Empty start_date = "from the beginning", empty end_date = "still going". Editing a class ends the old row at last week and adds a new row from this week,
-// so past weeks keep their old class time (goal, streak, charts, PDF all read classes through classesOn / classMins).
+// ---------- Weekly classes ----------
 const wkKey = d => toYMD(weekStart(d));
 const clActive = (c, wk) => (!c.start_date || c.start_date <= wk) && (!c.end_date || c.end_date >= wk);
 const classesOn = d => { const wk = wkKey(d), dw = d.getDay(); return D.classes.filter(c => +c.day_of_week === dw && clActive(c, wk)); };
@@ -660,7 +647,7 @@ function status() {
   $('connText').textContent = on ? 'Online' : 'Offline';
 }
 
-// ---------- Data layer (server + offline queue) ----------
+// ---------- Data layer ----------
 const Q = () => LS('ev_queue', []);
 const setQ = q => localStorage.setItem('ev_queue', JSON.stringify(q));
 
@@ -686,14 +673,14 @@ async function sync() {
   setQ(rest);
 }
 let oldLoaded = false;
-const winStart = () => new Date(Date.now() - 35 * 864e5);   // study logs: only the last 35 days are read, older ones on demand
+const winStart = () => new Date(Date.now() - 35 * 864e5);
 async function rows(table, cacheOnly) {
   const key = `ev_c_${user.id}_${table}`;
-  let r = LS(key, []);                                   // last copy from the server (used when offline, and shown instantly while the server answers)
+  let r = LS(key, []);
   if (navigator.onLine && !cacheOnly) {
     const fetchAll = async () => {
       let data = [], error = null;
-      for (let i = 0; ; i += 1000) {                     // read page by page (the server returns max 1000 rows at once)
+      for (let i = 0; ; i += 1000) {
         let q = sb.from(table).select('*').eq('user_id', user.id);
         if (table === 'study_sessions' && !oldLoaded) q = q.gte('created_at', winStart().toISOString());
         const resp = await q.order('id').range(i, i + 999);
@@ -703,7 +690,7 @@ async function rows(table, cacheOnly) {
       return { data, error };
     };
     let res = await fetchAll();
-    if (!res.error && !res.data.length && r.length) {    // "no rows" while we hold data is suspicious (an expiring login answers with nothing): renew the login and ask once more
+    if (!res.error && !res.data.length && r.length) {
       try { await Promise.race([sb.auth.getSession(), new Promise(x => setTimeout(x, 3000))]); } catch (e) {}
       await new Promise(x => setTimeout(x, 800));
       res = await fetchAll();
@@ -712,7 +699,7 @@ async function rows(table, cacheOnly) {
   }
   const all = [...r, ...Q().filter(i => i.table === table && i.row.user_id === user.id).map(i => ({ ...i.row, _local: 1, _qi: Q().indexOf(i) }))];
   if (table !== 'study_tests') return all;
-  const m = {}; all.forEach(t => { m[t.test_date + '|' + t.subject] = t; });   // a saved or edited test replaces the older one
+  const m = {}; all.forEach(t => { m[t.test_date + '|' + t.subject] = t; });
   return Object.values(m);
 }
 async function del(table, id) {
@@ -737,10 +724,10 @@ function applyData(got, days) {
 }
 function renderAll() {
   for (const f of [fillSubjects, renderGoal, renderLists, renderSubjects, renderCharts, renderTests]) {
-    try { f(); } catch (e) { console.error('render ' + f.name, e); }   // one broken part must not blank the rest
+    try { f(); } catch (e) { console.error('render ' + f.name, e); }
   }
 }
-async function showCached() {                            // right after opening: show the last saved copy at once instead of an empty screen while the server answers
+async function showCached() {
   if (!user || dataLoaded) return;
   try {
     const got = await Promise.all(TABLES.map(t => rows(t, true)));
@@ -753,18 +740,18 @@ async function refresh() {
   const my = ++refreshSeq;
   try {
     await sync(); pushFlush();
-    try { await Promise.race([sb.auth.getSession(), new Promise(x => setTimeout(x, 4000))]); } catch (e) {}   // renews an expired login first, so the server does not answer "nothing"
+    try { await Promise.race([sb.auth.getSession(), new Promise(x => setTimeout(x, 4000))]); } catch (e) {}
     const got = await Promise.all(TABLES.map(t => rows(t)));
     let days; const oldDays = LS('ev_days_' + user.id, []);
     try {
       const r = await sb.from('daily_summary').select('day,minutes').eq('user_id', user.id);
       if (!r.error && ((r.data || []).length || !oldDays.length)) { days = r.data || []; localStorage.setItem('ev_days_' + user.id, JSON.stringify(days)); } else days = oldDays;
     } catch (e) { days = oldDays; }
-    if (my !== refreshSeq) return;                         // a newer refresh already started: let it finish
+    if (my !== refreshSeq) return;
     applyData(got, days); dataLoaded = true;
-  } catch (e) { console.error('refresh load', e); }       // keep showing the data we already have
+  } catch (e) { console.error('refresh load', e); }
   renderAll();
-  duelsLoad();                                           // my stopwatch time may have changed: update my duels too
+  duelsLoad();
 }
 
 // ---------- Auth ----------
@@ -784,7 +771,7 @@ async function login() {
 async function logout() { await leaveRoom(); await sb.auth.signOut(); location.reload(); }
 function onLogin() {
   $('auth').classList.add('hidden'); $('app').classList.remove('hidden'); $('logoutBtn').classList.remove('hidden'); $('hdrTools').classList.remove('hidden');
-  loadRoomPrefs(); todoLoad();
+  loadRoomPrefs(); todoLoad(); applyLbDrawer();
   if (running || base > 0) {
     inRoom = true;
     syncRoom();
@@ -792,27 +779,24 @@ function onLogin() {
     leaveRoom();
   }
   showCached();
-  autoSaveForgotten().then(saved => { if (!saved) refresh(); });   // save a forgotten stopwatch first, so the streak is right
+  autoSaveForgotten().then(saved => { if (!saved) refresh(); });
   remotePull();
-  // asks the server only when needed: never while the app is in the background; every 10 s while a stopwatch is running/paused here or shown from another device; otherwise once a minute
-  // (coming back to the app, going online and the 60 s heartbeat still ask at once)
   setInterval(() => {
     if (document.hidden) return;
     const busy = running || base > 0 || !!remote;
     if (Date.now() - pullLast >= (busy ? 9500 : 59500)) remotePull();
   }, 5000);
-  setTimeout(() => { if (running) remotePush(); }, 4000);                                  // a timer that was already running (started before this update / reopened tab) becomes visible to other devices
-  setInterval(async () => { if (user && running) { await remotePull(); if (running) remotePush(); } }, 60000);   // heartbeat while studying
+  setTimeout(() => { if (running) remotePush(); }, 4000);
+  setInterval(async () => { if (user && running) { await remotePull(); if (running) remotePush(); } }, 60000);
   window.addEventListener('online', remotePull); document.addEventListener('visibilitychange', () => { if (!document.hidden) remotePull(); });
   initCollapse();
   duelFillDays(); duelUsers(); duelsLoad();
-  // duels: ask the server every 15 s while the Study Room tab is open or I am in an accepted duel, otherwise once a minute; the clocks tick every second
   setInterval(() => {
     if (!user || document.hidden) return;
     const fast = !$('roomTab').classList.contains('hidden') || DU.some(d => d.status === 'accepted' && duMine(d));
     if (Date.now() - duelLast >= (fast ? 14500 : 59500)) duelsLoad();
   }, 5000);
-  setInterval(() => { if (user && DU.length) duelsRender(); }, 1000);
+  setInterval(() => { if (user && DU.length) { duSig = ''; duelsRender(); } }, 1000);
   if (!roomInt) {
     roomInt = setInterval(() => { if (inRoom || focusActive || !$('roomTab').classList.contains('hidden')) syncRoom(); }, 10000);
     setInterval(() => { if (focusActive || !$('roomTab').classList.contains('hidden')) renderRoom(); }, 1000);
@@ -856,9 +840,10 @@ function getSubject(sel, custom) {
   return n;
 }
 
-// ---------- Collapsible cards (state remembered) ----------
+// ---------- Collapsible cards ----------
 function initCollapse() {
   document.querySelectorAll('#app .card').forEach(c => {
+    if (c.id === 'lbCard') return;
     const h = c.firstElementChild; if (c.closest('.modal') || c.dataset.col || !h || !/^H[34]$/.test(h.tagName)) return;
     c.dataset.col = 1; const key = 'ev_col_' + h.textContent.trim().slice(0, 40);
     h.style.cursor = 'pointer'; h.insertAdjacentHTML('beforeend', ' <i class="fa-solid fa-chevron-down ml-1 text-[10px]" style="transition:transform .2s"></i>');
@@ -867,7 +852,22 @@ function initCollapse() {
   });
 }
 
-// ---------- Subjects manager (Settings) ----------
+// ---------- Collapsible Leaderboard Drawer ----------
+const LB_OPEN_KEY = 'ev_lb_drawer_open';
+function applyLbDrawer() {
+  const drawer = $('lbDrawer'), icon = $('lbArrowIcon');
+  if (!drawer || !icon) return;
+  const open = localStorage.getItem(LB_OPEN_KEY) !== '0';
+  drawer.classList.toggle('hidden', !open);
+  icon.style.transform = open ? 'rotate(0deg)' : 'rotate(-90deg)';
+}
+function toggleLbDrawer() {
+  const next = localStorage.getItem(LB_OPEN_KEY) === '0' ? '1' : '0';
+  localStorage.setItem(LB_OPEN_KEY, next);
+  applyLbDrawer();
+}
+
+// ---------- Subjects manager ----------
 const saveSubs = () => localStorage.setItem('ev_subjects', JSON.stringify(subjects));
 function renderSubjects() {
   $('subjList').innerHTML = subjects.map((s, i) => `<div class="row"><span>${esc(s)}</span><div class="flex gap-4">
@@ -912,7 +912,6 @@ function saveGoal() {
   localStorage.setItem('ev_goal_val', v); localStorage.setItem('ev_goal_type', goalType);
   renderGoal();
 }
-// Goal bar: study sessions + classes of that day/week (by date) + the running stopwatch (whole minutes)
 function renderGoal() {
   const now = logicalNow(), t0 = dayStart();
   const sum = (arr, f) => arr.reduce((a, x) => a + (+f(x) || 0), 0);
@@ -936,17 +935,17 @@ setInterval(() => { if (user) renderGoal(); }, 30000);
 const restDay = () => { const v = localStorage.getItem('ev_restday'); return v === null || v === '' ? -1 : +v; };
 function fireState() {
   const todayKey = dayKey(new Date()), rest = restDay(), cutK = toYMD(addDays(winStart(), 1)), m = {};
-  (D.days || []).forEach(r => { if (r.day < cutK) m[r.day] = +r.minutes || 0; });   // older days: one summary row each (no manual time)
+  (D.days || []).forEach(r => { if (r.day < cutK) m[r.day] = +r.minutes || 0; });
   D.sessions.forEach(x => { const k = dayKey(x.created_at); if (x.type !== 'manual' && k >= cutK) m[k] = (m[k] || 0) + (+x.duration_minutes || 0); });
   const live = (running || base) ? base / 60 : 0;
   if (live) m[todayKey] = (m[todayKey] || 0) + live;
   const keys = Object.keys(m).filter(k => m[k] > 0).sort();
   let cur = 0, best = 0;
   if (keys.length) for (let d = ymd(keys[0]); toYMD(d) <= todayKey; d = addDays(d, 1)) {
-    const k = toYMD(d), st = m[k] || 0, mins = st > 0 ? st + classMins(d) : 0;   // classes of THAT week add to study time, manual time never counts
-    const need = cur >= 7 ? 300 : cur >= 2 ? 180 : 0;                                      // days 1-2: any stopwatch time | days 3-7: over 3 h | from day 8: over 5 h
+    const k = toYMD(d), st = m[k] || 0, mins = st > 0 ? st + classMins(d) : 0;
+    const need = cur >= 7 ? 300 : cur >= 2 ? 180 : 0;
     if (mins > need) { cur++; best = Math.max(best, cur); }
-    else if (k !== todayKey && d.getDay() !== rest) cur = 0;                              // today not finished yet / a day off do not break it
+    else if (k !== todayKey && d.getDay() !== rest) cur = 0;
   }
   const days = { [todayKey]: (m[todayKey] || 0) > 0 || running || base > 0 };
   const t0 = dayStart();
@@ -956,7 +955,6 @@ function fireState() {
   return { cur, best: Math.max(best, cur), studiedToday, blaze };
 }
 
-// Streak characters (put the 5 images in a folder called "streak")
 const SIMG = { angry: 'streak/angry.png', calm: 'streak/calm.png', spark: 'streak/spark.png', black: 'streak/black.png', red: 'streak/red.png' };
 const levelOf = n => n >= 60 ? 'red' : n >= 30 ? 'black' : n >= 15 ? 'spark' : n >= 1 ? 'calm' : 'angry';
 const streakImg = f => SIMG[f.studiedToday ? levelOf(Math.max(1, f.cur)) : 'angry'];
@@ -1043,7 +1041,6 @@ function renderLists() {
         ${e.topics ? `<div class="text-[11px] text-slate-500 mt-1.5 line-clamp-2">${esc(e.topics)}</div>` : ''}</div>
       <div class="flex items-center pr-3">${trash('exams', e)}</div></div>`;
   }).join('') || '<p class="text-xs text-slate-500">No exams yet.</p>';
-  // classes: running ones first, ended ones (kept for the history of past weeks) at the end
   const wkNow = wkKey(logicalNow());
   const isEnded = c => !!c.end_date && c.end_date < wkNow;
   const cl = D.classes.slice().sort((a, b) => (isEnded(a) - isEnded(b)) || (((+a.day_of_week + 1) % 7) - ((+b.day_of_week + 1) % 7)));
@@ -1058,10 +1055,10 @@ function renderLists() {
 }
 
 // ---------- Stopwatch ----------
-const isStale = id => !!id && parseInt(id) <= (+localStorage.getItem('ev_timer_finished_at') || 0);   // run that started before the last Finish
-let actAt = 0;   // last moment the stopwatch was really counting (used by the 3 AM auto-save)
+const isStale = id => !!id && parseInt(id) <= (+localStorage.getItem('ev_timer_finished_at') || 0);
+let actAt = 0;
 function persist() {
-  if (runId && (isStale(runId) || localStorage.getItem('ev_timer_done') === runId)) return abandon();   // finished in another tab
+  if (runId && (isStale(runId) || localStorage.getItem('ev_timer_done') === runId)) return abandon();
   if (!running && base === 0) return localStorage.removeItem('ev_timer');
   localStorage.setItem('ev_timer', JSON.stringify({ id: runId, running, base, lastTick, act: actAt, subject: curSub, segs, tops, tseg, pres: presenceSecs }));
 }
@@ -1084,15 +1081,15 @@ async function remotePull() {
     if (error) console.error('live_timer pull', error);
     if (!data || !data.state) { remote = null; return remBar(); }
     const st = data.state, t = new Date(data.updated_at).getTime();
-    if (st.dev === DEV) { remote = (st.finished || running || base > 0) ? null : st; return remBar(); }   // my own write: if I wrote it from the bar (paused/resumed), the bar stays until Finish
+    if (st.dev === DEV) { remote = (st.finished || running || base > 0) ? null : st; return remBar(); }
     if (st.finished) { remote = null; if (runId && runId === st.id) { localStorage.setItem('ev_timer_done', st.id); abandon(); ui(); leaveRoom(); refresh(); } return remBar(); }
     if (st.id && st.id === localStorage.getItem('ev_timer_done')) { remote = null; return remBar(); }
-    if (runId && runId === st.id) {                                        // another device paused/resumed MY run: follow it
+    if (runId && runId === st.id) {
       if (t <= remAt + 1500) return; remAt = t;
       clearInterval(tInt); running = false; base = 0; segs = {}; tops = {}; tseg = {}; alerted = {};
       localStorage.setItem('ev_timer', JSON.stringify(st)); restoreTimer(); persist(); remote = null; return remBar();
     }
-    remote = (running || base > 0) ? null : st; remBar();                   // a run on another device: show the control bar
+    remote = (running || base > 0) ? null : st; remBar();
   } catch (e) { console.error(e); }
 }
 function remNow(st) {
@@ -1121,7 +1118,7 @@ async function remFinish() {
   const n = remNow(remote), st = remote, tp = st.tops || {}, ts = st.tseg || {}; remote = null; remBar();
   for (const [subject, secs] of Object.entries(n.segs))
     if (secs >= 15) { const t = topicPack(tp, ts, subject, secs); await save('study_sessions', { subject, duration_minutes: Math.max(1, Math.round(secs / 60)), type: 'stopwatch', created_at: new Date().toISOString(), ...(t ? { topic: t } : {}) }); }
-  await remotePush(st.id); await leaveRoom(); refresh();
+  await remotePush(st.id); await leaveRoom(); await refresh(); await duelsMarkFinished();
 }
 setInterval(remBar, 1000);
 function abandon() {
@@ -1144,7 +1141,7 @@ function flipSet(str) {
   });
 }
 function draw() {
-  const rem = remote && !running && !base && !(remote.running && Date.now() - remote.lastTick > 6 * 3600e3);   // timer running on another device: show its time here too
+  const rem = remote && !running && !base && !(remote.running && Date.now() - remote.lastTick > 6 * 3600e3);
   const s = pomo && !rem ? Math.max(0, pLeft) : rem ? remNow(remote).base : base;
   const p = n => String(n).padStart(2, '0');
   const clk = `${p(Math.floor(s / 3600))}:${p(Math.floor(s % 3600 / 60))}:${p(s % 60)}`;
@@ -1162,7 +1159,6 @@ function ui() {
   $('finishBtn').className = 'btn flex-1 ' + ($('finishBtn').disabled ? 'bg-slate-800 text-slate-500' : 'bg-emerald-600 hover:bg-emerald-500');
   draw();
 }
-function askNotif() { if ('Notification' in window && Notification.permission === 'default') Notification.requestPermission(); }
 async function notify(t, b, tag) {
   try { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); } catch (e) {}
   try {
@@ -1197,7 +1193,7 @@ function toggleTimer() {
   if (!running) {
     if (!localStorage.getItem('ev_push') && 'Notification' in window) modal('notif', 1);
     presenceSecs = 0; askOpen = false;
-    const tv = $('swTopic').value.trim(); curSub = getSubject('swSubject', 'swCustom'); if (tv) tops[curSub] = tv; showTopic();   // a typed topic that was not set yet is applied on Start
+    const tv = $('swTopic').value.trim(); curSub = getSubject('swSubject', 'swCustom'); if (tv) tops[curSub] = tv; showTopic();
     if (!runId) runId = Date.now() + '-' + Math.random().toString(36).slice(2, 6); clearInterval(tInt); running = true; lastTick = Date.now(); actAt = Date.now();
     if (pomo && pLeft <= 0) { pState = 'study'; pLeft = (+$('pomoStudy').value || 50) * 60; }
     tInt = setInterval(tick, 1000);
@@ -1211,10 +1207,9 @@ function toggleTimer() {
     pushClear();
     if (inRoom) syncRoom();
   }
-  ui(); persist(); renderStreak(); remotePush();
+  ui(); persist(); renderStreak(); remotePush(); duelsPush();
 }
 function syncSub() { curSub = getSubject('swSubject', 'swCustom'); $('swTopic').value = tops[curSub] || ''; showTopic(); }
-// ---- Topic: applied only with the Set button / Enter (no more saving every typed letter) ----
 function showTopic() {
   const t = tops[curSub];
   $('swTopicNow').innerHTML = t ? `<i class="fa-solid fa-tag text-blue-400 mr-1"></i>Current topic: <b class="text-slate-200">${esc(t)}</b>` : 'No topic set';
@@ -1231,7 +1226,6 @@ function flashTopic(msg, ok) {
   $('swTopicNow').innerHTML = `<span class="${ok ? 'text-emerald-400' : 'text-amber-400'} font-medium">${esc(msg)}</span>`;
   clearTimeout(flashTopic.t); flashTopic.t = setTimeout(showTopic, 2000);
 }
-// topic time is stored inside the existing `topic` column as JSON: [{t:'Chapter 1',s:seconds},...]; old plain-text topics still work
 function topicPack(tp, ts, subject, secs) {
   const o = Object.entries(ts[subject] || {}).filter(([k]) => k);
   if (!o.length) return tp[subject] || '';
@@ -1245,7 +1239,7 @@ function topicList(v) {
 }
 function togglePomo() { pomo = $('pomoOn').checked; $('pomoSet').classList.toggle('hidden', !pomo); pLeft = 0; pState = 'study'; draw(); }
 async function finishTimer(at) {
-  const when = at instanceof Date ? at : new Date();   // normal Finish = now | auto-save = the forgotten day
+  const when = at instanceof Date ? at : new Date();
   modal('confirm', 0);
   clearInterval(tInt); running = false; askOpen = false; presenceSecs = 0; modal('presence', 0); localStorage.removeItem('ev_timer');
   if (runId) { localStorage.setItem('ev_timer_done', runId); remotePush(runId); }
@@ -1259,7 +1253,9 @@ async function finishTimer(at) {
   for (const [subject, secs] of parts)
     if (secs >= 15) { const tp = topicPack(topics, tsg, subject, secs); await save('study_sessions', { subject, duration_minutes: Math.max(1, Math.round(secs / 60)), type: 'stopwatch', created_at: when.toISOString(), ...(tp ? { topic: tp } : {}) }); }
   localStorage.removeItem('ev_timer');
-  await leaveRoom(); refresh();
+  await leaveRoom();
+  await refresh();
+  await duelsMarkFinished();
 }
 function restoreTimer() {
   const s = LS('ev_timer', null);
@@ -1287,8 +1283,8 @@ function presenceStep() {
   if (askOpen) { const left = Math.max(0, PRES_EVERY + PRES_GRACE - presenceSecs); $('presLeft').textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; }
 }
 function presenceExpire() {
-  actAt = Date.now() - Math.max(0, presenceSecs - PRES_EVERY) * 1000;   // the last moment that still counted
-  const lost = Math.min(Math.max(0, Math.round(presenceSecs - PRES_EVERY)), base);   // time after the question was asked is not counted
+  actAt = Date.now() - Math.max(0, presenceSecs - PRES_EVERY) * 1000;
+  const lost = Math.min(Math.max(0, Math.round(presenceSecs - PRES_EVERY)), base);
   let cut = lost;
   base -= cut;
   for (const k of [curSub, ...Object.keys(segs)]) { if (cut <= 0) break; const t = Math.min(segs[k] || 0, cut); if (t) { segs[k] -= t; cut -= t; } }
@@ -1299,19 +1295,18 @@ function presenceExpire() {
   ui(); persist(); renderStreak(); remotePush(); if (inRoom) syncRoom();
   autoSaveForgotten();
 }
-// ---------- Auto-save at 3:00 AM (forgotten, paused stopwatch) ----------
-// If a stopwatch was paused (or timed out) and never saved, then at 3:00 AM it is saved on the day it was
-// really used, so that day (and the streak) is not lost. It runs when the app is open or the next time it opens.
+
+// ---------- Auto-save at 3:00 AM ----------
 const AUTO_HOUR = DAY_CUT;
 let autoBusy = false;
 async function autoSaveForgotten() {
   if (autoBusy || !user || running || !(base > 0)) return false;
-  const cut = new Date(); cut.setHours(AUTO_HOUR, 0, 0, 0); if (cut > new Date()) cut.setDate(cut.getDate() - 1);   // most recent 3:00 AM
+  const cut = new Date(); cut.setHours(AUTO_HOUR, 0, 0, 0); if (cut > new Date()) cut.setDate(cut.getDate() - 1);
   if (!actAt) { actAt = Date.now(); persist(); return false; }
-  if (actAt >= cut.getTime()) return false;                                       // paused after 3 AM: still "today", wait for the next 3 AM
+  if (actAt >= cut.getTime()) return false;
   autoBusy = true;
   try {
-    const dKey = toYMD(new Date(actAt - AUTO_HOUR * 3600e3));                      // before 3 AM still belongs to the previous day
+    const dKey = toYMD(new Date(actAt - AUTO_HOUR * 3600e3));
     const at = toYMD(new Date(actAt)) === dKey ? new Date(actAt) : new Date(dKey + 'T23:59:00');
     modal('presStop', 0);
     await finishTimer(at);
@@ -1326,24 +1321,23 @@ setInterval(autoSaveForgotten, 60000);
 function presenceYes() { presenceSecs = 0; askOpen = false; modal('presence', 0); persist(); }
 function presenceTouch() { if (running && !askOpen) presenceSecs = 0; }
 
-// ---------- Auto-update (also for apps added to the Home Screen) ----------
+// ---------- Auto-update ----------
 let lastUpdChk = 0;
 async function checkUpdate(auto) {
   if (!navigator.onLine) return;
-  if (!auto && Date.now() - lastUpdChk < 30 * 60e3) return;   // the whole page is downloaded for this check, so not more than every 30 min
+  if (!auto && Date.now() - lastUpdChk < 30 * 60e3) return;
   lastUpdChk = Date.now();
   try {
-    const r = await fetch(location.pathname + location.search, { cache: 'reload' });   // forces a fresh copy from the server
+    const r = await fetch(location.pathname + location.search, { cache: 'reload' });
     const m = (await r.text()).match(/<meta name="build" content="([^"]+)"/);
     if (!m || m[1] === BUILD) return;
-    // reload by itself only while the loading screen is still up or the app is in the background (nobody sees it); otherwise show the Update button
     if ((!window.evBooted || document.hidden) && sessionStorage.getItem('ev_upd') !== m[1]) { sessionStorage.setItem('ev_upd', m[1]); location.reload(); return; }
     $('updBar').classList.remove('hidden');
   } catch (e) { console.error('update check', e); }
 }
 function applyUpdate() { location.reload(); }
 
-// ---------- Reminders (push notifications, work even when the app is closed) ----------
+// ---------- Reminders ----------
 const b64u = s => Uint8Array.from(atob((s + '='.repeat((4 - s.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
 const pushSupported = () => 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
 const pushOn = () => localStorage.getItem('ev_push') === 'on' && pushSupported() && Notification.permission === 'granted';
@@ -1361,7 +1355,7 @@ async function pushEnable() {
   try {
     if (await Notification.requestPermission() !== 'granted') return false;
     pushErr = '';
-    try { await pushEnsure(); } catch (e) { console.error('push subscribe', e); pushErr = (e && e.message) || String(e); }   // in-app reminders still work if this fails
+    try { await pushEnsure(); } catch (e) { console.error('push subscribe', e); pushErr = (e && e.message) || String(e); }
     return true;
   } catch (e) { console.error('push', e); return false; }
 }
@@ -1439,7 +1433,7 @@ async function saveManual() {
 async function saveClass() {
   const title = $('clTitle').value.trim();
   if (!title) return alert('Enter the class title');
-  const from = toYMD(addDays(weekStart(logicalNow()), 7 * (+$('clFrom').value || 0)));   // the Saturday of the week the class starts in
+  const from = toYMD(addDays(weekStart(logicalNow()), 7 * (+$('clFrom').value || 0)));
   await save('classes', { title, subject: $('clSubject').value, day_of_week: +$('clDay').value, duration_minutes: parseInt($('clDur').value) || 60, start_date: from });
   $('clTitle').value = ''; refresh();
 }
@@ -1457,15 +1451,15 @@ async function clEditSave() {
   if (!navigator.onLine) return alert('You need to be online to edit a class.');
   const row = { title, subject: $('ceSubject').value, day_of_week: +$('ceDay').value, duration_minutes: parseInt($('ceDur').value) || 60 };
   const wk = wkKey(logicalNow()), prev = toYMD(addDays(weekStart(logicalNow()), -7));
-  if (c.start_date && c.start_date >= wk) {                       // it only exists from this week (or later): change it in place
+  if (c.start_date && c.start_date >= wk) {
     const { error } = await sb.from('classes').update(row).eq('id', c.id).eq('user_id', user.id);
     if (error) return alert('Error: ' + error.message);
-  } else {                                                        // it was already there in past weeks: end it at last week and start a new one from this week
+  } else {
     const r1 = await sb.from('classes').update({ end_date: prev }).eq('id', c.id).eq('user_id', user.id);
     if (r1.error) return alert('Error: ' + r1.error.message);
     const r2 = await sb.from('classes').insert({ ...row, user_id: user.id, start_date: wk });
     if (r2.error) {
-      await sb.from('classes').update({ end_date: c.end_date || null }).eq('id', c.id).eq('user_id', user.id);   // undo, nothing is lost
+      await sb.from('classes').update({ end_date: c.end_date || null }).eq('id', c.id).eq('user_id', user.id);
       return alert('Error: ' + r2.error.message);
     }
   }
@@ -1475,7 +1469,7 @@ async function stopClass(id) {
   const c = findClass(id); if (!c) return;
   if (!navigator.onLine) return alert('You need to be online to change a class.');
   const wk = wkKey(logicalNow());
-  if (c.start_date && c.start_date >= wk) return del('classes', c.id);        // it never counted in a past week: just delete it
+  if (c.start_date && c.start_date >= wk) return del('classes', c.id);
   if (!confirm(`Remove "${c.title}" from this week on?\n\nPast weeks keep it (goal, streak, charts and PDF stay the same).`)) return;
   const { error } = await sb.from('classes').update({ end_date: toYMD(addDays(weekStart(logicalNow()), -7)) }).eq('id', c.id).eq('user_id', user.id);
   if (error) return alert('Error: ' + error.message);
@@ -1500,7 +1494,7 @@ async function saveGrade() {
   $('gTitle').value = ''; $('gScore').value = ''; refresh();
 }
 
-// ---------- To-Do (today only: kept on this device, never sent to the server, deleted when the day ends) ----------
+// ---------- To-Do ----------
 const todoKey = () => 'ev_todo_' + (user ? user.id : '');
 function todoLoad() {
   const today = dayKey(new Date()); let t = LS(todoKey(), null);
@@ -1599,7 +1593,7 @@ function repCollect() {
   const kind = $('repKind').value; let days;
   if (kind === 'range') {
     const a = ymd(pickGet('repFrom')), b = ymd(pickGet('repTo')); days = [];
-    if (a && b && a <= b) for (let d = a; d <= b && days.length < 120; d = addDays(d, 1)) days.push(d);   // up to 120 days
+    if (a && b && a <= b) for (let d = a; d <= b && days.length < 120; d = addDays(d, 1)) days.push(d);
     return { kind, days, label: days.length ? fmtY(days[0]) + ' to ' + fmtY(days[days.length - 1]) : '' };
   }
   const val = $('repPeriod').value, label = $('repPeriod').selectedOptions[0].textContent;
@@ -1617,7 +1611,7 @@ async function openReport() {
   const tst = D.tests.filter(t => set.has(t.test_date) && +t.count > 0), sub = {};
   const row = n => sub[n] || (sub[n] = { study: 0, cls: 0, tests: 0, topics: new Map() });
   ses.forEach(s => { const r = row(s.subject); r.study += +s.duration_minutes || 0; topicList(s.topic).forEach(x => r.topics.set(x.t, (r.topics.get(x.t) || 0) + (x.s || 0))); });
-  const clsDay = days.map(d => withCl && d <= endT ? classesOn(d) : []);   // the classes that were valid in THAT week
+  const clsDay = days.map(d => withCl && d <= endT ? classesOn(d) : []);
   clsDay.forEach(cs => cs.forEach(c => { row(c.subject).cls += +c.duration_minutes || 0; }));
   tst.forEach(t => { row(t.subject).tests += +t.count; });
   const names = Object.keys(sub).sort((a, b) => (sub[b].study + sub[b].cls) - (sub[a].study + sub[a].cls));
@@ -1633,7 +1627,6 @@ async function openReport() {
     h += `<table><tr><th>Subject</th><th>Study</th>${withCl ? '<th>Classes</th><th>Total</th>' : ''}<th>Tests</th>${anyTopic ? '<th>Topics</th>' : ''}</tr>` +
       names.map(n => { const r = sub[n]; return `<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${color(n)};margin-right:6px"></span>${esc(n)}</td><td>${hm(r.study)}</td>${withCl ? `<td>${hm(r.cls)}</td><td>${hm(r.study + r.cls)}</td>` : ''}<td>${r.tests || '-'}</td>${anyTopic ? `<td>${esc([...r.topics].map(([t, sc]) => kind === 'daily' && sc > 0 ? `${t} (${hm(sc / 60)})` : t).join(', ')) || '-'}</td>` : ''}</tr>`; }).join('') + '</table>';
   }
-  
   const manualSessions = ses.filter(s => s.type === 'manual');
   if (manualSessions.length) {
     h += '<h2>Manual Entries & Reasons</h2>';
@@ -1644,7 +1637,6 @@ async function openReport() {
       return `<div style="font-size:12px;margin-bottom:4px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">${dStr} | ${esc(s.subject)} | ${durStr} | Manual entry ( not by stop watch )${reasonStr}</div>`;
     }).join('');
   }
-
   if (kind === 'daily' && ses.length) h += '<h2>Sessions</h2><table><tr><th>Subject</th><th>Time</th><th>Type</th><th>Topic / Reason</th></tr>' +
     ses.map(s => `<tr><td>${esc(s.subject)}</td><td>${hm(s.duration_minutes)}</td><td>${s.type === 'manual' ? 'Manual entry ( not by stop watch )' : 'Stopwatch'}</td><td>${esc(topicList(s.topic).map(x => x.s > 0 ? `${x.t} (${hm(x.s / 60)})` : x.t).join(', ') || s.reason) || '-'}</td></tr>`).join('') + '</table>';
   if (kind === 'daily' && clsDay[0].length) h += '<h2>Classes</h2><table><tr><th>Class</th><th>Subject</th><th>Time</th></tr>' +
@@ -1705,6 +1697,7 @@ async function loadLB() {
   lbData = data || []; renderLB();
 }
 function renderLB() {
+  applyLbDrawer();
   const el = $('lbList'); if (!el || !lbData) return;
   el.innerHTML = lbData.map((m, i) => `<div class="row ${m.user_id === user.id ? '!border-blue-500' : ''}">
     <div class="flex items-center gap-2 flex-wrap min-w-0"><span class="w-5 text-slate-400 font-mono">${i + 1}</span>
@@ -1712,91 +1705,283 @@ function renderLB() {
     <span class="font-mono text-sm text-amber-300 shrink-0 ml-2">${m.streak} day${m.streak === 1 ? '' : 's'}</span></div>`).join('') || '<p class="text-xs text-slate-500 text-center py-4">No one yet.</p>';
 }
 
-const LB_MIN = 1;   // everyone with at least this many streak days is on the leaderboard
+const LB_MIN = 1;
 
 // ---------- Duels ----------
-// duel_date = the study day (3 AM rule). The duel is decided by the STOPWATCH time of that day (manual entries never count).
-// Each person writes only their own seconds into the duels row (every ~15 s while studying), everybody can read accepted duels.
 let DU = [], duelUsersList = [], duelLast = 0, duelBusy = false, duelSeen = null, duSig = '';
 const duelPushed = {};
+const DUEL_RESULT_MS = 12 * 3600e3;
 const todayK = () => dayKey(new Date());
-const uname = () => user.email.split('@')[0];
+const yesterdayK = () => toYMD(addDays(logicalNow(), -1));
+const uname = () => (user && user.email ? user.email.split('@')[0] : 'User');
 const duMine = d => !!user && (d.challenger_id === user.id || d.opponent_id === user.id);
-const duShown = d => d.status === 'accepted' || (d.status === 'pending' && d.duel_date >= todayK() && duMine(d));
-function myStopSecs(key) {                                  // my stopwatch seconds on that study day (saved sessions + the run in progress)
+
+const localFinKey = () => user ? ('ev_duel_fin_' + user.id) : 'ev_duel_fin_anon';
+function getLocalFinMap() { return LS(localFinKey(), {}); }
+function setLocalFin(duelId, side, isoVal) {
+  const m = getLocalFinMap();
+  if (!m[duelId]) m[duelId] = {};
+  m[duelId][side] = isoVal || new Date().toISOString();
+  localStorage.setItem(localFinKey(), JSON.stringify(m));
+}
+
+function threeAmAfterDate(dateStr) {
+  const [y, m, day] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, day + 1, DAY_CUT, 0, 0, 0).getTime();
+}
+
+function getFinMarker(d, side) {
+  if (!d) return '';
+  const col = side === 'c' ? 'challenger_finished_at' : 'opponent_finished_at';
+  if (d[col]) return d[col];
+  if (d.finished_by && d.finished_by[side]) return d.finished_by[side];
+  const loc = getLocalFinMap()[d.id];
+  if (loc && loc[side]) return loc[side];
+  return '';
+}
+
+function duelBothFinished(d) {
+  if (!d) return false;
+  return !!(getFinMarker(d, 'c') && getFinMarker(d, 'o'));
+}
+
+function isDuelFinished(d) {
+  if (!d || d.status !== 'accepted') return false;
+  if (d.status === 'finished') return true;
+  const t = todayK();
+  if (d.duel_date < t) return true;
+  if (d.duel_date === t && duelBothFinished(d)) return true;
+  return false;
+}
+
+function isStudyingNow(uid) {
+  if (!uid) return false;
+  if (user && uid === user.id) return !!(running || base > 0);
+  const rm = roomRows.find(m => m.user_id === uid);
+  return !!(rm && rm.last_active && (Date.now() - new Date(rm.last_active).getTime() < 20000) && (rm.is_studying || (rm.live_seconds || 0) > 0));
+}
+
+function yesterdaySettlement(d) {
+  if (d.status !== 'accepted' || d.duel_date !== yesterdayK()) {
+    return { show: false, settled: false, settledAt: 0, remainingMs: 0 };
+  }
+  const threeAm = threeAmAfterDate(d.duel_date);
+  const bothStudying = isStudyingNow(d.challenger_id) && isStudyingNow(d.opponent_id);
+
+  const cFinStr = getFinMarker(d, 'c');
+  const oFinStr = getFinMarker(d, 'o');
+  const cFin = cFinStr && !isNaN(new Date(cFinStr).getTime()) ? new Date(cFinStr).getTime() : 0;
+  const oFin = oFinStr && !isNaN(new Date(oFinStr).getTime()) ? new Date(oFinStr).getTime() : 0;
+  const bothFinished = !!(cFin && oFin);
+
+  let settledAt = threeAm;
+  let settled = false;
+
+  if (bothStudying) {
+    settled = Date.now() >= threeAm;
+    settledAt = threeAm;
+  } else if (bothFinished) {
+    settled = true;
+    settledAt = d.settled_at ? new Date(d.settled_at).getTime() : Math.max(cFin, oFin);
+  } else {
+    settled = Date.now() >= threeAm;
+    settledAt = d.settled_at ? new Date(d.settled_at).getTime() : threeAm;
+  }
+
+  const endWindow = settledAt + DUEL_RESULT_MS;
+  const remainingMs = Math.max(0, endWindow - Date.now());
+  return { show: settled && remainingMs > 0, settled, settledAt, remainingMs };
+}
+
+function duShown(d) {
+  if (d.status === 'pending' && d.duel_date >= todayK() && duMine(d)) return true;
+  if (d.status !== 'accepted') return false;
+  if (d.duel_date > todayK()) return true;
+  if (d.duel_date === todayK()) return true;
+  if (d.duel_date === yesterdayK()) return yesterdaySettlement(d).show;
+  return false;
+}
+
+function myStopSecs(key) {
   let s = 0;
   D.sessions.forEach(x => { if (x.type !== 'manual' && dayKey(x.created_at) === key) s += (+x.duration_minutes || 0) * 60; });
-  if (key === todayK()) { if (running || base > 0) s += base; else if (remote && !(remote.running && Date.now() - remote.lastTick > 6 * 3600e3)) s += remNow(remote).base; }
+  if (key === todayK()) {
+    if (running || base > 0) s += base;
+    else if (remote && !(remote.running && Date.now() - remote.lastTick > 6 * 3600e3)) s += remNow(remote).base;
+  }
   return s;
 }
+
 function duSecs(d, side) {
-  const mine = (side === 'c' ? d.challenger_id : d.opponent_id) === user.id;
-  return mine ? myStopSecs(d.duel_date) : (+d[side === 'c' ? 'challenger_secs' : 'opponent_secs'] || 0);
+  const isC = side === 'c';
+  const uid = isC ? d.challenger_id : d.opponent_id;
+  const finMarker = getFinMarker(d, side);
+  const saved = +d[isC ? 'challenger_secs' : 'opponent_secs'] || 0;
+  if (user && uid === user.id && d.duel_date === todayK() && !finMarker) {
+    return Math.max(saved, myStopSecs(d.duel_date));
+  }
+  return saved;
 }
+
 function leadOf(d) {
   if (d.duel_date > todayK()) return '';
   const a = duSecs(d, 'c'), b = duSecs(d, 'o');
   return a > b ? 'c' : b > a ? 'o' : '';
 }
+
 const duTime = (d, side) => d.duel_date > todayK() ? '--:--:--' : hms(duSecs(d, side));
+
 function duelIds() {
   const t = todayK(), s = new Set();
-  DU.forEach(d => { if (d.status === 'accepted' && d.duel_date === t) { s.add(d.challenger_id); s.add(d.opponent_id); } });
+  DU.forEach(d => {
+    if (d.status === 'accepted' && d.duel_date === t && !isDuelFinished(d)) {
+      s.add(d.challenger_id);
+      s.add(d.opponent_id);
+    }
+  });
   return s;
 }
-function duelInfo(uid) {                                    // is this person in a duel today? and are they in front?
-  const t = todayK(), d = DU.find(x => x.status === 'accepted' && x.duel_date === t && (x.challenger_id === uid || x.opponent_id === uid));
+
+function duelInfo(uid) {
+  const t = todayK(), d = DU.find(x => x.status === 'accepted' && x.duel_date === t && !isDuelFinished(x) && (x.challenger_id === uid || x.opponent_id === uid));
   if (!d) return null;
   const l = leadOf(d);
   return { lead: (l === 'c' && d.challenger_id === uid) || (l === 'o' && d.opponent_id === uid) };
 }
+
 function duBadge(uid) {
   const di = duelInfo(uid);
   return di ? `<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-rose-500/15 text-rose-300 whitespace-nowrap">${di.lead ? '🎖️ ' : ''}⚔️ In duel</span>` : '';
 }
+
 function duelRow(d) {
-  const t = todayK(), future = d.duel_date > t, over = d.duel_date < t, lead = leadOf(d), mine = duMine(d);
-  const side = (s, name, id) => `<div class="flex items-center justify-between gap-2"><span class="truncate">${lead === s ? '🎖️ ' : ''}<b>${esc(name)}</b>${id === user.id ? ' (You)' : ''}</span><span data-dt="${d.id}:${s}" class="font-mono ${lead === s ? 'text-amber-300' : 'text-slate-400'}">${duTime(d, s)}</span></div>`;
+  const t = todayK();
+  const future = d.duel_date > t;
+  const over = isDuelFinished(d);
+  const lead = leadOf(d);
+  const mine = duMine(d);
+  const aSecs = duSecs(d, 'c'), bSecs = duSecs(d, 'o');
+  const winName = lead === 'c' ? d.challenger_name : lead === 'o' ? d.opponent_name : '';
+  const winSecs = lead === 'c' ? aSecs : lead === 'o' ? bSecs : 0;
+  const st = (over && d.duel_date < t) ? yesterdaySettlement(d) : null;
+  const hrsLeft = st ? ` · ${Math.max(1, Math.ceil(st.remainingMs / 3600e3))}h left` : '';
+
+  const side = (s, name, id) => {
+    const isWinner = over && lead === s;
+    const isDraw = over && !lead;
+    const badge = isWinner
+      ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40 shrink-0">WINNER</span>`
+      : isDraw
+      ? `<span class="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-300 shrink-0">DRAW</span>`
+      : '';
+    return `<div class="flex items-center justify-between gap-2 py-0.5 ${isWinner ? 'bg-amber-500/10 px-2 rounded-lg border border-amber-500/25' : ''}">
+      <span class="flex items-center gap-1.5 min-w-0">
+        <span class="truncate">${lead === s ? '🎖️ ' : ''}<b>${esc(name)}</b>${id === user.id ? ' (You)' : ''}</span>
+        ${badge}
+      </span>
+      <span data-dt="${d.id}:${s}" class="font-mono shrink-0 ${isWinner || lead === s ? 'text-amber-300 font-semibold' : 'text-slate-400'}">${duTime(d, s)}</span>
+    </div>`;
+  };
+
   const tag = future ? `📅 Scheduled · ${fmtY(ymd(d.duel_date))}`
-    : over ? (lead ? `🏁 Finished · 🏆 ${esc(lead === 'c' ? d.challenger_name : d.opponent_name)} won` : '🏁 Finished · draw')
+    : over ? (lead
+      ? `🏁 Duel finished · Winner: ${esc(winName)} (${hms(winSecs)})${hrsLeft}`
+      : `🏁 Duel finished · Draw (${hms(aSecs)})${hrsLeft}`)
     : '⚔️ In duel';
-  return `<div class="rounded-xl border-2 ${mine && !over ? 'border-rose-500/60' : 'border-slate-800'} bg-slate-950 p-2.5 text-xs space-y-1">
-    <div class="flex items-center justify-between gap-2"><span class="text-[11px] font-semibold ${over ? 'text-slate-400' : 'text-rose-300'}">${tag}</span>${mine && !over ? `<button onclick="duelDel('${d.id}')" class="text-slate-500 hover:text-red-400" title="Cancel duel"><i class="fa-solid fa-xmark"></i></button>` : ''}</div>
-    ${side('c', d.challenger_name, d.challenger_id)}${side('o', d.opponent_name, d.opponent_id)}</div>`;
+
+  return `<div class="rounded-xl border-2 ${mine && !over ? 'border-rose-500/60' : over ? 'border-amber-500/50' : 'border-slate-800'} bg-slate-950 p-2.5 text-xs space-y-1.5">
+    <div class="flex items-center justify-between gap-2">
+      <span class="text-[11px] font-semibold ${over ? 'text-amber-300' : 'text-rose-300'}">${tag}</span>
+      ${mine && !over ? `<button onclick="duelDel('${d.id}')" class="text-slate-500 hover:text-red-400" title="Cancel duel"><i class="fa-solid fa-xmark"></i></button>` : ''}
+    </div>
+    ${side('c', d.challenger_name, d.challenger_id)}
+    ${side('o', d.opponent_name, d.opponent_id)}
+  </div>`;
 }
+
 const reqRow = d => `<div class="rounded-xl border-2 border-rose-500/50 bg-slate-950 p-2.5 text-xs flex items-center justify-between gap-2 flex-wrap"><span>⚔️ <b>${esc(d.challenger_name)}</b> challenged you · ${fmtY(ymd(d.duel_date))}</span>
   <span class="flex gap-2"><button onclick="duelAnswer('${d.id}',true)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1 rounded-lg font-medium">Accept</button><button onclick="duelAnswer('${d.id}',false)" class="bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded-lg">Decline</button></span></div>`;
+
 const outRow = d => `<div class="rounded-xl border-2 border-slate-800 bg-slate-950 p-2.5 text-xs flex items-center justify-between gap-2"><span>You → <b>${esc(d.opponent_name)}</b> · ${fmtY(ymd(d.duel_date))} · waiting…</span>
   <button onclick="duelDel('${d.id}')" class="text-slate-400 hover:text-red-400" title="Cancel"><i class="fa-solid fa-xmark"></i></button></div>`;
+
 function duelsRender() {
   if (!user) return;
   const t = todayK(), list = DU.filter(duShown);
-  const sig = t + '|' + list.map(d => d.id + d.status + leadOf(d)).join(',');
-  if (sig !== duSig) {                                       // rebuild only when something changed (the clocks below tick without rebuilding, so buttons never move under your finger)
+  const sig = t + '|' + list.map(d => [
+    d.id,
+    d.status,
+    isDuelFinished(d) ? 1 : 0,
+    leadOf(d),
+    duSecs(d, 'c'),
+    duSecs(d, 'o'),
+    d.duel_date < t ? yesterdaySettlement(d).show : ''
+  ].join(':')).join(',');
+
+  if (sig !== duSig) {
     duSig = sig;
-    const acc = list.filter(d => d.status === 'accepted'), inc = list.filter(d => d.status === 'pending' && d.opponent_id === user.id), out = list.filter(d => d.status === 'pending' && d.challenger_id === user.id);
-    const now = acc.filter(d => d.duel_date === t), up = acc.filter(d => d.duel_date > t), done = acc.filter(d => d.duel_date < t);
+    const acc = list.filter(d => d.status === 'accepted');
+    const inc = list.filter(d => d.status === 'pending' && d.opponent_id === user.id);
+    const out = list.filter(d => d.status === 'pending' && d.challenger_id === user.id);
+    const activeToday = acc.filter(d => d.duel_date === t && !isDuelFinished(d));
+    const up = acc.filter(d => d.duel_date > t);
+    const done = acc.filter(d => isDuelFinished(d));
+
     const sec = (title, arr, fn) => arr.length ? `<div class="text-[11px] font-semibold text-slate-400 pt-1">${title}</div>` + arr.map(fn).join('') : '';
-    const bar = inc.map(reqRow).join('') + now.filter(duMine).map(duelRow).join('');
-    $('duelBar').innerHTML = bar; $('duelBar').classList.toggle('hidden', !bar);
-    $('duelList').innerHTML = sec('Requests for you', inc, reqRow) + sec('Sent', out, outRow) + sec('In duel today', now, duelRow) + sec('Scheduled', up, duelRow) + sec('Yesterday', done, duelRow)
+    const bar = inc.map(reqRow).join('') + activeToday.filter(duMine).map(duelRow).join('') + done.filter(duMine).map(duelRow).join('');
+    $('duelBar').innerHTML = bar;
+    $('duelBar').classList.toggle('hidden', !bar);
+    $('duelList').innerHTML =
+      sec('Requests for you', inc, reqRow) +
+      sec('Sent', out, outRow) +
+      sec('In duel today', activeToday, duelRow) +
+      sec('Scheduled', up, duelRow) +
+      sec('Duel finished', done, duelRow)
       || '<p class="text-xs text-slate-500 text-center py-2">No duels yet. Challenge someone!</p>';
-    $('roomDuels').innerHTML = now.length ? `<div class="text-[11px] font-semibold text-rose-300">⚔️ In duel</div>` + now.map(duelRow).join('') : '';
-    renderRoom(); renderLB();
+    $('roomDuels').innerHTML = activeToday.length ? `<div class="text-[11px] font-semibold text-rose-300">⚔️ In duel</div>` + activeToday.map(duelRow).join('') : '';
+    renderRoom();
+    renderLB();
   }
+
   document.querySelectorAll('[data-dt]').forEach(sp => {
     const [id, s] = sp.dataset.dt.split(':'), d = DU.find(x => x.id === id);
-    if (d) { const v = duTime(d, s); if (sp.textContent !== v) sp.textContent = v; }
+    if (d) {
+      const v = duTime(d, s);
+      if (sp.textContent !== v) sp.textContent = v;
+    }
   });
 }
-async function duelsLoad() {
-  if (!user || !navigator.onLine || duelBusy) return;
+
+async function duelsLoad(force) {
+  if (!user || !navigator.onLine) return;
+  if (duelBusy && !force) return;
   duelBusy = true; duelLast = Date.now();
   try {
-    const since = toYMD(addDays(logicalNow(), -1));
+    const since = yesterdayK();
     const { data, error } = await sb.from('duels').select('*').gte('duel_date', since).order('created_at', { ascending: false }).limit(200);
     if (error) { console.error('duels', error); return; }
-    DU = data || [];
+    const locMap = getLocalFinMap();
+    DU = (data || []).map(d => {
+      const lm = locMap[d.id];
+      if (lm) {
+        if (lm.c && !d.challenger_finished_at) d.challenger_finished_at = lm.c;
+        if (lm.o && !d.opponent_finished_at) d.opponent_finished_at = lm.o;
+      }
+      return d;
+    });
+    for (const d of DU) {
+      if (d.status === 'accepted' && duMine(d)) {
+        const cFinStr = getFinMarker(d, 'c');
+        const oFinStr = getFinMarker(d, 'o');
+        const cFin = cFinStr && !isNaN(new Date(cFinStr).getTime()) ? new Date(cFinStr).getTime() : 0;
+        const oFin = oFinStr && !isNaN(new Date(oFinStr).getTime()) ? new Date(oFinStr).getTime() : 0;
+        if (cFin && oFin && !d.settled_at) {
+          const setIso = new Date(Math.max(cFin, oFin)).toISOString();
+          const { error: eUp } = await sb.from('duels').update({ settled_at: setIso }).eq('id', d.id);
+          if (!eUp) d.settled_at = setIso;
+        }
+      }
+    }
     const inc = DU.filter(d => d.status === 'pending' && d.opponent_id === user.id && d.duel_date >= todayK());
     if (duelSeen === null) duelSeen = new Set(inc.map(d => d.id));
     else inc.forEach(d => { if (!duelSeen.has(d.id)) { duelSeen.add(d.id); notify('EDUVEX', `${d.challenger_name} challenged you to a duel!`, 'ev-duel-' + d.id); } });
@@ -1805,44 +1990,100 @@ async function duelsLoad() {
   } catch (e) { console.error('duels', e); }
   finally { duelBusy = false; }
 }
-async function duelsPush() {                                 // write MY seconds into my side of each accepted duel (today / yesterday)
-  const t = todayK(), y = toYMD(addDays(logicalNow(), -1));
+
+async function duelsPush() {
+  const t = todayK();
   for (const d of DU) {
-    if (d.status !== 'accepted' || !duMine(d) || d.duel_date > t || d.duel_date < y) continue;
-    const col = d.challenger_id === user.id ? 'challenger_secs' : 'opponent_secs', v = Math.round(myStopSecs(d.duel_date));
+    if (d.status !== 'accepted' || !duMine(d) || d.duel_date !== t) continue;
+    const isC = d.challenger_id === user.id;
+    const side = isC ? 'c' : 'o';
+    if (getFinMarker(d, side)) continue;
+    const col = isC ? 'challenger_secs' : 'opponent_secs', v = Math.round(myStopSecs(d.duel_date));
     if (v === (+d[col] || 0) || duelPushed[d.id + col] === v) continue;
     duelPushed[d.id + col] = v;
     const { error } = await sb.from('duels').update({ [col]: v }).eq('id', d.id);
     if (error) { console.error('duel push', error); delete duelPushed[d.id + col]; } else d[col] = v;
   }
 }
+
+async function duelsMarkFinished() {
+  if (!user) return;
+  const nowIso = new Date().toISOString();
+  for (const d of DU) {
+    if (d.status !== 'accepted' || !duMine(d)) continue;
+    const isC = d.challenger_id === user.id;
+    const side = isC ? 'c' : 'o';
+    const otherSide = isC ? 'o' : 'c';
+    const finCol = isC ? 'challenger_finished_at' : 'opponent_finished_at';
+    const secCol = isC ? 'challenger_secs' : 'opponent_secs';
+    const liveSecs = Math.round(myStopSecs(d.duel_date));
+    const secs = Math.max(+d[secCol] || 0, liveSecs);
+    const otherFin = getFinMarker(d, otherSide);
+    const finVal = d[finCol] || nowIso;
+
+    setLocalFin(d.id, side, finVal);
+    d[secCol] = secs;
+    d[finCol] = finVal;
+    d.finished_by = Object.assign({}, d.finished_by || {}, { [side]: finVal });
+    if (otherFin && !d.settled_at) d.settled_at = nowIso;
+
+    if (!navigator.onLine) continue;
+
+    const { error: eSec } = await sb.from('duels').update({ [secCol]: secs }).eq('id', d.id);
+    if (eSec) console.error('duel secs update', eSec);
+
+    const finPatch = { [finCol]: finVal };
+    if (otherFin && !d.settled_at) finPatch.settled_at = nowIso;
+    const { error: eFin } = await sb.from('duels').update(finPatch).eq('id', d.id);
+
+    if (eFin) {
+      const mergedFb = Object.assign({}, d.finished_by || {}, { [side]: finVal });
+      await sb.from('duels').update({ finished_by: mergedFb }).eq('id', d.id);
+    }
+  }
+  duSig = ''; duelsRender();
+  if (navigator.onLine) {
+    await duelsLoad(true);
+    duSig = ''; duelsRender();
+  }
+}
+
 async function duelUsers() {
   if (!user || !navigator.onLine) return;
+  const e = $('duelWho'); if (!e) return;
   const { data, error } = await sb.from('leaderboard').select('user_id,username,streak').neq('user_id', user.id).order('username').limit(500);
   if (error) return console.error('duel users', error);
   duelUsersList = data || [];
-  const e = $('duelWho'), v = e.value;
+  const v = e.value;
   e.innerHTML = '<option value="">Choose a person…</option>' + duelUsersList.map(u => `<option value="${esc(u.user_id)}">${esc(u.username)} · ${u.streak || 0}d</option>`).join('');
   if (v && [...e.options].some(o => o.value === v)) e.value = v;
 }
+
 function duelFillDays() {
   const e = $('duelDay'); if (!e) return; const v = e.value || '0';
   e.innerHTML = [0, 1, 2, 3].map(i => `<option value="${i}">${i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : 'In ' + i + ' days'} · ${fmt(addDays(logicalNow(), i))}</option>`).join('');
   e.value = v;
 }
+
 async function duelSend() {
   if (!user) return;
   if (!navigator.onLine) return alert('You need to be online to send a duel.');
-  const who = $('duelWho').value; if (!who) return alert('Choose a person first.');
-  const u = duelUsersList.find(x => x.user_id === who); if (!u) return alert('Choose a person first.');
-  const date = toYMD(addDays(logicalNow(), +$('duelDay').value || 0));
+  const whoEl = $('duelWho'), dayEl = $('duelDay');
+  if (!whoEl || !dayEl) return alert('Duel form not ready.');
+  const who = whoEl.value;
+  if (!who) return alert('Choose a person first.');
+  const u = duelUsersList.find(x => String(x.user_id) === String(who));
+  const targetName = u ? u.username : (whoEl.selectedOptions[0] ? whoEl.selectedOptions[0].textContent.split(' · ')[0] : '');
+  const date = toYMD(addDays(logicalNow(), +dayEl.value || 0));
   if (DU.some(d => (d.status === 'pending' || d.status === 'accepted') && d.duel_date === date && ((d.challenger_id === user.id && d.opponent_id === who) || (d.challenger_id === who && d.opponent_id === user.id))))
     return alert('You already have a duel with this person on that day.');
-  const { error } = await sb.from('duels').insert({ challenger_id: user.id, challenger_name: uname(), opponent_id: who, opponent_name: u.username, duel_date: date, status: 'pending' });
-  if (error) return alert('Could not send the duel: ' + error.message + (/does not exist|schema cache|relation/i.test(error.message) ? '\n\nThe duels SQL has not been run yet.' : ''));
-  alert('Duel request sent to ' + u.username + '.');
-  duelsLoad();
+  const { error } = await sb.from('duels').insert({ challenger_id: user.id, challenger_name: uname(), opponent_id: who, opponent_name: targetName || 'Opponent', duel_date: date, status: 'pending' });
+  if (error) return alert('Could not send the duel: ' + error.message);
+  alert('Duel request sent to ' + (targetName || 'opponent') + '.');
+  duelBusy = false;
+  await duelsLoad(true);
 }
+
 async function duelAnswer(id, ok) {
   const d = DU.find(x => x.id === id); if (!d) return;
   if (!navigator.onLine) return alert('You need to be online.');
@@ -1850,14 +2091,17 @@ async function duelAnswer(id, ok) {
     return alert('One of you already has a duel on that day. A person can be in one duel per day.');
   const { error } = await sb.from('duels').update({ status: ok ? 'accepted' : 'declined' }).eq('id', id);
   if (error) return alert('Error: ' + error.message);
-  duelsLoad();
+  duelBusy = false;
+  await duelsLoad(true);
 }
+
 async function duelDel(id) {
   const d = DU.find(x => x.id === id); if (!d) return;
   if (!confirm(d.status === 'accepted' ? 'Cancel this duel for both of you?' : 'Cancel this request?')) return;
   const { error } = await sb.from('duels').delete().eq('id', id);
   if (error) return alert('Error: ' + error.message);
-  duelsLoad();
+  duelBusy = false;
+  await duelsLoad(true);
 }
 
 // ---------- Room ----------
@@ -1923,8 +2167,8 @@ async function syncRoom() {
 const hms = s => { s = Math.max(0, Math.floor(s)); const p = n => String(n).padStart(2, '0'); return `${p(Math.floor(s / 3600))}:${p(Math.floor(s % 3600 / 60))}:${p(s % 60)}`; };
 function renderRoom() {
   if (!user) return;
-  const el = Math.max(0, Math.min(10, (Date.now() - roomAt) / 1000));          // seconds since the last refresh
-  const secs = m => m.user_id === user.id && (running || base > 0) ? base : (m.live_seconds || 0) + (m.is_studying ? el : 0);   // my own row: this device's clock if it has the timer, otherwise the one from my other device
+  const el = Math.max(0, Math.min(10, (Date.now() - roomAt) / 1000));
+  const secs = m => m.user_id === user.id && (running || base > 0) ? base : (m.live_seconds || 0) + (m.is_studying ? el : 0);
   const ds = duelIds();
   const rowH = m => {
     const { sub, cls } = unpackSubject(m.current_subject);
@@ -1934,7 +2178,7 @@ function renderRoom() {
   };
   if (!$('roomTab').classList.contains('hidden')) {
     const A = roomRows.filter(m => ds.has(m.user_id)), B = roomRows.filter(m => !ds.has(m.user_id));
-    $('roomList').innerHTML = (A.length ? `<div class="text-[11px] font-semibold text-rose-300">⚔️ In duel</div>` + A.map(rowH).join('') + (B.length ? '<div class="border-t-2 border-dashed border-slate-800 my-2"></div>' : '') : '')   // duelists are set apart from the others
+    $('roomList').innerHTML = (A.length ? `<div class="text-[11px] font-semibold text-rose-300">⚔️ In duel</div>` + A.map(rowH).join('') + (B.length ? '<div class="border-t-2 border-dashed border-slate-800 my-2"></div>' : '') : '')
       + B.map(rowH).join('') || '<p class="text-xs text-slate-500 text-center py-4">No active members.</p>';
   }
   if (focusActive) $('focusRoom').innerHTML = roomRows.map(m => { const di = duelInfo(m.user_id); return `<div class="flex justify-between items-center text-xs"><span class="truncate mr-2 text-slate-300">${di ? (di.lead ? '🎖️' : '') + '⚔️ ' : ''}${esc(m.username)}${m.user_id === user.id ? ' (You)' : ''}</span><span class="font-mono ${m.is_studying ? 'text-emerald-400' : 'text-slate-500'}">${hms(secs(m))}</span></div>`; }).join('') || '<p class="text-[11px] text-slate-500">No active members.</p>';
@@ -1970,7 +2214,7 @@ function dailySets(days, mode, showCl) {
       pointBorderColor: man.map(m => m ? YEL : ACC()), pointBorderWidth: man.map(m => m ? 3 : 1), pointRadius: man.map(m => m ? 6 : 3) });
     if (man.some(Boolean)) sets.push({ label: LEG, data: [], borderColor: YEL, backgroundColor: 'transparent', borderWidth: 3 });
   }
-  if (showCl) sets.push({ type: 'line', label: 'Classes', data: days.map(d => +(classMins(d) / 60).toFixed(2)),   // each day uses the classes valid in ITS week
+  if (showCl) sets.push({ type: 'line', label: 'Classes', data: days.map(d => +(classMins(d) / 60).toFixed(2)),
     borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.3)', tension: .2 });
   return sets;
 }
@@ -1984,7 +2228,6 @@ function renderCharts() {
     return !ds.isManual || !d.datasets.some(o => !o.isManual && o.label === ds.label && o.type !== 'line');
   } } };
 
-  // weekly
   const ws = addDays(weekStart(logicalNow()), -7 * +$('weekSel').value);
   const wdays = Array.from({ length: 7 }, (_, i) => addDays(ws, i));
   if (wChart) wChart.destroy();
@@ -1994,7 +2237,6 @@ function renderCharts() {
     options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: st }, y: yAxis() }, plugins: { legend } }
   });
 
-  // monthly, day by day
   const ms = starts[+$('monthSel').value], me = mEnd(ms);
   $('monthRange').textContent = `${fmt(ms)} → ${fmt(addDays(me, -1))}`;
   const mdays = []; for (let d = new Date(ms); d < me; d = addDays(d, 1)) mdays.push(d);
@@ -2019,10 +2261,10 @@ function renderCharts() {
 window.evBooted = false;
 function bootDone() {
   window.evBooted = true;
-  if ($('app').classList.contains('hidden') && $('auth').classList.contains('hidden')) $('auth').classList.remove('hidden');   // never leave an empty screen
+  if ($('app').classList.contains('hidden') && $('auth').classList.contains('hidden')) $('auth').classList.remove('hidden');
   const b = $('boot'); if (b) b.remove();
 }
-setTimeout(bootDone, 12000);                                                       // safety net: the loading screen can never get stuck
+setTimeout(bootDone, 12000);
 document.addEventListener('DOMContentLoaded', async () => {
  try {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
@@ -2033,7 +2275,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   ['manDate', 'gDate', 'tDate'].forEach(id => mkPicker(id, logicalNow())); mkPicker('exDate');
   mkPicker('repFrom', addDays(logicalNow(), -6), 3); mkPicker('repTo', logicalNow(), 3);
   $('tDate').addEventListener('change', renderTests);
-  initArchive(); fillPeriods(); fillSubjects(); restoreTimer(); status(); calUI(); pushUI(); showTopic(); duelFillDays();
+  initArchive(); fillPeriods(); fillSubjects(); restoreTimer(); status(); calUI(); pushUI(); showTopic(); duelFillDays(); applyLbDrawer();
   window.addEventListener('online', () => { status(); refresh(); });
   window.addEventListener('offline', status);
   ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, presenceTouch, { passive: true }));
@@ -2042,10 +2284,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   checkUpdate(true);
   let session = null, slow = false;
   try {
-    const r = await Promise.race([sb.auth.getSession(), new Promise(res => setTimeout(() => res(null), 5000))]);   // getSession can stall for seconds (token refresh / tab lock)
+    const r = await Promise.race([sb.auth.getSession(), new Promise(res => setTimeout(() => res(null), 5000))]);
     if (r === null) slow = true; else session = r.data && r.data.session;
   } catch (e) { console.error('getSession', e); slow = true; }
-  if (!session && (slow || !navigator.onLine)) {         // opened offline or the check is stuck: reuse the saved login
+  if (!session && (slow || !navigator.onLine)) {
     const saved = LS('sb-kuescglkkpvsqqxnubww-auth-token', null);
     if (saved && (saved.user || (saved.currentSession && saved.currentSession.user))) session = { user: saved.user || saved.currentSession.user };
   }
