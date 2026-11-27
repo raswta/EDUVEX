@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261127-2">
+<meta name="build" content="20261127-5">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
@@ -919,7 +919,7 @@ function onLogin() {
   setInterval(() => {
     if (!user || document.hidden) return;
     const fast = !$('roomTab').classList.contains('hidden') || DU.some(d => d.status === 'accepted' && duMine(d));
-    if (Date.now() - duelLast >= (fast ? 14500 : 59500)) duelsLoad();
+    if (Date.now() - duelLast >= (fast ? 7500 : 59500)) duelsLoad();
   }, 5000);
   setInterval(() => { if (user && DU.length) { duSig = ''; duelsRender(); } }, 1000);
   if (!roomInt) {
@@ -1311,6 +1311,7 @@ function tick() {
   }
   [[600, '10'], [1800, '30']].forEach(([s, m]) => { if (base >= s && !alerted[m]) { alerted[m] = 1; notify('EDUVEX', `Your stopwatch has been running for ${m} minutes!`, 'ev-alert-' + m); } });
   presenceStep();
+  if (base % 10 === 0) duelsPush();
   if (base % 30 === 0) renderStreak();
   draw(); persist();
 }
@@ -1855,14 +1856,25 @@ function threeAmAfterDate(dateStr) {
   return new Date(y, m - 1, day + 1, DAY_CUT, 0, 0, 0).getTime();
 }
 
+// Start of the duel's study day (3:00 AM of duel_date). A "finished" marker
+// that is older than this cannot belong to this duel (it was set by a
+// Finish & Save pressed BEFORE the duel day began), so it is ignored.
+function duelDayStartMs(d) {
+  const [y, m, day] = String(d.duel_date).split('-').map(Number);
+  return new Date(y, m - 1, day, DAY_CUT, 0, 0, 0).getTime();
+}
+
 function getFinMarker(d, side) {
   if (!d) return '';
   const col = side === 'c' ? 'challenger_finished_at' : 'opponent_finished_at';
-  if (d[col]) return d[col];
-  if (d.finished_by && d.finished_by[side]) return d.finished_by[side];
+  const startMs = duelDayStartMs(d);
+  const ok = v => {
+    if (!v) return '';
+    const t = new Date(v).getTime();
+    return (!isNaN(t) && t >= startMs) ? v : '';
+  };
   const loc = getLocalFinMap()[d.id];
-  if (loc && loc[side]) return loc[side];
-  return '';
+  return ok(d[col]) || ok(d.finished_by && d.finished_by[side]) || ok(loc && loc[side]) || '';
 }
 
 function duelBothFinished(d) {
@@ -1945,7 +1957,22 @@ function duSecs(d, side) {
   if (user && uid === user.id && d.duel_date === todayK() && !finMarker) {
     return Math.max(saved, myStopSecs(d.duel_date));
   }
+  if (!finMarker && d.duel_date === todayK() && uid !== (user && user.id)) {
+    // other player: tick smoothly between server updates while they are studying
+    const key = d.id + side, now = Date.now();
+    let L = duLive[key];
+    if (!L) L = duLive[key] = { srv: saved, at: now, shown: saved };
+    if (L.srv !== saved) { L.srv = saved; L.at = now; }
+    if (!isTicking(uid)) { L.shown = saved; L.at = now; return saved; }
+    L.shown = Math.max(L.shown, saved + (now - L.at) / 1000);
+    return L.shown;
+  }
   return saved;
+}
+const duLive = {};
+function isTicking(uid) {
+  const rm = roomRows.find(m => m.user_id === uid);
+  return !!(rm && rm.is_studying && rm.last_active && Date.now() - new Date(rm.last_active).getTime() < 20000);
 }
 
 function leadOf(d) {
@@ -2142,7 +2169,24 @@ async function duelsPush() {
     if (d.status !== 'accepted' || !duMine(d) || d.duel_date !== t) continue;
     const isC = d.challenger_id === user.id;
     const side = isC ? 'c' : 'o';
-    if (getFinMarker(d, side)) continue;
+    if (getFinMarker(d, side)) {
+      // Stale "finished" mark (e.g. set by an old auto-save with 0 seconds) while I am studying now: reopen my side.
+      if (!(running || base > 0)) continue;
+      const finCol = isC ? 'challenger_finished_at' : 'opponent_finished_at';
+      try {
+        const m = getLocalFinMap();
+        if (m[d.id]) { delete m[d.id][side]; localStorage.setItem(localFinKey(), JSON.stringify(m)); }
+      } catch (e) {}
+      d[finCol] = null;
+      if (d.finished_by) { d.finished_by = Object.assign({}, d.finished_by); delete d.finished_by[side]; }
+      if (navigator.onLine) {
+        const { error: eR } = await sb.from('duels').update({ [finCol]: null, settled_at: null }).eq('id', d.id);
+        if (eR) console.error('duel reopen', eR);
+        if (d.finished_by) await sb.from('duels').update({ finished_by: d.finished_by }).eq('id', d.id);
+      }
+      d.settled_at = null;
+      if (getFinMarker(d, side)) continue;
+    }
     const col = isC ? 'challenger_secs' : 'opponent_secs', v = Math.round(myStopSecs(d.duel_date));
     if (v === (+d[col] || 0) || duelPushed[d.id + col] === v) continue;
     duelPushed[d.id + col] = v;
@@ -2154,8 +2198,12 @@ async function duelsPush() {
 async function duelsMarkFinished() {
   if (!user) return;
   const nowIso = new Date().toISOString();
+  const tK = todayK();
   for (const d of DU) {
     if (d.status !== 'accepted' || !duMine(d)) continue;
+    // A duel that has not started yet (tomorrow / day after) must NOT be
+    // marked as finished when the player finishes today's stopwatch.
+    if (d.duel_date > tK) continue;
     const isC = d.challenger_id === user.id;
     const side = isC ? 'c' : 'o';
     const otherSide = isC ? 'o' : 'c';
@@ -2164,7 +2212,7 @@ async function duelsMarkFinished() {
     const liveSecs = Math.round(myStopSecs(d.duel_date));
     const secs = Math.max(+d[secCol] || 0, liveSecs);
     const otherFin = getFinMarker(d, otherSide);
-    const finVal = d[finCol] || nowIso;
+    const finVal = getFinMarker(d, side) || nowIso;
 
     setLocalFin(d.id, side, finVal);
     d[secCol] = secs;
