@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261126-8">
+<meta name="build" content="20261127-2">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
@@ -92,6 +92,14 @@ html[data-theme] .border-blue-500\/30{border-color:rgba(var(--ar),.3)!important}
 html[data-theme] .from-blue-400,html[data-theme] .from-blue-500,html[data-theme] .from-blue-600,html[data-theme] .hover\:from-blue-500:hover{--tw-gradient-from:var(--a5)!important}
 html[data-theme] .to-indigo-500,html[data-theme] .to-indigo-600,html[data-theme] .to-violet-500,html[data-theme] .hover\:to-indigo-500:hover{--tw-gradient-to:var(--a7)!important}
 html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var(--a6),var(--tw-gradient-to)!important}
+.gd{background:rgba(2,6,23,.55);border:1px solid #1e293b;border-radius:12px}
+.gd summary{cursor:pointer;list-style:none;padding:10px 12px;font-weight:600;color:#e2e8f0;display:flex;align-items:center;gap:8px;font-size:12px}
+.gd summary::-webkit-details-marker{display:none}
+.gd summary::after{content:"\f078";font-family:"Font Awesome 6 Free";font-weight:900;margin-left:auto;font-size:10px;color:#64748b;transition:transform .2s}
+.gd[open] summary::after{transform:rotate(180deg)}
+.gd>div{padding:0 12px 12px;display:flex;flex-direction:column;gap:6px}
+.emp{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:14px 10px;color:#94a3b8;font-size:11px}
+.emp i{font-size:20px;color:#475569}
 .thc{width:26px;height:26px;border-radius:9999px;border:2px solid transparent;position:relative;flex:none}
 .thc.on{border-color:#e2e8f0}.thc.lk{opacity:.45}
 </style>
@@ -524,13 +532,95 @@ html[data-theme] .via-indigo-500{--tw-gradient-stops:var(--tw-gradient-from),var
   <p class="text-[11px] text-slate-500">iPhone / iPad: this only works if you added EDUVEX to your Home Screen and opened it from that icon.</p>
   <div class="flex gap-3"><button onclick="notifAnswer(false)" class="btn bg-slate-800 hover:bg-slate-700">No, thanks</button><button onclick="notifAnswer(true)" class="btn bg-emerald-600 hover:bg-emerald-500">Turn on</button></div>
 </div></div>
+<div id="onb" class="modal"><div class="card max-w-sm w-full text-center space-y-4 relative">
+  <button id="onbSkip" onclick="onbClose()" class="absolute top-4 right-4 text-xs text-slate-400 hover:text-white">Skip</button>
+  <div class="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 mt-2"><i id="onbIcon" class="fa-solid fa-graduation-cap text-3xl text-white"></i></div>
+  <h3 id="onbTitle" class="text-xl font-bold"></h3>
+  <p id="onbText" class="text-sm text-slate-300 leading-relaxed min-h-[84px]"></p>
+  <button id="onbGo" onclick="onbGo()" class="hidden text-xs text-blue-400 hover:text-blue-300 underline">Open this tab</button>
+  <div id="onbDots" class="flex justify-center items-center gap-1.5"></div>
+  <div class="flex gap-3">
+    <button id="onbBack" onclick="onbBack()" class="btn bg-slate-800 hover:bg-slate-700">Back</button>
+    <button id="onbNext" onclick="onbNext()" class="btn bg-blue-600 hover:bg-blue-500">Next</button>
+  </div>
+</div></div>
 <div id="guide" class="modal"><div class="card max-w-xl w-full space-y-3 text-xs text-slate-300 leading-relaxed max-h-[85vh] overflow-y-auto relative">
   <button onclick="modal('guide',0)" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
-  <h3 class="text-base font-bold text-blue-400"><i class="fa-solid fa-lightbulb mr-1"></i> EDUVEX Complete Guide</h3>
+  <h3 class="text-base font-bold text-blue-400 pr-8"><i class="fa-solid fa-lightbulb mr-1"></i> EDUVEX Complete Guide</h3>
   <a href="https://t.me/EDUVEXtut" target="_blank" rel="noopener" class="block text-center rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-300 py-2 font-semibold hover:bg-blue-600/30"><i class="fa-solid fa-images mr-1"></i> Illustrated step-by-step guide (with pictures): t.me/EDUVEXtut</a>
-  <p><b><i class="fa-solid fa-bullseye text-blue-400 mr-1"></i> Goal bar:</b> choose Daily or Weekly, type your target hours (12.5 means 12 hours 30 minutes) and press Save Goal. The bar counts your study sessions plus your weekly classes.</p>
-  <p><b><i class="fa-solid fa-fire text-orange-400 mr-1"></i> Streak:</b> the character next to the goal bar counts your days in a row. It is angry until you start studying today, and it glows when you reach your daily goal. Tap it to choose a weekly day off that never breaks your streak.</p>
-  <p><b>⚔️ Duel:</b> challenge any user for today up to 3 days ahead. Yesterday's duel result stays visible for up to 12 hours after completion (at 3:00 AM if both were studying, or immediately when both finish).</p>
+  <button onclick="modal('guide',0);onbOpen()" class="btn bg-slate-800 hover:bg-slate-700 !py-2 text-xs"><i class="fa-solid fa-play mr-1"></i> Replay the quick tour</button>
+  <div class="space-y-2">
+    <details class="gd" open><summary><i class="fa-solid fa-bullseye text-blue-400"></i> Goal bar</summary><div>
+      <p>Choose <b>Daily</b> or <b>Weekly</b>, type your target hours (12.5 means 12 hours 30 minutes) and press <b>Save Goal</b>.</p>
+      <p>The bar counts your stopwatch sessions, manual entries, your weekly classes and the time currently running on the stopwatch.</p>
+      <p>A study day ends at <b>3:00 AM</b>, not at midnight. Studying at 1 AM still counts for the day before.</p></div></details>
+
+    <details class="gd"><summary><i class="fa-solid fa-stopwatch text-blue-400"></i> Timer &amp; Study</summary><div>
+      <p>Pick a subject, optionally type a topic and press <b>Set</b>, then press <b>Start</b>. Press <b>Pause</b> to rest and <b>Resume</b> to continue. Press <b>Finish &amp; Save</b> when you are done and your time goes to your logs.</p>
+      <p>You can change subject or topic while the timer runs: each subject gets its own time in the list under the clock. Parts shorter than 15 seconds are not saved.</p>
+      <p><b>Pomodoro:</b> tick the box, choose study and rest minutes (50 / 10 by default). You get an alert when each part ends. Rest time is not counted.</p>
+      <p><b>Still studying?</b> After 3 hours without touching the screen the app asks you to confirm. If you do not answer within 10 minutes, it pauses and that waiting time is removed.</p>
+      <p><b>Forgot it paused?</b> If a paused stopwatch stays untouched past 3:00 AM it is saved automatically to the day you last used it.</p>
+      <p><b>Two devices:</b> if the stopwatch runs on another device, a blue bar appears at the top where you can pause, resume or finish it from here.</p></div></details>
+
+    <details class="gd"><summary><i class="fa-solid fa-pen-to-square text-orange-400"></i> Manual time entry</summary><div>
+      <p>Forgot the stopwatch? Enter the subject, minutes, a short reason and the date, then <b>Save Entry</b>.</p>
+      <p>Manual entries are marked "Manual entry ( not by stop watch )", show with a <b>yellow border</b> in charts, and <b>never count</b> for streaks or duels.</p>
+      <p>To remove any log, tap the trash icon next to it in <b>Saved Study Logs</b>.</p></div></details>
+
+    <details class="gd"><summary><i class="fa-solid fa-fire text-orange-400"></i> Streak</summary><div>
+      <p>The character next to the goal bar counts your days in a row. It is angry until you start studying today, and it <b>glows</b> when you reach your daily goal (or one seventh of your weekly goal).</p>
+      <p><b>What counts:</b> days 1 and 2 need any stopwatch time. Days 3 to 7 need more than 3 hours. From day 8 you need more than 5 hours. Your weekly classes are added to that time, but manual entries never count.</p>
+      <p><b>Day off:</b> tap the character and choose a weekly rest day. Not studying on that day never breaks your streak, and studying still counts.</p>
+      <p><b>Unlocks:</b> 15 days opens the extra colour themes. 30 days opens manual join/leave for the study room. The character changes at 1, 15, 30 and 60 days.</p></div></details>
+
+    <details class="gd"><summary><i class="fa-solid fa-calendar-check text-emerald-400"></i> Exams &amp; Classes</summary><div>
+      <p><b>Exams:</b> add a title, subject, date and topics to get a countdown card. It turns amber at 7 days and red at 3 days, and shows "passed" afterwards.</p>
+      <p><b>Weekly classes</b> repeat every week and are added to your study hours automatically. Choose whether a class starts this week or next week.</p>
+      <p>Class time changed? Tap the pen: the change counts from this week on and past weeks keep the old time. The trash icon removes the class from this week on, so your history stays correct.</p></div></details>
+
+    <details class="gd"><summary><i class="fa-solid fa-list-check text-blue-400"></i> Tests</summary><div>
+      <p>Optional. Choose a day, type how many practice tests you solved in each subject and press <b>Save tests</b>. The study time of that day is shown next to each subject.</p>
+      <p>The chart below shows one day by subject, or a whole week day by day.</p></div></details>
+
+    <details class="gd"><summary><i class="fa-solid fa-users text-emerald-400"></i> Study Room</summary><div>
+      <p>When you start the timer you join the live room automatically and everyone can see who is studying and for how long. You leave when you finish.</p>
+      <p><b>Privacy:</b> keep <b>Anonymous Name</b>, <b>Hide Subject</b> and <b>Hide Class Time</b> ticked to share nothing but your time.</p>
+      <p>At a 30-day streak you also get <b>Join Room / Leave Room</b> buttons. You cannot join while offline.</p>
+      <p>The <b>Leaderboard</b> ranks people by streak. Tap its header to open or close it.</p></div></details>
+
+    <details class="gd"><summary><i class="fa-solid fa-khanda text-rose-400"></i> Duel</summary><div>
+      <p>In Study Room choose a person, a day (today up to 3 days ahead) and press <b>Send duel</b>. If they accept, whoever studies <b>more with the stopwatch</b> that day wins. Manual entries do not count.</p>
+      <p>A person can only be in one duel per day. You can cancel a duel with the cross while it is running.</p>
+      <p>The two duelists see a bar at the top of every tab while the duel is on. Everyone else can watch it in the Study Room.</p>
+      <p>The duel ends when both players press Finish &amp; Save, or at 3:00 AM. The result then stays visible for up to 12 hours. The winner sees it on every tab, and anyone can close it with the cross.</p></div></details>
+
+    <details class="gd"><summary><i class="fa-solid fa-chart-column text-violet-400"></i> Charts &amp; Grades</summary><div>
+      <p><b>Weekly</b> runs Saturday to Friday. <b>Monthly</b> shows day by day. Use the Review Archive to go back to older weeks and months.</p>
+      <p>Switch between <b>Stacked</b> (by subject) and <b>Total hours</b>, and turn the Classes layer and Grades overlay on or off.</p>
+      <p><b>Log Exam Score:</b> enter title, score, max score and date. Scores appear as orange diamonds (in %) on the monthly chart.</p></div></details>
+
+    <details class="gd"><summary><i class="fa-solid fa-square-check text-emerald-400"></i> To-Do</summary><div>
+      <p>A simple list for today only. It stays on this device and is deleted automatically when the study day ends (3:00 AM). You can tick, edit or delete tasks.</p></div></details>
+
+    <details class="gd"><summary><i class="fa-solid fa-file-pdf text-red-400"></i> PDF summary (More tab)</summary><div>
+      <p>Choose Daily, Weekly, Monthly or a Certain period, then <b>Preview summary</b> and <b>Download PDF</b>.</p>
+      <p>You can include or leave out classes. A daily summary can also include today's to-do list. Manual entries and their reasons are listed separately.</p></div></details>
+
+    <details class="gd"><summary><i class="fa-solid fa-expand text-violet-300"></i> Focus mode</summary><div>
+      <p>The expand icon in the header opens a full-screen flip clock that keeps your screen awake. You can hide the seconds and hide the study room list with the two buttons in the corners.</p></div></details>
+
+    <details class="gd"><summary><i class="fa-solid fa-gear text-slate-300"></i> Settings &amp; reminders</summary><div>
+      <p><b>Theme:</b> blue is default, other colours unlock at a 15-day streak.</p>
+      <p><b>Calendar:</b> switch every date on the site between Shamsi and Gregorian.</p>
+      <p><b>Subjects:</b> add, rename or delete. A deleted subject keeps its recorded time under "Other".</p>
+      <p><b>Reminders:</b> if you forget the stopwatch is running you get a message after 10 minutes and again after 30 minutes. On iPhone/iPad this only works if you added EDUVEX to the Home Screen and opened it from that icon.</p>
+      <p><b>Password:</b> you can change it here. There is <b>no password recovery</b>, so keep it safe.</p></div></details>
+
+    <details class="gd"><summary><i class="fa-solid fa-wifi text-amber-400"></i> Offline &amp; install</summary><div>
+      <p>Offline, your timer, sessions and manual entries are saved on the device and sync automatically when you reconnect. The green/amber dot in the header shows your connection.</p>
+      <p>Use <b>Add App</b> in the header to put EDUVEX on your Home Screen like a normal app.</p></div></details>
+  </div>
   <button onclick="modal('guide',0)" class="btn bg-blue-600">Got it!</button>
 </div></div>
 
@@ -545,6 +635,7 @@ const DAYS = ['Saturday (Shanbeh)','Sunday (Yekshanbeh)','Monday (Doshanbeh)','T
 const DAYSF = ['Shanbeh','Yekshanbeh','Doshanbeh','Seshanbeh','Chaharshanbeh','Panjshanbeh','Jomeh'];
 const DAYSE = ['Saturday','Sunday','Monday','Tuesday','Wednesday','Thursday','Friday'];
 const COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#ef4444','#14b8a6','#a855f7'];
+const empty = (ic, t, act, lbl) => `<div class="emp"><i class="fa-solid ${ic}"></i><span>${t}</span>${act ? `<button onclick="${act}" class="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-[11px] font-medium">${lbl}</button>` : ''}</div>`;
 const LS = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
 
 let user = null, running = false, base = 0, lastTick = 0, tInt = null, roomInt = null;
@@ -639,6 +730,7 @@ function tab(id) {
   if (id === 'testsTab') renderTests();
   if (id === 'todoTab') todoRender();
   if (id === 'moreTab') fillPeriods();
+  duSig = ''; duelsRender();
 }
 function status() {
   const on = navigator.onLine;
@@ -754,6 +846,39 @@ async function refresh() {
   duelsLoad();
 }
 
+// ---------- First-time tour ----------
+const ONB = [
+  { ic: 'fa-graduation-cap', t: 'Welcome to EDUVEX', d: 'Track your study time, plan exams and study together with others. This 30-second tour shows the basics.' },
+  { ic: 'fa-bullseye', t: 'Set your goal', d: 'At the top, choose Daily or Weekly, type your target hours (12.5 means 12 hours 30 minutes) and press Save Goal. The bar fills as you study.' },
+  { ic: 'fa-stopwatch', t: 'Start the timer', d: 'Pick a subject, optionally add a topic, then press Start. Press Finish & Save when you are done. Starting the timer also puts you in the live Study Room.', go: 'timerTab' },
+  { ic: 'fa-calendar-check', t: 'Exams & classes', d: 'Add your exams to get a countdown. Add your weekly classes once and they count toward your daily study hours automatically.', go: 'plannerTab' },
+  { ic: 'fa-fire', t: 'Streak & duels', d: 'Study every day to grow your streak. Tap the character at the top to choose a day off. In the Study Room you can challenge anyone to a duel.', go: 'roomTab' },
+  { ic: 'fa-lightbulb', t: 'Need help later?', d: 'Tap the lightbulb icon at the top any time to open the full guide. You can replay this tour from there.' }
+];
+let onbI = 0;
+const onbKey = () => 'ev_onb_' + (user ? user.id : '');
+function onbRender() {
+  const st = ONB[onbI], last = onbI === ONB.length - 1;
+  $('onbIcon').className = 'fa-solid text-3xl text-white ' + st.ic;
+  $('onbTitle').textContent = st.t; $('onbText').textContent = st.d;
+  $('onbGo').classList.toggle('hidden', !st.go);
+  $('onbDots').innerHTML = ONB.map((_, i) => `<span class="h-1.5 rounded-full ${i === onbI ? 'w-5 bg-blue-500' : 'w-1.5 bg-slate-700'}"></span>`).join('');
+  $('onbBack').classList.toggle('invisible', onbI === 0);
+  $('onbNext').textContent = last ? 'Start studying' : 'Next';
+  $('onbSkip').classList.toggle('hidden', last);
+}
+function onbOpen() { onbI = 0; onbRender(); modal('onb', 1); }
+function onbNext() { if (onbI >= ONB.length - 1) return onbClose(); onbI++; onbRender(); }
+function onbBack() { if (onbI > 0) { onbI--; onbRender(); } }
+function onbClose() { try { localStorage.setItem(onbKey(), '1'); } catch (e) {} modal('onb', 0); }
+function onbGo() { const g = ONB[onbI].go; onbClose(); if (g) tab(g); }
+function onbMaybe() {
+  if (!user || localStorage.getItem(onbKey())) return;
+  const age = Date.now() - new Date(user.created_at || Date.now()).getTime();
+  if (age > 3 * DAY) { localStorage.setItem(onbKey(), '1'); return; }
+  setTimeout(() => { if (!localStorage.getItem(onbKey())) onbOpen(); }, 1200);
+}
+
 // ---------- Auth ----------
 const mail = u => `${u.trim().toLowerCase()}@studyapp.local`;
 async function signup() {
@@ -789,7 +914,7 @@ function onLogin() {
   setTimeout(() => { if (running) remotePush(); }, 4000);
   setInterval(async () => { if (user && running) { await remotePull(); if (running) remotePush(); } }, 60000);
   window.addEventListener('online', remotePull); document.addEventListener('visibilitychange', () => { if (!document.hidden) remotePull(); });
-  initCollapse();
+  initCollapse(); onbMaybe();
   duelFillDays(); duelUsers(); duelsLoad();
   setInterval(() => {
     if (!user || document.hidden) return;
@@ -1024,7 +1149,7 @@ function renderLists() {
     <div class="row"><div><span class="font-medium">${esc(s.subject)}</span>
     <span class="ml-2 px-1.5 py-0.5 rounded text-[10px] ${s.type === 'manual' ? 'bg-orange-500/10 text-orange-400' : 'bg-blue-500/10 text-blue-400'}">${s.type === 'manual' ? 'Manual entry ( not by stop watch )' : 'Stopwatch'}</span>
     ${s.reason ? `<span class="block text-[10px] text-slate-400 mt-0.5">Reason: ${esc(s.reason)}</span>` : ''}</div>
-    <div class="flex items-center"><span class="font-mono text-slate-300">${s.duration_minutes} min · ${fmt(shiftD(s.created_at))}</span>${trash('study_sessions', s)}</div></div>`).join('') || '<p class="text-xs text-slate-500">No sessions yet.</p>';
+    <div class="flex items-center"><span class="font-mono text-slate-300">${s.duration_minutes} min · ${fmt(shiftD(s.created_at))}</span>${trash('study_sessions', s)}</div></div>`).join('') || empty('fa-stopwatch', 'No study logs yet. Press Start on the timer to record your first session, or add one manually.');
   const today = logicalNow(); today.setHours(0, 0, 0, 0);
   const exams = D.exams.map(e => ({ e, left: Math.ceil((new Date(e.exam_date + 'T00:00:00') - today) / DAY) }))
     .sort((a, b) => ((a.left < 0) - (b.left < 0)) || (a.e.exam_date > b.e.exam_date ? 1 : -1));
@@ -1040,7 +1165,7 @@ function renderLists() {
           <span class="text-slate-400"><i class="fa-solid fa-calendar-day mr-1"></i>${fmt(ymd(e.exam_date))}</span></div>
         ${e.topics ? `<div class="text-[11px] text-slate-500 mt-1.5 line-clamp-2">${esc(e.topics)}</div>` : ''}</div>
       <div class="flex items-center pr-3">${trash('exams', e)}</div></div>`;
-  }).join('') || '<p class="text-xs text-slate-500">No exams yet.</p>';
+  }).join('') || empty('fa-calendar-day', 'No exams yet. Fill in the form above and press Add Exam to start a countdown.');
   const wkNow = wkKey(logicalNow());
   const isEnded = c => !!c.end_date && c.end_date < wkNow;
   const cl = D.classes.slice().sort((a, b) => (isEnded(a) - isEnded(b)) || (((+a.day_of_week + 1) % 7) - ((+b.day_of_week + 1) % 7)));
@@ -1051,7 +1176,7 @@ function renderLists() {
       : `<button onclick="editClass('${c.id}')" class="text-blue-400 hover:text-blue-300 ml-3" title="Edit (from this week on)"><i class="fa-solid fa-pen"></i></button>
          <button onclick="stopClass('${c.id}')" class="text-red-400 hover:text-red-300 ml-3" title="Remove from this week on"><i class="fa-solid fa-trash"></i></button>`;
     return `<div class="row ${ended ? 'opacity-60' : ''}"><div><b>${esc(c.title)}</b> (${esc(c.subject)})<span class="block text-[10px] text-slate-400">${DAYS[(+c.day_of_week + 1) % 7]} · ${c.duration_minutes} min${ended ? ' · ended' : ''}${info}</span></div><div class="flex items-center shrink-0">${acts}</div></div>`;
-  }).join('') || '<p class="text-xs text-slate-500">No classes yet.</p>';
+  }).join('') || empty('fa-chalkboard-user', 'No classes yet. Add your weekly classes above so they count toward your study hours.');
 }
 
 // ---------- Stopwatch ----------
@@ -1509,7 +1634,7 @@ function todoRender() {
     <input type="checkbox" ${x.done ? 'checked' : ''} onchange="todoToggle('${x.id}')" class="w-4 h-4 shrink-0">
     <span class="flex-1 min-w-0 break-words ${x.done ? 'line-through text-slate-500' : ''}">${esc(x.t)}</span>
     <button onclick="todoEdit('${x.id}')" class="text-blue-400 ml-2" title="Edit"><i class="fa-solid fa-pen"></i></button>
-    <button onclick="todoDel('${x.id}')" class="text-red-400 ml-3" title="Delete"><i class="fa-solid fa-trash"></i></button></div>`).join('') || '<p class="text-xs text-slate-500">No tasks yet.</p>';
+    <button onclick="todoDel('${x.id}')" class="text-red-400 ml-3" title="Delete"><i class="fa-solid fa-trash"></i></button></div>`).join('') || empty('fa-list-check', 'Nothing planned for today. Type a task above and press +.');
   const d = t.items.filter(x => x.done).length;
   $('tdCount').textContent = t.items.length ? `${d} / ${t.items.length} done` : '';
 }
@@ -1558,7 +1683,7 @@ function renderTestsChart() {
   const days = wk ? Array.from({ length: 7 }, (_, i) => addDays(weekStart(day), i)) : [day], keys = days.map(toYMD), per = {};
   D.tests.forEach(t => { const i = keys.indexOf(t.test_date); if (i >= 0 && +t.count > 0) (per[t.subject] = per[t.subject] || Array(days.length).fill(0))[i] += +t.count; });
   const total = Object.values(per).flat().reduce((a, b) => a + b, 0), names = Object.keys(per);
-  $('testsSum').textContent = `${wk ? fmt(days[0]) + ' - ' + fmt(days[6]) : fmt(day)}: ${total} tests`;
+  $('testsSum').textContent = `${wk ? fmt(days[0]) + ' - ' + fmt(days[6]) : fmt(day)}: ${total} tests` + (total ? '' : ' · enter numbers above and press Save tests');
   const labels = wk ? days.map(d => [(CAL === 'shamsi' ? DAYSF : DAYSE)[dayIdx(d)], fmt(d)]) : names;
   const datasets = wk ? names.map(n => ({ label: n, data: per[n], backgroundColor: color(n), borderRadius: 4 }))
                       : [{ label: 'Tests', data: names.map(n => per[n][0]), backgroundColor: names.map(color), borderRadius: 6 }];
@@ -1702,7 +1827,7 @@ function renderLB() {
   el.innerHTML = lbData.map((m, i) => `<div class="row ${m.user_id === user.id ? '!border-blue-500' : ''}">
     <div class="flex items-center gap-2 flex-wrap min-w-0"><span class="w-5 text-slate-400 font-mono">${i + 1}</span>
     <img src="${SIMG[levelOf(m.streak)]}" class="w-9 h-9 object-contain" alt=""><b class="truncate">${esc(m.username)}</b>${m.user_id === user.id ? ' (You)' : ''}${duBadge(m.user_id)}</div>
-    <span class="font-mono text-sm text-amber-300 shrink-0 ml-2">${m.streak} day${m.streak === 1 ? '' : 's'}</span></div>`).join('') || '<p class="text-xs text-slate-500 text-center py-4">No one yet.</p>';
+    <span class="font-mono text-sm text-amber-300 shrink-0 ml-2">${m.streak} day${m.streak === 1 ? '' : 's'}</span></div>`).join('') || empty('fa-trophy', 'No streaks on the board yet. Study today to be the first!');
 }
 
 const LB_MIN = 1;
@@ -1854,7 +1979,20 @@ function duBadge(uid) {
   return di ? `<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] bg-rose-500/15 text-rose-300 whitespace-nowrap">${di.lead ? '🎖️ ' : ''}⚔️ In duel</span>` : '';
 }
 
-function duelRow(d) {
+// --- top-bar helpers (dismiss X, winner check, which tab is open) ---
+const duDis = () => LS('ev_duel_dis', []);
+function duelDismiss(id) {
+  const a = duDis();
+  if (!a.includes(id)) { a.push(id); localStorage.setItem('ev_duel_dis', JSON.stringify(a.slice(-100))); }
+  duSig = ''; duelsRender();
+}
+const duIWon = d => {
+  const l = leadOf(d);
+  return !!user && ((l === 'c' && d.challenger_id === user.id) || (l === 'o' && d.opponent_id === user.id));
+};
+const inRoomTab = () => !$('roomTab').classList.contains('hidden');
+
+function duelRow(d, bar) {
   const t = todayK();
   const future = d.duel_date > t;
   const over = isDuelFinished(d);
@@ -1893,6 +2031,7 @@ function duelRow(d) {
     <div class="flex items-center justify-between gap-2">
       <span class="text-[11px] font-semibold ${over ? 'text-amber-300' : 'text-rose-300'}">${tag}</span>
       ${mine && !over ? `<button onclick="duelDel('${d.id}')" class="text-slate-500 hover:text-red-400" title="Cancel duel"><i class="fa-solid fa-xmark"></i></button>` : ''}
+      ${bar === true && over ? `<button onclick="duelDismiss('${d.id}')" class="text-slate-400 hover:text-white" title="Close"><i class="fa-solid fa-xmark"></i></button>` : ''}
     </div>
     ${side('c', d.challenger_name, d.challenger_id)}
     ${side('o', d.opponent_name, d.opponent_id)}
@@ -1908,7 +2047,8 @@ const outRow = d => `<div class="rounded-xl border-2 border-slate-800 bg-slate-9
 function duelsRender() {
   if (!user) return;
   const t = todayK(), list = DU.filter(duShown);
-  const sig = t + '|' + list.map(d => [
+  const room = inRoomTab(), dis = duDis();
+  const sig = t + '|' + (room ? 1 : 0) + '|' + dis.length + '|' + list.map(d => [
     d.id,
     d.status,
     isDuelFinished(d) ? 1 : 0,
@@ -1927,8 +2067,13 @@ function duelsRender() {
     const up = acc.filter(d => d.duel_date > t);
     const done = acc.filter(d => isDuelFinished(d));
 
-    const sec = (title, arr, fn) => arr.length ? `<div class="text-[11px] font-semibold text-slate-400 pt-1">${title}</div>` + arr.map(fn).join('') : '';
-    const bar = inc.map(reqRow).join('') + activeToday.filter(duMine).map(duelRow).join('') + done.filter(duMine).map(duelRow).join('');
+    const sec = (title, arr, fn) => arr.length ? `<div class="text-[11px] font-semibold text-slate-400 pt-1">${title}</div>` + arr.map(x => fn(x)).join('') : '';
+    // Top bar: requests only in Study Room tab; "in duel" bar only for the two duelists;
+    // finished result: Study Room tab for both, other tabs only for the winner; X hides it.
+    const bar =
+      (room ? inc.map(reqRow).join('') : '') +
+      activeToday.filter(duMine).map(d => duelRow(d, true)).join('') +
+      done.filter(d => duMine(d) && !dis.includes(d.id) && (room || duIWon(d))).map(d => duelRow(d, true)).join('');
     $('duelBar').innerHTML = bar;
     $('duelBar').classList.toggle('hidden', !bar);
     $('duelList').innerHTML =
@@ -1937,8 +2082,8 @@ function duelsRender() {
       sec('In duel today', activeToday, duelRow) +
       sec('Scheduled', up, duelRow) +
       sec('Duel finished', done, duelRow)
-      || '<p class="text-xs text-slate-500 text-center py-2">No duels yet. Challenge someone!</p>';
-    $('roomDuels').innerHTML = activeToday.length ? `<div class="text-[11px] font-semibold text-rose-300">⚔️ In duel</div>` + activeToday.map(duelRow).join('') : '';
+      || empty('fa-khanda', 'No duels yet. Choose a person and a day above, then press Send duel.');
+    $('roomDuels').innerHTML = activeToday.length ? `<div class="text-[11px] font-semibold text-rose-300">⚔️ In duel</div>` + activeToday.map(x => duelRow(x)).join('') : '';
     renderRoom();
     renderLB();
   }
@@ -2179,7 +2324,7 @@ function renderRoom() {
   if (!$('roomTab').classList.contains('hidden')) {
     const A = roomRows.filter(m => ds.has(m.user_id)), B = roomRows.filter(m => !ds.has(m.user_id));
     $('roomList').innerHTML = (A.length ? `<div class="text-[11px] font-semibold text-rose-300">⚔️ In duel</div>` + A.map(rowH).join('') + (B.length ? '<div class="border-t-2 border-dashed border-slate-800 my-2"></div>' : '') : '')
-      + B.map(rowH).join('') || '<p class="text-xs text-slate-500 text-center py-4">No active members.</p>';
+      + B.map(rowH).join('') || empty('fa-users', 'Nobody is studying right now. Start your timer to join the room.', "tab('timerTab')", 'Go to Timer');
   }
   if (focusActive) $('focusRoom').innerHTML = roomRows.map(m => { const di = duelInfo(m.user_id); return `<div class="flex justify-between items-center text-xs"><span class="truncate mr-2 text-slate-300">${di ? (di.lead ? '🎖️' : '') + '⚔️ ' : ''}${esc(m.username)}${m.user_id === user.id ? ' (You)' : ''}</span><span class="font-mono ${m.is_studying ? 'text-emerald-400' : 'text-slate-500'}">${hms(secs(m))}</span></div>`; }).join('') || '<p class="text-[11px] text-slate-500">No active members.</p>';
 }
