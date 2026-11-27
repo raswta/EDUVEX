@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDUVEX - Live Study Planner</title>
-<meta name="build" content="20261127-5">
+<meta name="build" content="20261127-6">
 <link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="manifest" href="manifest.json">
@@ -640,6 +640,8 @@ const LS = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } 
 
 let user = null, running = false, base = 0, lastTick = 0, tInt = null, roomInt = null;
 let inRoom = false, pomo = false, pState = 'study', pLeft = 0, alerted = {};
+let roomLeft = false;
+const ROOM_STALE = 180000;
 let wChart = null, mChart = null, starts = [];
 let segs = {}, tops = {}, tseg = {}, curSub = 'General Study', runId = null;
 let focusActive = false, wakeLock = null, roomRows = [], roomAt = 0, pushErr = '', presenceSecs = 0, askOpen = false;
@@ -923,7 +925,10 @@ function onLogin() {
   }, 5000);
   setInterval(() => { if (user && DU.length) { duSig = ''; duelsRender(); } }, 1000);
   if (!roomInt) {
-    roomInt = setInterval(() => { if (inRoom || focusActive || !$('roomTab').classList.contains('hidden')) syncRoom(); }, 10000);
+    roomInt = setInterval(() => {
+      if ((running || base > 0) && !inRoom && !roomLeft && navigator.onLine) inRoom = true;
+      if (inRoom || running || base > 0 || focusActive || !$('roomTab').classList.contains('hidden')) syncRoom();
+    }, 5000);
     setInterval(() => { if (focusActive || !$('roomTab').classList.contains('hidden')) renderRoom(); }, 1000);
   }
 }
@@ -1324,6 +1329,7 @@ function toggleTimer() {
     if (pomo && pLeft <= 0) { pState = 'study'; pLeft = (+$('pomoStudy').value || 50) * 60; }
     tInt = setInterval(tick, 1000);
     pushSchedule();
+    roomLeft = false;
     if (user && navigator.onLine && !inRoom) {
       inRoom = true;
       syncRoom();
@@ -1960,11 +1966,13 @@ function duSecs(d, side) {
   if (!finMarker && d.duel_date === todayK() && uid !== (user && user.id)) {
     // other player: tick smoothly between server updates while they are studying
     const key = d.id + side, now = Date.now();
+    const rmx = roomRows.find(m => m.user_id === uid);
+    const sv = Math.max(saved, rmx && rmx.is_studying ? (+rmx.live_seconds || 0) : 0);
     let L = duLive[key];
-    if (!L) L = duLive[key] = { srv: saved, at: now, shown: saved };
-    if (L.srv !== saved) { L.srv = saved; L.at = now; }
-    if (!isTicking(uid)) { L.shown = saved; L.at = now; return saved; }
-    L.shown = Math.max(L.shown, saved + (now - L.at) / 1000);
+    if (!L) L = duLive[key] = { srv: sv, at: now, shown: sv };
+    if (L.srv !== sv) { L.srv = sv; L.at = now; }
+    if (!isTicking(uid)) { L.shown = Math.max(L.shown, sv); L.at = now; return L.shown; }
+    L.shown = Math.max(L.shown, sv + (now - L.at) / 1000);
     return L.shown;
   }
   return saved;
@@ -2191,7 +2199,7 @@ async function duelsPush() {
     if (v === (+d[col] || 0) || duelPushed[d.id + col] === v) continue;
     duelPushed[d.id + col] = v;
     const { error } = await sb.from('duels').update({ [col]: v }).eq('id', d.id);
-    if (error) { console.error('duel push', error); delete duelPushed[d.id + col]; } else d[col] = v;
+    if (error) { console.error('duel push', error); delete duelPushed[d.id + col]; if (!duelsPush.warned) { duelsPush.warned = 1; alert('Could not update your duel time: ' + error.message); } } else d[col] = v;
   }
 }
 
@@ -2327,10 +2335,12 @@ function unpackSubject(raw) {
 async function manualJoin() {
   if (!running) return modal('timerOff', 1);
   if (!navigator.onLine) return alert('You cannot join the study room while offline.');
+  roomLeft = false;
   inRoom = true;
   syncRoom();
 }
 async function manualLeave() {
+  roomLeft = true;
   inRoom = false;
   if (user && navigator.onLine) await sb.from('room_members').delete().eq('user_id', user.id);
   syncRoom();
@@ -2351,17 +2361,17 @@ async function syncRoom() {
       current_subject: packSubject(),
       last_active: new Date().toISOString()
     }, { onConflict: 'user_id' });
-    if (error) console.error('room', error);
+    if (error) { console.error('room', error); if (!syncRoom.warned) { syncRoom.warned = 1; alert('Could not join the study room: ' + error.message); } }
   }
   const { data } = await sb.from('room_members').select('*');
-  roomRows = (data || []).filter(m => !m.last_active || Date.now() - new Date(m.last_active) < 20000); roomAt = Date.now();
+  roomRows = (data || []).filter(m => !m.last_active || Date.now() - new Date(m.last_active) < ROOM_STALE); roomAt = Date.now();
   renderRoom();
 }
 const hms = s => { s = Math.max(0, Math.floor(s)); const p = n => String(n).padStart(2, '0'); return `${p(Math.floor(s / 3600))}:${p(Math.floor(s % 3600 / 60))}:${p(s % 60)}`; };
 function renderRoom() {
   if (!user) return;
   const el = Math.max(0, Math.min(10, (Date.now() - roomAt) / 1000));
-  const secs = m => m.user_id === user.id && (running || base > 0) ? base : (m.live_seconds || 0) + (m.is_studying ? el : 0);
+  const secs = m => { if (m.user_id === user.id && (running || base > 0)) return base; const age = m.last_active ? (Date.now() - new Date(m.last_active).getTime()) / 1000 : 0; return (m.live_seconds || 0) + (m.is_studying ? (age > 20 ? Math.min(age, ROOM_STALE / 1000) : el) : 0); };
   const ds = duelIds();
   const rowH = m => {
     const { sub, cls } = unpackSubject(m.current_subject);
@@ -2472,7 +2482,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('online', () => { status(); refresh(); });
   window.addEventListener('offline', status);
   ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, presenceTouch, { passive: true }));
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (running) tick(); autoSaveForgotten(); checkUpdate(false); if (focusActive) wakeOn(); } });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (running) tick(); if (inRoom) syncRoom(); duelsPush(); autoSaveForgotten(); checkUpdate(false); if (focusActive) wakeOn(); } });
   window.addEventListener('storage', e => { if ((e.key === 'ev_timer_done' || e.key === 'ev_timer_finished_at') && runId && (e.newValue === runId || isStale(runId))) abandon(); });
   checkUpdate(true);
   let session = null, slow = false;
